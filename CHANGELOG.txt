@@ -1,0 +1,15 @@
+# Soundboard Changelog
+
+## Version 1.0.1
+Below are the changes in the first update to Soundboard now that it's on Curseforge!
+
+### Sound System
+- **Default Soundpack**: Added comprehensive sound library with 450+ sound files
+- **Template System**: Sound pack template for creating custom sound collections
+- **Multi-format Support**: MP3 audio file support with embedded metadata
+
+### User Interface & Experience
+- **GUI Framework**: Complete graphical interface using AceGUI widgets
+- **Configuration System**: In-game configuration panels and slash commands
+- **Minimap Integration**: LibDBIcon integration for minimap button
+- **Multi-Version Support**: Compatible with Classic, TBC, Wrath, Cata, and MoP (Interface versions 11503-50400)

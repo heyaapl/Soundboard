@@ -1,0 +1,54 @@
+name: Package and release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - '*'
+  release:
+    types:
+      - published
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    env:
+      CF_API_KEY: ${{ secrets.CURSE_API_KEY }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout addon
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from TOC
+        id: extract_version
+        run: |
+          VERSION=$(grep "^## Version:" Soundboard.toc | sed 's/^## Version: *//')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Determine release type
+        id: release_type
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "RELEASE_TYPE=release" >> $GITHUB_OUTPUT
+            echo "Release type: release (main/master branch)"
+          else
+            echo "RELEASE_TYPE=alpha" >> $GITHUB_OUTPUT
+            echo "Release type: alpha (feature branch)"
+          fi
+
+      - name: Create package
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -g ${{ env.GITHUB_OAUTH }} -u ${{ env.CF_API_KEY }} -r ${{ steps.release_type.outputs.RELEASE_TYPE }}
+
+      - name: Upload to CurseForge
+        if: env.CF_API_KEY != null
+        run: |
+          echo "Package uploaded to CurseForge with release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
+          echo "Version: ${{ steps.extract_version.outputs.VERSION }}"
