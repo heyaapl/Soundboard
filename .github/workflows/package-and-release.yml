@@ -67,7 +67,7 @@ jobs:
           CF_API_KEY: ${{ env.CF_API_KEY }}
           GITHUB_OAUTH: ${{ env.GITHUB_OAUTH }}
         with:
-          args: -r ${{ steps.release_type.outputs.RELEASE_TYPE }} -p ${{ github.repository_owner }}
+          args: -g ${{ env.GITHUB_OAUTH }} -u ${{ env.CF_API_KEY }} -r ${{ steps.release_type.outputs.RELEASE_TYPE }}
 
       - name: Package summary
         run: |
