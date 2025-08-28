@@ -564,9 +564,9 @@ function SoundboardDropdown:Initialize()
 	-- Create scroll frame with proper template - ensure scrollbar stays within bounds
 	local scrollFrame = CreateFrame("ScrollFrame", nil, self.frame, "UIPanelScrollFrameTemplate")
 	scrollFrame:SetPoint("TOPLEFT", SoundboardUI.Scale(4), -SoundboardUI.Scale(4))
-	scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(10), SoundboardUI.Scale(4)) -- Adjusted to -10px to ensure scrollbar stays within bounds
+	scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(10), SoundboardUI.Scale(4)) -- Scrollbar stays in original position
 	self.scrollFrame = scrollFrame
-	DebugPrint("Scroll frame created with scrollbar properly contained within bounds")
+	DebugPrint("Scroll frame created with scrollbar in original position")
 	
 	-- Set up mouse wheel scrolling (will be enabled/disabled by UpdateScrollbar as needed)
 	self.frame:EnableMouseWheel(false) -- Start disabled, UpdateScrollbar will enable if needed
@@ -748,17 +748,16 @@ function SoundboardDropdown:BuildCategories()
 	DebugPrint("Categories built successfully")
 end
 
--- Helper function to update all button widths based on scrollbar visibility
+-- Helper function to update all button widths to fit within content area (not clipped by scrollbar)
 function SoundboardDropdown:UpdateButtonWidths()
 	if not self.content then return end
 	
-	local scrollbarVisible = self.scrollbar and self.scrollbar:IsShown()
-	-- Calculate width to fit within scroll frame bounds while allowing border rendering
-	-- Scroll frame right edge: 300px - 3px = 297px
-	-- Button left offset: 4px, so max button width: 297px - 4px = 293px
-	-- Leave 3px margin for border rendering: 293px - 3px = 290px
-	-- With scrollbar: leave more space for scrollbar clearance
-	local buttonWidth = scrollbarVisible and 272 or 290 -- Fit within scroll frame while preserving borders
+	-- Calculate available width for content to avoid border clipping
+	-- Frame is 300px wide, scroll frame right edge at 290px (300-10), scrollbar ~20px wide
+	-- Need additional space for border rendering on the right side
+	-- Button positioning: 4px left offset within content, need ~10px right margin for full borders
+	-- Effective button width: 250px (prevents border clipping and ensures full box styling)
+	local buttonWidth = 250 -- Fixed width that allows full border rendering
 	
 	-- Update all buttons in the content frame
 	local buttons = {self.content:GetChildren()}
@@ -769,7 +768,7 @@ function SoundboardDropdown:UpdateButtonWidths()
 		end
 	end
 	
-	DebugPrint("Updated " .. #buttons .. " buttons to width " .. buttonWidth .. " (scrollbar visible: " .. tostring(scrollbarVisible) .. ")")
+	DebugPrint("Updated " .. #buttons .. " buttons to width " .. buttonWidth .. " (fixed width to allow full border rendering)")
 end
 
 function SoundboardDropdown:CountCategories()
@@ -1160,12 +1159,12 @@ function SoundboardDropdown:CreateButton(text, yOffset, isTitle, isSecondaryHead
 	local button = CreateFrame("Button", nil, self.content)
 	DebugPrint("Button frame created")
 	
-	-- Dynamic button width - will be adjusted when scrollbar shows/hides  
-	-- Base width ensures right border has space to render properly
-	local baseWidth = 290 -- Width allowing right border to render (300px frame - 4px left - 6px right for border)
-	button:SetSize(baseWidth, 20)
+	-- Fixed button width to allow full border rendering
+	-- Matches UpdateButtonWidths calculation: 250px to ensure full box borders display
+	local buttonWidth = 250
+	button:SetSize(buttonWidth, 20)
 	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
-	DebugPrint("Button positioned with dynamic width for smart scrollbar")
+	DebugPrint("Button positioned with fixed width to prevent scrollbar clipping")
 	
 	-- Apply ElvUI-style button styling for non-titles using selected template
 	if not isTitle and not isSecondaryHeader then
