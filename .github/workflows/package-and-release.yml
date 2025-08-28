@@ -11,12 +11,16 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'heyaapl'
+    permissions:
+      contents: write  # Required to create and push tags
+      actions: read
 
     steps:
       - name: Checkout addon
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from TOC
         id: version
@@ -39,10 +43,10 @@ jobs:
           fi
           
           echo "Creating release tag: ${TAG_NAME}"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "${TAG_NAME}" -m "Release ${VERSION} from main branch"
-          git push origin "${TAG_NAME}"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git "${TAG_NAME}"
           
           echo "✅ Created release tag: ${TAG_NAME}"
           echo "📦 CurseForge will detect this as: Release"
@@ -56,10 +60,10 @@ jobs:
           TAG_NAME="v${VERSION}-beta-${BRANCH_NAME}-${TIMESTAMP}"
           
           echo "Creating beta tag: ${TAG_NAME}"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "${TAG_NAME}" -m "Beta ${VERSION} from branch ${BRANCH_NAME}"
-          git push origin "${TAG_NAME}"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git "${TAG_NAME}"
           
           echo "✅ Created beta tag: ${TAG_NAME}"
           echo "📦 CurseForge will detect this as: Beta"
