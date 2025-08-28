@@ -591,12 +591,17 @@ local function PlayNextInQueue()
 	local nextSound = table.remove(SoundQueue.queue, 1)
 	SoundQueue.currentSound = nextSound
 	SoundQueue.isPlaying = true
-	SoundQueue.currentSoundStartTime = time()  -- Track when sound started
 	
-	DebugPrint("Playing next sound from queue: " .. tostring(nextSound.file) .. " at time: " .. SoundQueue.currentSoundStartTime)
+	DebugPrint("Playing next sound from queue: " .. tostring(nextSound.file))
 	
 	-- Play the sound using our volume-controlled method
 	local success = Soundboard:PlaySoundDirect(nextSound.file, nextSound.volume)
+	
+	-- Set timing AFTER successful sound start for better accuracy
+	if success then
+		SoundQueue.currentSoundStartTime = time()  -- Track when sound started
+		DebugPrint("Sound started successfully at time: " .. SoundQueue.currentSoundStartTime)
+	end
 	
 	if success then
 		-- Set timer for when sound finishes
@@ -631,27 +636,32 @@ local function CalculateQueueTime()
 	local totalTime = 0
 	
 	-- Add remaining time for currently playing sound
-	if SoundQueue.isPlaying and SoundQueue.currentSound and SoundQueue.currentSoundStartTime then
-		local currentDuration = GetSoundDuration(SoundQueue.currentSound.file)
-		local elapsed = time() - SoundQueue.currentSoundStartTime
-		local remaining = math.max(0, currentDuration - elapsed)
-		totalTime = totalTime + remaining
-		DebugPrint("Current sound remaining time: " .. remaining .. " seconds")
-	elseif SoundQueue.isPlaying and SoundQueue.currentSound then
-		-- Fallback if we don't have start time
-		local currentDuration = GetSoundDuration(SoundQueue.currentSound.file)
-		totalTime = totalTime + currentDuration
-		DebugPrint("Current sound estimated remaining (no start time): " .. currentDuration .. " seconds")
+	if SoundQueue.isPlaying and SoundQueue.currentSound then
+		if SoundQueue.currentSoundStartTime then
+			-- Use precise timing if available
+			local currentDuration = GetSoundDuration(SoundQueue.currentSound.file, SoundQueue.currentSound.key)
+			local elapsed = time() - SoundQueue.currentSoundStartTime
+			local remaining = math.max(0, currentDuration - elapsed)
+			totalTime = totalTime + remaining
+			DebugPrint("Current sound (" .. (SoundQueue.currentSound.key or "unknown") .. ") remaining: " .. string.format("%.1f", remaining) .. "s (elapsed: " .. string.format("%.1f", elapsed) .. "s, total: " .. string.format("%.1f", currentDuration) .. "s)")
+		else
+			-- Fallback: assume full duration remaining (should be rare)
+			local currentDuration = GetSoundDuration(SoundQueue.currentSound.file, SoundQueue.currentSound.key)
+			totalTime = totalTime + currentDuration
+			DebugPrint("Current sound (" .. (SoundQueue.currentSound.key or "unknown") .. ") estimated remaining (no start time): " .. currentDuration .. "s")
+		end
 	end
 	
-	-- Add time for all queued sounds
+	-- Add time for all queued sounds (excluding the one we're calculating for)
+	local queueCount = 0
 	for _, queuedSound in ipairs(SoundQueue.queue) do
-		local soundDuration = GetSoundDuration(queuedSound.file)
+		local soundDuration = GetSoundDuration(queuedSound.file, queuedSound.key)
 		totalTime = totalTime + soundDuration
-		DebugPrint("Queued sound (" .. (queuedSound.key or "unknown") .. ") duration: " .. soundDuration .. " seconds")
+		queueCount = queueCount + 1
+		DebugPrint("Queued sound #" .. queueCount .. " (" .. (queuedSound.key or "unknown") .. ") duration: " .. soundDuration .. "s")
 	end
 	
-	DebugPrint("Total calculated queue time: " .. totalTime .. " seconds")
+	DebugPrint("Total queue time: " .. string.format("%.1f", totalTime) .. "s (" .. queueCount .. " queued sounds)")
 	return totalTime
 end
 
@@ -681,23 +691,29 @@ local function QueueSound(soundFile, volume, key)
 		return true
 	end
 	
-	-- Calculate position and time before adding to queue
-	local queuePosition = #SoundQueue.queue + 1  -- Position if added
-	local estimatedWaitTime = CalculateQueueTime()
-	
-	-- Try to add to queue
+	-- Try to add to queue first
 	local success, status = AddSoundToQueue(soundFile, volume, key)
+	
+	-- Calculate position and time AFTER adding to queue for accurate results
+	local queuePosition = #SoundQueue.queue  -- Current position in queue
+	local estimatedWaitTime = CalculateQueueTime()
 	
 	if success then
 		-- Provide user feedback with queue position and estimated time
 		local soundName = key and ("/" .. key) or "Sound"
 		local soundsAhead = queuePosition - 1  -- Sounds ahead in queue (not counting currently playing)
 		
+		-- Round the wait time to a reasonable precision
+		local waitTimeRounded = math.max(1, math.ceil(estimatedWaitTime))
+		
 		if soundsAhead == 0 then
-			Soundboard:Print(soundName .. " will play next in " .. math.ceil(estimatedWaitTime) .. " seconds")
+			Soundboard:Print(soundName .. " will play next in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s"))
 		else
-			Soundboard:Print(soundName .. " will play in " .. math.ceil(estimatedWaitTime) .. " seconds, and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or ""))
+			Soundboard:Print(soundName .. " will play in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. ", and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or ""))
 		end
+		
+		-- Debug output for troubleshooting
+		DebugPrint("Queue feedback: " .. soundName .. " | Position: " .. queuePosition .. " | Estimated wait: " .. string.format("%.1f", estimatedWaitTime) .. "s | Sounds ahead: " .. soundsAhead)
 	end
 	
 	return success
