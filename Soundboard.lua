@@ -15,6 +15,358 @@ local function DebugPrint(...)
 	end
 end
 
+-- ElvUI-Style UI System (independent implementation)
+local SoundboardUI = {
+	-- Template-specific Color Schemes
+	templates = {
+		Default = {
+			backdrop = {0, 0, 0, 1},           -- Solid black background
+			backdropFade = {0, 0, 0, 1},       -- Solid black
+			border = {1, 0.82, 0, 1},          -- Gold border (was black)
+			text = {1, 0.82, 0, 1},            -- Gold text
+			textHover = {1, 1, 1, 1},          -- White hover
+			scrollbar = {1, 0.82, 0, 1},       -- Gold scrollbar
+			alpha = 1.0,                       -- Fully opaque
+		},
+		Transparent = {
+			backdrop = {0.1, 0.1, 0.1, 1},     -- Dark gray background (alpha handled separately)
+			backdropFade = {0.06, 0.06, 0.06, 1}, -- Dark fade (alpha handled separately)
+			border = {0, 0, 0, 1},             -- Black border
+			text = {1, 1, 1, 1},               -- White text
+			textHover = {0.7, 0.7, 0.7, 1},    -- Light gray hover
+			scrollbar = {1, 1, 1, 1},          -- White scrollbar
+			alpha = 0.7,                       -- 70% opacity (more visible than 60%)
+		},
+		ClassColor = {
+			backdrop = {0.1, 0.1, 0.1, 1},     -- Dark gray background (alpha handled separately)
+			backdropFade = {0.06, 0.06, 0.06, 1}, -- Dark fade (alpha handled separately)
+			border = nil,                       -- Will be set to class color
+			text = nil,                         -- Will be set to class color
+			textHover = {1, 1, 1, 1},          -- White hover (except priests)
+			scrollbar = nil,                    -- Will be set to class color
+			alpha = 0.8,                       -- 80% opacity (more visible than 30%)
+		}
+	},
+	
+	-- Current active template colors (will be set based on selection)
+	colors = {
+		backdrop = {0, 0, 0, 1},
+		backdropFade = {0, 0, 0, 1},
+		border = {0, 0, 0, 1},
+		text = {1, 0.82, 0, 1},
+		textHover = {1, 1, 1, 1},
+		scrollbar = {1, 0.82, 0, 1},
+		classColor = nil, -- Will be set based on player class
+		alpha = 1.0 -- Current template alpha
+	}
+}
+
+-- Initialize class color and template colors
+local function InitializeClassColor()
+	local _, class = UnitClass("player")
+	if class and RAID_CLASS_COLORS[class] then
+		local color = RAID_CLASS_COLORS[class]
+		SoundboardUI.colors.classColor = {color.r, color.g, color.b, 1}
+		
+		-- Set ClassColor template colors
+		SoundboardUI.templates.ClassColor.border = {color.r, color.g, color.b, 1}
+		SoundboardUI.templates.ClassColor.text = {color.r, color.g, color.b, 1}
+		SoundboardUI.templates.ClassColor.scrollbar = {color.r, color.g, color.b, 1}
+		
+		-- Special case for priests - grey hover instead of white
+		if class == "PRIEST" then
+			SoundboardUI.templates.ClassColor.textHover = {0.7, 0.7, 0.7, 1}
+		end
+	else
+		-- Fallback to default colors
+		SoundboardUI.colors.classColor = {0, 0, 0, 1}
+		SoundboardUI.templates.ClassColor.border = {0, 0, 0, 1}
+		SoundboardUI.templates.ClassColor.text = {1, 1, 1, 1}
+		SoundboardUI.templates.ClassColor.scrollbar = {0, 0, 0, 1}
+	end
+end
+
+-- Update active colors based on template selection
+local function UpdateTemplateColors(template)
+	template = template or "Default"
+	local templateColors = SoundboardUI.templates[template]
+	if not templateColors then
+		templateColors = SoundboardUI.templates.Default
+	end
+	
+	-- Update active colors
+	SoundboardUI.colors.backdrop = templateColors.backdrop
+	SoundboardUI.colors.backdropFade = templateColors.backdropFade  
+	SoundboardUI.colors.border = templateColors.border
+	SoundboardUI.colors.text = templateColors.text
+	SoundboardUI.colors.textHover = templateColors.textHover
+	SoundboardUI.colors.scrollbar = templateColors.scrollbar
+	SoundboardUI.colors.alpha = templateColors.alpha
+	
+	DebugPrint("Template colors updated for: " .. template .. " (alpha: " .. templateColors.alpha .. ")")
+end
+
+-- Scaling function (like ElvUI's E:Scale)
+local function Scale(value)
+	local uiScale = UIParent:GetEffectiveScale()
+	local perfectScale = 768 / select(2, GetPhysicalScreenSize())
+	return (value / perfectScale) * uiScale
+end
+
+-- SetTemplate function (like ElvUI's SetTemplate)
+local function SetTemplate(frame, template, glossTex, ignoreUpdates, forcePixelMode)
+	template = template or "Default"
+	
+	-- Update colors for selected template
+	UpdateTemplateColors(template)
+	
+	frame.template = template
+	
+	-- Remove existing backdrop
+	if frame.backdrop then
+		frame.backdrop:Hide()
+		frame.backdrop = nil
+	end
+	
+	-- Create backdrop frame
+	local backdrop = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+	backdrop:SetAllPoints(frame)
+	backdrop:SetFrameLevel(math.max(0, frame:GetFrameLevel() - 1))
+	
+	-- Set backdrop with thinner borders
+	backdrop:SetBackdrop({
+		bgFile = "Interface\\Buttons\\WHITE8x8",
+		edgeFile = "Interface\\Buttons\\WHITE8x8",
+		tile = false,
+		tileSize = 0,
+		edgeSize = Scale(0.5), -- Reduced from 1 to 0.5 for thinner outlines
+		insets = {left = Scale(0.5), right = Scale(0.5), top = Scale(0.5), bottom = Scale(0.5)} -- Reduced insets too
+	})
+	
+	-- Apply template-specific colors with proper alpha handling
+	local r, g, b = unpack(SoundboardUI.colors.backdrop)
+	backdrop:SetBackdropColor(r, g, b, SoundboardUI.colors.alpha)
+	backdrop:SetBackdropBorderColor(unpack(SoundboardUI.colors.border))
+	
+	frame.backdrop = backdrop
+	return backdrop
+end
+
+-- CreateBackdrop function (like ElvUI's CreateBackdrop) 
+local function CreateBackdrop(frame, template, ignoreUpdates, forcePixelMode)
+	return SetTemplate(frame, template, nil, ignoreUpdates, forcePixelMode)
+end
+
+-- Handle scrollbar styling (exact ElvUI implementation)
+local function HandleScrollBar(scrollBar, template)
+	if not scrollBar then return end
+	
+	-- Allow re-styling by clearing previous styling flag
+	if scrollBar.sbStyled and scrollBar.backdrop then
+		-- Clear existing styling to allow re-application
+		scrollBar.backdrop:Hide()
+		scrollBar.backdrop = nil
+		scrollBar.sbStyled = nil
+	elseif scrollBar.backdrop then
+		return -- Already styled and not clearing
+	end
+	
+	template = template or "Default"
+	UpdateTemplateColors(template) -- Ensure colors are updated
+	
+	-- Find buttons - ElvUI method
+	local upButton = scrollBar.ScrollUpButton or scrollBar.UpButton
+	local downButton = scrollBar.ScrollDownButton or scrollBar.DownButton
+	
+	-- Find thumb - ElvUI method  
+	local thumb = scrollBar.ThumbTexture or (scrollBar.GetThumbTexture and scrollBar:GetThumbTexture())
+	
+	-- Strip all textures like ElvUI
+	if scrollBar.Background then scrollBar.Background:Hide() end
+	if scrollBar.Track then scrollBar.Track:SetTexture("") end
+	if scrollBar.ScrollUpBorder then scrollBar.ScrollUpBorder:Hide() end
+	if scrollBar.ScrollDownBorder then scrollBar.ScrollDownBorder:Hide() end
+	
+	-- Create main backdrop exactly like ElvUI (between buttons, not covering them)
+	CreateBackdrop(scrollBar, "Transparent")
+	
+	-- Position backdrop to fill full height (not just between buttons)
+	scrollBar.backdrop:SetPoint('TOPLEFT', scrollBar, 'TOPLEFT', 0, 0)
+	scrollBar.backdrop:SetPoint('BOTTOMRIGHT', scrollBar, 'BOTTOMRIGHT', 0, 0)
+	
+	local frameLevel = scrollBar:GetFrameLevel()
+	
+	-- Style up button exactly like ElvUI's HandleNextPrevButton
+	if upButton then
+		-- Strip textures
+		upButton:SetNormalTexture("")
+		upButton:SetPushedTexture("")
+		upButton:SetDisabledTexture("")
+		upButton:SetHighlightTexture("")
+		if upButton.Texture then upButton.Texture:SetAlpha(0) end
+		
+		-- Create button backdrop with minimal/no border
+		CreateBackdrop(upButton, "Transparent") -- Use transparent template for minimal borders
+		upButton:SetFrameLevel(frameLevel + 3) -- Above scrollbar backdrop
+		upButton:SetSize(18, 18) -- ElvUI standard size
+		
+		-- Use ElvUI arrow texture approach
+		upButton:SetNormalTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
+		upButton:SetPushedTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
+		upButton:SetDisabledTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
+		
+		local normal = upButton:GetNormalTexture()
+		local pushed = upButton:GetPushedTexture()
+		local disabled = upButton:GetDisabledTexture()
+		
+		-- Get template colors for arrows
+		local scrollbarColor = SoundboardUI.colors.scrollbar
+		
+		if normal then
+			normal:SetAllPoints()
+			normal:SetTexCoord(0, 1, 0, 1)
+			normal:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
+		end
+		if pushed then
+			pushed:SetAllPoints()
+			pushed:SetTexCoord(0, 1, 0, 1)
+			pushed:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
+		end
+		if disabled then
+			disabled:SetAllPoints()
+			disabled:SetTexCoord(0, 1, 0, 1)
+			disabled:SetVertexColor(0.3, 0.3, 0.3) -- Keep disabled as gray
+		end
+	end
+	
+	-- Style down button exactly like ElvUI's HandleNextPrevButton
+	if downButton then
+		-- Strip textures
+		downButton:SetNormalTexture("")
+		downButton:SetPushedTexture("")
+		downButton:SetDisabledTexture("")
+		downButton:SetHighlightTexture("")
+		if downButton.Texture then downButton.Texture:SetAlpha(0) end
+		
+		-- Create button backdrop with minimal/no border
+		CreateBackdrop(downButton, "Transparent") -- Use transparent template for minimal borders
+		downButton:SetFrameLevel(frameLevel + 3) -- Above scrollbar backdrop  
+		downButton:SetSize(18, 18) -- ElvUI standard size
+		
+		-- Use ElvUI arrow texture approach with rotation
+		downButton:SetNormalTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
+		downButton:SetPushedTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp") 
+		downButton:SetDisabledTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
+		
+		local normal = downButton:GetNormalTexture()
+		local pushed = downButton:GetPushedTexture()
+		local disabled = downButton:GetDisabledTexture()
+		
+		-- Get template colors for arrows
+		local scrollbarColor = SoundboardUI.colors.scrollbar
+		
+		if normal then
+			normal:SetAllPoints()
+			normal:SetTexCoord(0, 1, 0, 1)
+			normal:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
+			normal:SetRotation(math.pi) -- Rotate for down arrow
+		end
+		if pushed then
+			pushed:SetAllPoints()
+			pushed:SetTexCoord(0, 1, 0, 1)
+			pushed:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
+			pushed:SetRotation(math.pi)
+		end
+		if disabled then
+			disabled:SetAllPoints()
+			disabled:SetTexCoord(0, 1, 0, 1)
+			disabled:SetVertexColor(0.3, 0.3, 0.3) -- Keep disabled as gray
+			disabled:SetRotation(math.pi)
+		end
+	end
+	
+	-- Style thumb exactly like ElvUI
+	if thumb then
+		thumb:SetTexture() -- Remove default texture
+		
+		-- Always recreate backdrop for template changes (remove existing first)
+		if thumb.backdrop then
+			thumb.backdrop:Hide()
+			thumb.backdrop = nil
+		end
+		
+		CreateBackdrop(thumb, template)
+		
+		if not scrollBar.Thumb then
+			scrollBar.Thumb = thumb
+		end
+		
+		if thumb.backdrop then
+			-- ElvUI thumb positioning with offsets
+			local thumbX, thumbY = 0, 0
+			thumb.backdrop:SetPoint('TOPLEFT', thumb, thumbX, -thumbY)
+			thumb.backdrop:SetPoint('BOTTOMRIGHT', thumb, -thumbX, thumbY)
+			thumb.backdrop:SetFrameLevel(frameLevel + 1)
+			
+			-- Use template-specific scrollbar color with some transparency for better visibility
+			local scrollbarColor = SoundboardUI.colors.scrollbar
+			local backgroundColor = {scrollbarColor[1], scrollbarColor[2], scrollbarColor[3], 0.8} -- 80% alpha for thumb background
+			thumb.backdrop:SetBackdropColor(unpack(backgroundColor))
+			thumb.backdrop:SetBackdropBorderColor(unpack(SoundboardUI.colors.border))
+			
+			-- Add hover effects for better interactivity
+			thumb:SetScript("OnEnter", function()
+				if thumb.backdrop then
+					thumb.backdrop:SetBackdropColor(scrollbarColor[1], scrollbarColor[2], scrollbarColor[3], 0.9) -- Brighter on hover
+				end
+			end)
+			
+			thumb:SetScript("OnLeave", function()
+				if thumb.backdrop then
+					thumb.backdrop:SetBackdropColor(scrollbarColor[1], scrollbarColor[2], scrollbarColor[3], 0.8) -- Back to normal
+				end
+			end)
+		end
+	end
+end
+
+-- Button styling function  
+local function StyleButton(button, template)
+	if not button or button.sbStyled then return end
+	
+	CreateBackdrop(button, template or "Default")
+	
+	-- Remove default textures
+	button:SetNormalTexture("")
+	button:SetHighlightTexture("")
+	button:SetPushedTexture("")
+	button:SetDisabledTexture("")
+	
+	-- Add hover effects
+	local originalColor = SoundboardUI.colors.backdrop
+	
+	button:HookScript("OnEnter", function()
+		if button.backdrop then
+			button.backdrop:SetBackdropColor(unpack(SoundboardUI.colors.highlight))
+		end
+	end)
+	
+	button:HookScript("OnLeave", function()
+		if button.backdrop then
+			button.backdrop:SetBackdropColor(unpack(originalColor))
+		end
+	end)
+	
+	button.sbStyled = true
+end
+
+-- Add functions to SoundboardUI for easy access
+SoundboardUI.SetTemplate = SetTemplate
+SoundboardUI.CreateBackdrop = CreateBackdrop  
+SoundboardUI.HandleScrollBar = HandleScrollBar
+SoundboardUI.StyleButton = StyleButton
+SoundboardUI.Scale = Scale
+
 -- Class color system (matching ElvUI's approach)
 local function GetPlayerClassColor()
 	local _, class = UnitClass("player")
@@ -67,47 +419,39 @@ local HAS_PARTY_CATEGORIES = type(LE_PARTY_CATEGORY_HOME) == "number" and type(L
 local SoundboardDropdown = {}
 
 function SoundboardDropdown:Initialize()
-	DebugPrint("Initializing dropdown system...")
+	DebugPrint("Initializing dropdown system with ElvUI styling...")
+	
+	-- Initialize class colors and template for ElvUI styling  
+	InitializeClassColor()
+	
+	-- Get selected template and update colors
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	UpdateTemplateColors(selectedTemplate)
+	
 	-- Main frame
 	self.frame = CreateFrame("Frame", "SoundboardDropdownFrame", UIParent)
-	DebugPrint("Main frame created")
 	self.frame:SetFrameStrata("DIALOG")
-	DebugPrint("Frame strata set")
 	self.frame:SetFrameLevel(100)
-	DebugPrint("Frame level set")
 	self.frame:SetClampedToScreen(true)
-	DebugPrint("Clamp to screen set")
 	self.frame:Hide()
-	DebugPrint("Frame hidden")
 	self.frame:SetScript("OnHide", function() 
 		self.isOpen = false 
 	end)
-	DebugPrint("OnHide script set")
 	
-	-- ElvUI-style transparent dark background
-	DebugPrint("Creating ElvUI-style backdrop...")
-	local bg = self.frame:CreateTexture(nil, "BACKGROUND")
-	bg:SetAllPoints()
-	bg:SetColorTexture(0, 0, 0, 0.8) -- Very dark, semi-transparent like ElvUI
-	DebugPrint("Background texture created")
+	-- Apply ElvUI-style backdrop using selected template from settings
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.SetTemplate(self.frame, selectedTemplate)
+	DebugPrint("ElvUI-style backdrop applied to main frame with template: " .. selectedTemplate)
 	
-	-- ElvUI border (black)
-	local border = self.frame:CreateTexture(nil, "BORDER")
-	border:SetPoint("TOPLEFT", -1, 1)
-	border:SetPoint("BOTTOMRIGHT", 1, -1)
-	border:SetColorTexture(0, 0, 0, 1) -- ElvUI bordercolor (black)
-	DebugPrint("Border created")
-	
-	-- Create scroll frame using UIPanelScrollFrameTemplate like ElvUI
-	DebugPrint("Creating scroll frame...")
+	-- Create scroll frame with proper template - ensure scrollbar stays within bounds
 	local scrollFrame = CreateFrame("ScrollFrame", nil, self.frame, "UIPanelScrollFrameTemplate")
-	scrollFrame:SetPoint("TOPLEFT", 4, -4)
-	scrollFrame:SetPoint("BOTTOMRIGHT", -26, 4)
+	scrollFrame:SetPoint("TOPLEFT", SoundboardUI.Scale(4), -SoundboardUI.Scale(4))
+	scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(10), SoundboardUI.Scale(4)) -- Adjusted to -10px to ensure scrollbar stays within bounds
 	self.scrollFrame = scrollFrame
-	DebugPrint("Scroll frame created")
+	DebugPrint("Scroll frame created with scrollbar properly contained within bounds")
 	
-	-- Enable mouse wheel scrolling on the main frame
-	self.frame:EnableMouseWheel(true)
+	-- Set up mouse wheel scrolling (will be enabled/disabled by UpdateScrollbar as needed)
+	self.frame:EnableMouseWheel(false) -- Start disabled, UpdateScrollbar will enable if needed
 	self.frame:SetScript("OnMouseWheel", function(frame, delta)
 		DebugPrint("Mouse wheel scrolled with delta: " .. tostring(delta))
 		local scrollBar = SoundboardDropdown.scrollbar
@@ -131,31 +475,22 @@ function SoundboardDropdown:Initialize()
 			DebugPrint("Scrollbar hidden or not found - ignoring mouse wheel")
 		end
 	end)
-	DebugPrint("Mouse wheel scrolling enabled on main frame")
 	
 	-- Create content frame
-	DebugPrint("Creating content frame...")
 	local content = CreateFrame("Frame", nil, scrollFrame)
 	content:SetSize(1, 1)
 	scrollFrame:SetScrollChild(content)
 	self.content = content
 	DebugPrint("Content frame created and set as scroll child")
 	
-	-- Style the scrollbar to match ElvUI
+	-- Apply ElvUI-style scrollbar styling with selected template
 	local scrollBar = scrollFrame.ScrollBar or scrollFrame.scrollBar
 	if scrollBar then
-		DebugPrint("Styling scrollbar...")
-		-- ElvUI-style scrollbar background
-		if scrollBar.Track then
-			scrollBar.Track:SetColorTexture(0.1, 0.1, 0.1, 1)
-		end
-		
-		-- ElvUI-style thumb
-		if scrollBar.ThumbTexture then
-			scrollBar.ThumbTexture:SetColorTexture(0.3, 0.3, 0.3, 1)
-		end
-		
+		DebugPrint("Applying ElvUI-style scrollbar...")
+		local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+		SoundboardUI.HandleScrollBar(scrollBar, selectedTemplate)
 		self.scrollbar = scrollBar
+		DebugPrint("ElvUI scrollbar styling applied successfully with template: " .. selectedTemplate)
 	else
 		DebugPrint("WARNING: Could not find scrollbar to style")
 	end
@@ -166,16 +501,32 @@ function SoundboardDropdown:Initialize()
 	self.currentView = "main" -- "main", "category", "sounds"
 	self.selectedCategory = nil
 	
-	DebugPrint("Dropdown initialization completed successfully")
+	DebugPrint("Dropdown initialization completed with ElvUI styling")
 end
 
 function SoundboardDropdown:Toggle(anchor)
+	DebugPrint("=== TOGGLE CALLED ===")
+	DebugPrint("Toggle called - isOpen: " .. tostring(self.isOpen))
+	DebugPrint("Anchor passed to Toggle: " .. tostring(anchor and anchor:GetName() or "nil"))
+	
+	-- Force reset isOpen state if frame doesn't exist or isn't shown
+	if not self.frame or not self.frame:IsShown() then
+		DebugPrint("Frame doesn't exist or isn't shown - resetting isOpen to false")
+		self.isOpen = false
+	end
+	
 	if self.isOpen then
-		self.frame:Hide()
+		DebugPrint("Dropdown is open, hiding it")
+		if self.frame then
+			self.frame:Hide()
+		end
+		self.isOpen = false
 		return
 	end
 	
+	DebugPrint("Dropdown is closed, calling Show()")
 	self:Show(anchor)
+	DebugPrint("=== TOGGLE END ===")
 end
 
 function SoundboardDropdown:Show(anchor)
@@ -279,6 +630,30 @@ function SoundboardDropdown:BuildCategories()
 	DebugPrint("Categories built successfully")
 end
 
+-- Helper function to update all button widths based on scrollbar visibility
+function SoundboardDropdown:UpdateButtonWidths()
+	if not self.content then return end
+	
+	local scrollbarVisible = self.scrollbar and self.scrollbar:IsShown()
+	-- Calculate width to fit within scroll frame bounds while allowing border rendering
+	-- Scroll frame right edge: 300px - 3px = 297px
+	-- Button left offset: 4px, so max button width: 297px - 4px = 293px
+	-- Leave 3px margin for border rendering: 293px - 3px = 290px
+	-- With scrollbar: leave more space for scrollbar clearance
+	local buttonWidth = scrollbarVisible and 272 or 290 -- Fit within scroll frame while preserving borders
+	
+	-- Update all buttons in the content frame
+	local buttons = {self.content:GetChildren()}
+	for _, button in ipairs(buttons) do
+		if button:GetObjectType() == "Button" then
+			local _, currentHeight = button:GetSize()
+			button:SetSize(buttonWidth, currentHeight)
+		end
+	end
+	
+	DebugPrint("Updated " .. #buttons .. " buttons to width " .. buttonWidth .. " (scrollbar visible: " .. tostring(scrollbarVisible) .. ")")
+end
+
 function SoundboardDropdown:CountCategories()
 	local count = 0
 	if self.categories then
@@ -291,6 +666,30 @@ end
 
 function SoundboardDropdown:ShowMainMenu()
 	DebugPrint("ShowMainMenu called")
+	DebugPrint("STACK TRACE - ShowMainMenu called from:")
+	DebugPrint("Frame is open: " .. tostring(self.isOpen))
+	DebugPrint("Frame exists: " .. tostring(self.frame ~= nil))
+	if self.frame then
+		DebugPrint("Frame is shown: " .. tostring(self.frame:IsShown()))
+	end
+	
+	-- CRITICAL FIX: If ShowMainMenu is called but frame isn't visible, make it visible
+	if self.frame and not self.frame:IsShown() and not self.isOpen then
+		DebugPrint("CRITICAL: ShowMainMenu called but frame not visible - forcing show")
+		self.frame:SetSize(300, 400)
+		-- Try to position near minimap button if available
+		local minimapButton = Soundboard and Soundboard.minimapButton
+		if minimapButton then
+			DebugPrint("Positioning near minimap button")
+			self:Position(minimapButton)
+		else
+			DebugPrint("No minimap button found, positioning at cursor")
+			self:Position(nil)
+		end
+		self.frame:Show()
+		self.isOpen = true
+		DebugPrint("Frame forced to show")
+	end
 	self:ClearContent()
 	DebugPrint("Content cleared")
 	
@@ -312,6 +711,7 @@ function SoundboardDropdown:ShowMainMenu()
 	local emoteEnabled = (addonDB and addonDB.EmoteEnabled) or false
 	local groupEnabled = (addonDB and addonDB.GroupEnabled) or false  
 	local soundboardEnabled = (addonDB and addonDB.IsEnabled) or false
+	local guildEnabled = (addonDB and addonDB.GuildBroadcast) or false
 	DebugPrint("DB values retrieved")
 	
 	-- Title
@@ -320,6 +720,11 @@ function SoundboardDropdown:ShowMainMenu()
 	title:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight
 	DebugPrint("Title button created")
+	
+	-- Settings Toggle Header
+	local settingsHeader = self:CreateButton("Settings Toggle", yOffset, false, true) -- Secondary header: not title, but is secondary header
+	settingsHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight
 	
 	-- Options with simple colors
 	local emoteBtn = self:CreateButton(
@@ -380,7 +785,37 @@ function SoundboardDropdown:ShowMainMenu()
 			Soundboard:Print("Error: Database not available")
 		end
 	end)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - buttonHeight
+	
+	-- Guild broadcast option
+	local guildBtn = self:CreateButton(
+		guildEnabled and "Guild: |cFF00FF00ON|r" or "Guild: |cFFFF0000OFF|r",
+		yOffset
+	)
+	guildBtn:SetScript("OnClick", function()
+		local currentDB = Soundboard.db and Soundboard.db.profile
+		DebugPrint("Guild button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
+		if currentDB then
+			local oldValue = currentDB.GuildBroadcast
+			currentDB.GuildBroadcast = not currentDB.GuildBroadcast
+			DebugPrint("GuildBroadcast changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.GuildBroadcast))
+			if currentDB.GuildBroadcast then
+				Soundboard:Print("Guild broadcast |cFF00FF00enabled|r")
+			else
+				Soundboard:Print("Guild broadcast |cFFFF0000disabled|r")
+			end
+			self:ShowMainMenu()
+		else
+			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking guild button!")
+			Soundboard:Print("Error: Database not available")
+		end
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Categories Header
+	local categoriesHeader = self:CreateButton("Categories", yOffset, false, true) -- Secondary header: not title, but is secondary header
+	categoriesHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight
 	
 	-- Categories with simple styling
 	local categoryNames = {}
@@ -422,7 +857,7 @@ function SoundboardDropdown:ShowMainMenu()
 	
 	for _, category in ipairs(categoryNames) do
 		-- Skip Missing Configuration category if debug mode is off
-		if not (category == "Missing Configuration" and not db.DebugMode) then
+		if not (category == "Missing Configuration" and not Soundboard.db.profile.DebugMode) then
 			local categoryData = self.categories[category]
 			local count = #categoryData.sounds
 			-- Add sounds from subcategories
@@ -465,7 +900,7 @@ function SoundboardDropdown:ShowCategory(categoryName)
 	yOffset = yOffset - buttonHeight - 5
 	
 	-- Special handling for Missing Configuration category when debug is off
-	if categoryName == "Missing Configuration" and not db.DebugMode then
+	if categoryName == "Missing Configuration" and not Soundboard.db.profile.DebugMode then
 		local errorBtn = self:CreateButton("Debug mode required", yOffset)
 		errorBtn:SetScript("OnClick", nil)
 		self.content:SetHeight(math.abs(yOffset) + 10)
@@ -596,7 +1031,7 @@ function SoundboardDropdown:ShowSubcategory(categoryName, subcategoryName)
 	self:UpdateScrollbar()
 end
 
-function SoundboardDropdown:CreateButton(text, yOffset, isTitle)
+function SoundboardDropdown:CreateButton(text, yOffset, isTitle, isSecondaryHeader)
 	DebugPrint("CreateButton called: '" .. tostring(text) .. "' at yOffset " .. tostring(yOffset))
 	
 	if not self.content then
@@ -606,51 +1041,67 @@ function SoundboardDropdown:CreateButton(text, yOffset, isTitle)
 	
 	local button = CreateFrame("Button", nil, self.content)
 	DebugPrint("Button frame created")
-	button:SetSize(260, 20) -- Standard button size
-	button:SetPoint("TOPLEFT", 4, yOffset)
-	DebugPrint("Button positioned")
 	
-	-- Simple ElvUI-style button
-	if not isTitle then
-		-- Subtle hover highlight only
-		button:SetScript("OnEnter", function(btn)
-			if not btn.highlight then
-				btn.highlight = btn:CreateTexture(nil, "HIGHLIGHT")
-				btn.highlight:SetAllPoints()
-				btn.highlight:SetColorTexture(1, 1, 1, 0.1) -- Simple white highlight
-			end
-			btn.highlight:Show()
-		end)
-		button:SetScript("OnLeave", function(btn)
-			if btn.highlight then
-				btn.highlight:Hide()
-			end
-		end)
+	-- Dynamic button width - will be adjusted when scrollbar shows/hides  
+	-- Base width ensures right border has space to render properly
+	local baseWidth = 290 -- Width allowing right border to render (300px frame - 4px left - 6px right for border)
+	button:SetSize(baseWidth, 20)
+	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	DebugPrint("Button positioned with dynamic width for smart scrollbar")
+	
+	-- Apply ElvUI-style button styling for non-titles using selected template
+	if not isTitle and not isSecondaryHeader then
+		local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+		SoundboardUI.StyleButton(button, selectedTemplate)
+		DebugPrint("ElvUI button styling applied with template: " .. selectedTemplate)
 	end
 	
-	-- Text with standard WoW fonts
+	-- Text with ElvUI-style fonts
 	DebugPrint("Creating font string...")
 	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	fontString:SetPoint("LEFT", 4, 0)
-	fontString:SetPoint("RIGHT", -4, 0)
+	fontString:SetPoint("LEFT", SoundboardUI.Scale(4), 0)
+	fontString:SetPoint("RIGHT", -SoundboardUI.Scale(4), 0)
 	fontString:SetJustifyH("LEFT")
 	fontString:SetText(text)
 	
-	-- Font styling with class colors
+	-- Template-specific font styling  
 	if isTitle then
 		fontString:SetJustifyH("CENTER")
-		fontString:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
-		fontString:SetTextColor(1, 0.82, 0, 1) -- Gold color for titles
+		fontString:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")  -- Main title: 14pt, centered
+		-- Use template text color for titles too
+		fontString:SetTextColor(unpack(SoundboardUI.colors.text))
 		fontString:SetPoint("LEFT", 0, 0)
 		fontString:SetPoint("RIGHT", 0, 0)
+		DebugPrint("Title styling applied with template colors")
+	elseif isSecondaryHeader then
+		fontString:SetJustifyH("LEFT")  -- Secondary headers: left-aligned
+		fontString:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")  -- Secondary header: 12pt, left-aligned
+		-- Use template text color for secondary headers
+		fontString:SetTextColor(unpack(SoundboardUI.colors.text))
+		DebugPrint("Secondary header styling applied - left-aligned and smaller")
 	else
-		-- Use player's class color for regular items (ElvUI style)
-		local r, g, b = GetPlayerClassColor()
-		fontString:SetTextColor(r, g, b, 1)
+		-- Use template-specific text colors
+		fontString:SetTextColor(unpack(SoundboardUI.colors.text))
+		
+		-- Template-specific hover effects
+		local originalEnter = button:GetScript("OnEnter")
+		local originalLeave = button:GetScript("OnLeave")
+		
+		button:SetScript("OnEnter", function(btn)
+			if originalEnter then originalEnter(btn) end
+			fontString:SetTextColor(unpack(SoundboardUI.colors.textHover))
+		end)
+		
+		button:SetScript("OnLeave", function(btn)
+			if originalLeave then originalLeave(btn) end
+			fontString:SetTextColor(unpack(SoundboardUI.colors.text))
+		end)
+		
+		DebugPrint("Regular button styling applied with template-specific colors")
 	end
 	
-	DebugPrint("Font string created and text set")
-	DebugPrint("Button creation completed successfully")
+	button.text = fontString -- Store reference for easy access
+	DebugPrint("Button creation completed successfully with ElvUI styling")
 	return button
 end
 
@@ -682,27 +1133,30 @@ function SoundboardDropdown:UpdateScrollbar()
 	DebugPrint("UpdateScrollbar - Content height: " .. contentHeight .. ", Frame height: " .. frameHeight)
 	
 	if self.scrollbar then
-		-- Only show scrollbar if content is significantly larger than frame (with some padding)
-		local needsScrolling = contentHeight > (frameHeight + 10)
+		-- Smart scrollbar - only show if content significantly exceeds frame height
+		local needsScrolling = contentHeight > (frameHeight + 20) -- More generous padding
 		
 		if needsScrolling then
-			DebugPrint("Content is larger than frame, showing scrollbar")
+			DebugPrint("Content exceeds frame, showing scrollbar")
 			self.scrollbar:Show()
-			self.scrollbar:SetMinMaxValues(0, contentHeight - frameHeight)
+			self.scrollbar:SetMinMaxValues(0, math.max(0, contentHeight - frameHeight))
 			self.scrollbar:SetValue(0) -- Reset to top
-			-- Adjust scroll frame to make room for scrollbar
-			self.scrollFrame:SetPoint("BOTTOMRIGHT", -26, 4)
+			-- Keep scrollbar properly within bounds
+			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(10), SoundboardUI.Scale(4))
 			-- Enable mouse wheel scrolling
 			self.frame:EnableMouseWheel(true)
 		else
-			DebugPrint("Content fits in frame, hiding scrollbar and disabling scrolling")
+			DebugPrint("Content fits in frame, hiding scrollbar and expanding content area")
 			self.scrollbar:Hide()
 			self.scrollFrame:SetVerticalScroll(0)
-			-- Expand scroll frame to use full width when no scrollbar needed
-			self.scrollFrame:SetPoint("BOTTOMRIGHT", -4, 4)
+			-- Expand scroll frame to full width when no scrollbar needed
+			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(4), SoundboardUI.Scale(4))
 			-- Disable mouse wheel scrolling when not needed
 			self.frame:EnableMouseWheel(false)
 		end
+		
+		-- Update button widths to match scrollbar visibility
+		self:UpdateButtonWidths()
 	else
 		DebugPrint("WARNING: No scrollbar available to update")
 	end
@@ -733,7 +1187,11 @@ local soundboard_data_sorted_keys = {};
 	icon = "Interface\\AddOns\\Soundboard\\icon", -- Custom icon (icon.png or icon.tga)
 	label = "Soundboard",
 	OnClick = function(this, button)
+		DebugPrint("SoundboardLDB OnClick called with button: " .. tostring(button))
+		DebugPrint("this (anchor) exists: " .. tostring(this ~= nil))
+		DebugPrint("About to call SoundboardDropdown:Toggle(this)")
 		SoundboardDropdown:Toggle(this);
+		DebugPrint("Toggle call completed")
 	end,
 	OnTooltipShow = function(tooltip)
 		tooltip:AddLine("Soundboard");
@@ -767,9 +1225,9 @@ local soundboard_data_sorted_keys = {};
 					type = 'toggle',
 					name = 'Enable Soundboard',
 					desc = 'Enable or disable the entire Soundboard addon',
-					get = function() return db.IsEnabled end,
+					get = function() return Soundboard.db.profile.IsEnabled end,
 					set = function(info, value) 
-						db.IsEnabled = value
+						Soundboard.db.profile.IsEnabled = value
 						if value then
 							Soundboard:Enable()
 						else
@@ -783,19 +1241,78 @@ local soundboard_data_sorted_keys = {};
 					type = 'toggle',
 					name = 'Show Minimap Button',
 					desc = 'Show or hide the minimap button',
-					get = function() return db.ShowMinimapButton end,
+					get = function() return Soundboard.db.profile.ShowMinimapButton end,
 					set = function(info, value) 
-						db.ShowMinimapButton = value
-						local LibDBIcon = LibStub("LibDBIcon-1.0", true)
-						if LibDBIcon and LibDBIcon:IsRegistered("SoundboardMinimapButton") then
+						Soundboard.db.profile.ShowMinimapButton = value
+						-- Control the direct minimap button, not LibDBIcon
+						if Soundboard.minimapButton then
 							if value then
-								LibDBIcon:Show("SoundboardMinimapButton")
+								Soundboard.minimapButton:Show()
+								Soundboard:Print("Minimap button shown")
 							else
-								LibDBIcon:Hide("SoundboardMinimapButton")
+								Soundboard.minimapButton:Hide()
+								Soundboard:Print("Minimap button hidden")
 							end
+						else
+							Soundboard:Print("Minimap button not available")
 						end
 					end,
-					disabled = function() return not db.IsEnabled end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
+				},
+				uiTemplate = {
+					order = 3,
+					type = 'select',
+					name = 'UI Template',
+					desc = 'Choose the visual style for the dropdown interface',
+					get = function() return Soundboard.db.profile.UITemplate end,
+					set = function(info, value) 
+						Soundboard.db.profile.UITemplate = value
+						Soundboard:Print("UI Template changed to: " .. value)
+						
+						-- Refresh dropdown completely if it exists
+						if SoundboardDropdown and SoundboardDropdown.frame then
+							DebugPrint("Template changed - reinitializing dropdown UI")
+							
+							-- Close dropdown if open
+							if SoundboardDropdown.isOpen then
+								SoundboardDropdown.frame:Hide()
+								SoundboardDropdown.isOpen = false
+							end
+							
+							-- Clear all styling
+							if SoundboardDropdown.frame.backdrop then
+								SoundboardDropdown.frame.backdrop:Hide()
+								SoundboardDropdown.frame.backdrop = nil
+							end
+							
+							-- Clear scrollbar styling
+							if SoundboardDropdown.scrollbar and SoundboardDropdown.scrollbar.backdrop then
+								SoundboardDropdown.scrollbar.backdrop:Hide()
+								SoundboardDropdown.scrollbar.backdrop = nil
+								SoundboardDropdown.scrollbar.sbStyled = nil
+							end
+							
+							-- Re-initialize class colors and apply new template
+							InitializeClassColor()
+							UpdateTemplateColors(value)
+							
+							-- Re-apply template to main frame
+							SoundboardUI.SetTemplate(SoundboardDropdown.frame, value)
+							
+							-- Re-style scrollbar if it exists
+							if SoundboardDropdown.scrollbar then
+								SoundboardUI.HandleScrollBar(SoundboardDropdown.scrollbar, value)
+							end
+							
+							DebugPrint("Dropdown UI reinitialized with template: " .. value)
+						end
+					end,
+					values = {
+						["Default"] = "Default - Solid black background with gold text",
+						["Transparent"] = "Transparent - 70% opacity background with white text",
+						["ClassColor"] = "Class Color - 80% opacity with your class colors"
+					},
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 				},
 			},
 		},
@@ -813,9 +1330,9 @@ local soundboard_data_sorted_keys = {};
 					type = 'toggle',
 					name = 'Enable Sounds',
 					desc = 'Enable or disable all sound playback',
-					get = function() return db.SoundEnabled end,
-					set = function(info, value) db.SoundEnabled = value end,
-					disabled = function() return not db.IsEnabled end,
+					get = function() return Soundboard.db.profile.SoundEnabled end,
+					set = function(info, value) Soundboard.db.profile.SoundEnabled = value end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 					width = 'full',
 				},
 				masterVolume = {
@@ -828,9 +1345,9 @@ local soundboard_data_sorted_keys = {};
 					step = 0.01,
 					bigStep = 0.1,
 					isPercent = true,
-					get = function() return db.MasterVolume end,
-					set = function(info, value) db.MasterVolume = value end,
-					disabled = function() return not db.IsEnabled or not db.SoundEnabled end,
+					get = function() return Soundboard.db.profile.MasterVolume end,
+					set = function(info, value) Soundboard.db.profile.MasterVolume = value end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled or not Soundboard.db.profile.SoundEnabled end,
 					width = 'full',
 				},
 			},
@@ -849,9 +1366,9 @@ local soundboard_data_sorted_keys = {};
 					type = 'toggle',
 					name = 'Enable Emotes',
 					desc = 'Perform WoW emotes when playing sounds',
-					get = function() return db.EmoteEnabled end,
-					set = function(info, value) db.EmoteEnabled = value end,
-					disabled = function() return not db.IsEnabled end,
+					get = function() return Soundboard.db.profile.EmoteEnabled end,
+					set = function(info, value) Soundboard.db.profile.EmoteEnabled = value end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 				},
 
 
@@ -860,9 +1377,9 @@ local soundboard_data_sorted_keys = {};
 					type = 'toggle',
 					name = 'Guild Broadcasting',
 					desc = 'Share sounds with guild members who have Soundboard installed',
-					get = function() return db.GuildBroadcast end,
-					set = function(info, value) db.GuildBroadcast = value end,
-					disabled = function() return not db.IsEnabled end,
+					get = function() return Soundboard.db.profile.GuildBroadcast end,
+					set = function(info, value) Soundboard.db.profile.GuildBroadcast = value end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 				},
 			},
 		},
@@ -880,12 +1397,12 @@ local soundboard_data_sorted_keys = {};
 					type = 'toggle',
 					name = 'Enable Group Sounds',
 					desc = 'Allow sounds to be sent to and received from group members',
-					get = function() return db.GroupEnabled end,
+					get = function() return Soundboard.db.profile.GroupEnabled end,
 					set = function(info, value) 
-						db.GroupEnabled = value
+						Soundboard.db.profile.GroupEnabled = value
 						Soundboard:ToggleGroup()
 					end,
-					disabled = function() return not db.IsEnabled end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 					width = 'full',
 				},
 				groupInfo = {
@@ -911,7 +1428,7 @@ local soundboard_data_sorted_keys = {};
 					name = 'List All Sounds',
 					desc = 'Display a list of all available sounds in chat',
 					func = function() Soundboard:ListEmotes() end,
-					disabled = function() return not db.IsEnabled end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 				},
 				ping = {
 					order = 2,
@@ -919,7 +1436,7 @@ local soundboard_data_sorted_keys = {};
 					name = 'Ping All',
 					desc = 'Check which players can receive your sound broadcasts (group and guild)',
 					func = function() Soundboard:Ping() end,
-					disabled = function() return not db.IsEnabled or not db.GroupEnabled end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled or not Soundboard.db.profile.GroupEnabled end,
 				},
 				testSound = {
 					order = 3,
@@ -931,8 +1448,8 @@ local soundboard_data_sorted_keys = {};
 							-- Test the volume system directly
 							local heroSound = soundboard_data["hero"]
 							if heroSound and heroSound.file then
-								Soundboard:Print("Testing sound at " .. tostring(db.MasterVolume * 100) .. "% volume...")
-								Soundboard:PlaySoundWithVolume(heroSound.file, db.MasterVolume)
+								Soundboard:Print("Testing sound at " .. tostring(Soundboard.db.profile.MasterVolume * 100) .. "% volume...")
+								Soundboard:PlaySoundWithVolume(heroSound.file, Soundboard.db.profile.MasterVolume)
 							else
 								Soundboard:Print("Hero sound file not found")
 							end
@@ -940,7 +1457,7 @@ local soundboard_data_sorted_keys = {};
 							Soundboard:Print("Test sound not available")
 						end
 					end,
-					disabled = function() return not db.IsEnabled or not db.SoundEnabled end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled or not Soundboard.db.profile.SoundEnabled end,
 				},
 			},
 		},
@@ -958,9 +1475,9 @@ local soundboard_data_sorted_keys = {};
 					type = 'toggle',
 					name = 'Debug Mode',
 					desc = 'Enable debug output and show "Missing Configuration" category for unconfigured sound files',
-					get = function() return db.DebugMode end,
+					get = function() return Soundboard.db.profile.DebugMode end,
 					set = function(info, value) 
-						db.DebugMode = value
+						Soundboard.db.profile.DebugMode = value
 						Soundboard:Print("Debug mode " .. (value and "enabled" or "disabled"))
 						-- Handle debug mode changes safely
 						if value then
@@ -1016,6 +1533,7 @@ local soundboard_data_sorted_keys = {};
 			SoundEnabled = true,       -- Enable/disable all sound playback
 			-- UI Settings
 			ShowMinimapButton = true,  -- Show/hide minimap button
+			UITemplate = "Default",    -- UI template: "Default", "Transparent", "ClassColor"
 			-- Broadcasting Settings
 			GuildBroadcast = true,     -- true/false
 			-- Advanced Settings
@@ -1084,12 +1602,17 @@ local soundboard_data_sorted_keys = {};
 	
 	-- Event handlers
 	minimapButton:SetScript("OnClick", function(self, button)
+		DebugPrint("=== MINIMAP BUTTON CLICKED ===")
 		DebugPrint("Direct button clicked! Button: " .. tostring(button))
+		DebugPrint("MINIMAP BUTTON CLICKED - CHECK WORKS!")
 		if SoundboardLDB and SoundboardLDB.OnClick then
+			DebugPrint("Calling SoundboardLDB.OnClick")
 			SoundboardLDB.OnClick(self, button)
 		else
 			DebugPrint("No OnClick handler found")
+			Soundboard:Print("ERROR: No OnClick handler found")
 		end
+		DebugPrint("=== MINIMAP BUTTON CLICK END ===")
 	end)
 	
 	minimapButton:SetScript("OnEnter", function(self)
@@ -1119,7 +1642,7 @@ local soundboard_data_sorted_keys = {};
 	Soundboard.minimapButton = minimapButton
 	
 	-- Show/hide based on settings
-	if db.ShowMinimapButton then
+	if Soundboard.db.profile.ShowMinimapButton then
 		minimapButton:Show()
 		self:Print("Direct minimap button created and shown")
 	else
@@ -1825,10 +2348,10 @@ function Soundboard:DoEmote(key, arg2)
 					
 				if arg2 then
 					-- Handle broadcasting to other Soundboard users
-					local guildEnabled = db.GuildBroadcast
+					local guildEnabled = Soundboard.db.profile.GuildBroadcast
 					if guildEnabled == nil then
 						guildEnabled = true -- Default for existing users
-						db.GuildBroadcast = true
+						Soundboard.db.profile.GuildBroadcast = true
 					end
 					
 					-- Send to group members (existing functionality)
@@ -1934,7 +2457,7 @@ function Soundboard:Ping()
 	end
 	
 	-- Send ping to guild if guild broadcasting is enabled
-	if db.GuildBroadcast and IsInGuild() then
+	if Soundboard.db.profile.GuildBroadcast and IsInGuild() then
 		self:SendCommMessage("Soundboard", "PingSend", "GUILD")
 		DebugPrint("Sent ping to GUILD")
 		table.insert(channelsPinged, "Guild")
@@ -2042,7 +2565,7 @@ function Soundboard:ShowPingResults()
 		if IsInGroup() or IsInRaid() then
 			table.insert(canReceive, "Group sounds → " .. (partyUsers + bothUsers) .. " users")
 		end
-		if db.GuildBroadcast and IsInGuild() then
+		if Soundboard.db.profile.GuildBroadcast and IsInGuild() then
 			table.insert(canReceive, "Guild sounds → " .. (guildUsers + bothUsers) .. " users")
 		end
 		
