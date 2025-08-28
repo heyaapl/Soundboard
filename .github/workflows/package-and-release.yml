@@ -1,10 +1,12 @@
-name: Package and release
+name: Package and Release
 
 on:
   push:
     branches:
       - main
       - master
+      - '*'
+    tags:
       - '*'
   release:
     types:
@@ -13,6 +15,7 @@ on:
 jobs:
   package:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'heyaapl'
 
     env:
       CF_API_KEY: ${{ secrets.CURSE_API_KEY }}
@@ -25,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Extract version from TOC
-        id: extract_version
+        id: version
         run: |
           VERSION=$(grep "^## Version:" Soundboard.toc | sed 's/^## Version: *//')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
@@ -34,21 +37,49 @@ jobs:
       - name: Determine release type
         id: release_type
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Tagged release
+            TAG_NAME="${{ github.ref_name }}"
+            if [[ "$TAG_NAME" == *"alpha"* ]]; then
+              echo "RELEASE_TYPE=alpha" >> $GITHUB_OUTPUT
+              echo "Release type: alpha (tagged with alpha)"
+            elif [[ "$TAG_NAME" == *"beta"* ]]; then
+              echo "RELEASE_TYPE=beta" >> $GITHUB_OUTPUT
+              echo "Release type: beta (tagged with beta)"  
+            else
+              echo "RELEASE_TYPE=release" >> $GITHUB_OUTPUT
+              echo "Release type: release (tagged without alpha/beta)"
+            fi
+          elif [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+            # Main/master branch push
             echo "RELEASE_TYPE=release" >> $GITHUB_OUTPUT
             echo "Release type: release (main/master branch)"
           else
-            echo "RELEASE_TYPE=alpha" >> $GITHUB_OUTPUT
-            echo "Release type: alpha (feature branch)"
+            # Non-main branch push -> Beta
+            BRANCH_NAME="${{ github.ref_name }}"
+            echo "RELEASE_TYPE=beta" >> $GITHUB_OUTPUT
+            echo "Release type: beta (branch: $BRANCH_NAME)"
           fi
 
-      - name: Create package
-        uses: BigWigsMods/packager@v2
-        with:
-          args: -g ${{ env.GITHUB_OAUTH }} -u ${{ env.CF_API_KEY }} -r ${{ steps.release_type.outputs.RELEASE_TYPE }}
-
-      - name: Upload to CurseForge
-        if: env.CF_API_KEY != null
+      - name: Debug environment
         run: |
-          echo "Package uploaded to CurseForge with release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
-          echo "Version: ${{ steps.extract_version.outputs.VERSION }}"
+          echo "CF_API_KEY is set: ${{ env.CF_API_KEY != '' }}"
+          echo "GITHUB_OAUTH is set: ${{ env.GITHUB_OAUTH != '' }}"
+          echo "Release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
+          echo "Current branch: ${{ github.ref_name }}"
+          echo "Repository owner: ${{ github.repository_owner }}"
+          
+      - name: Package addon
+        uses: BigWigsMods/packager@v2
+        env:
+          CF_API_KEY: ${{ env.CF_API_KEY }}
+          GITHUB_OAUTH: ${{ env.GITHUB_OAUTH }}
+        with:
+          args: -p 1335953
+
+      - name: Package summary
+        run: |
+          echo "✅ Successfully packaged Soundboard v${{ steps.version.outputs.VERSION }}"
+          echo "📦 Release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
+          echo "🌿 Branch/Tag: ${{ github.ref_name }}"
+          echo "🎯 Game version: 5.5.0 (Interface: 55000)"

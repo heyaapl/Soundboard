@@ -409,6 +409,124 @@ local UnitIsGroupLeader = UnitIsGroupLeader
 local IsInRaid = IsInRaid
 local IsInGroup = IsInGroup
 
+-- Sound Queue System
+local SoundQueue = {
+	queue = {},                    -- Queue of pending sounds
+	currentSound = nil,            -- Currently playing sound info
+	isPlaying = false,            -- Is a sound currently playing
+	processingTimer = nil,        -- Timer for processing queue
+	defaultDuration = 3.0,        -- Default sound duration (seconds)
+}
+
+-- Sound duration estimates (in seconds) for better queue timing
+local SoundDurations = {
+	-- Add common sound durations here
+	-- ["soundfile.mp3"] = duration_in_seconds
+	["hero.mp3"] = 4.5,
+	["leeroy.mp3"] = 4.2,
+	["ff-fightsong-start.mp3"] = 3.8,
+	-- Add more as needed
+}
+
+-- Sound Queue Functions
+local function GetSoundDuration(soundFile)
+	if not soundFile then
+		return SoundQueue.defaultDuration
+	end
+	
+	-- Extract filename from full path
+	local filename = soundFile:match("([^\\]+)$") or soundFile
+	return SoundDurations[filename] or SoundQueue.defaultDuration
+end
+
+local function IsSameSoundPlaying(soundFile)
+	if not SoundQueue.isPlaying or not SoundQueue.currentSound then
+		return false
+	end
+	return SoundQueue.currentSound.file == soundFile
+end
+
+local function AddSoundToQueue(soundFile, volume, key)
+	-- Check if same sound is already playing - ignore if so
+	if IsSameSoundPlaying(soundFile) then
+		DebugPrint("Ignoring duplicate sound request: " .. tostring(soundFile))
+		return false
+	end
+	
+	-- Add to queue
+	table.insert(SoundQueue.queue, {
+		file = soundFile,
+		volume = volume or 1.0,
+		key = key,
+		timestamp = time()
+	})
+	
+	DebugPrint("Added sound to queue: " .. tostring(soundFile) .. " (Queue size: " .. #SoundQueue.queue .. ")")
+	return true
+end
+
+local function PlayNextInQueue()
+	if #SoundQueue.queue == 0 then
+		SoundQueue.isPlaying = false
+		SoundQueue.currentSound = nil
+		DebugPrint("Sound queue is empty")
+		return
+	end
+	
+	-- Get next sound from queue
+	local nextSound = table.remove(SoundQueue.queue, 1)
+	SoundQueue.currentSound = nextSound
+	SoundQueue.isPlaying = true
+	
+	DebugPrint("Playing next sound from queue: " .. tostring(nextSound.file))
+	
+	-- Play the sound using our volume-controlled method
+	local success = Soundboard:PlaySoundDirect(nextSound.file, nextSound.volume)
+	
+	if success then
+		-- Set timer for when sound finishes
+		local duration = GetSoundDuration(nextSound.file)
+		DebugPrint("Sound duration estimated at " .. tostring(duration) .. " seconds")
+		
+		if SoundQueue.processingTimer then
+			SoundQueue.processingTimer:Cancel()
+		end
+		
+		SoundQueue.processingTimer = C_Timer.NewTimer(duration, function()
+			DebugPrint("Sound finished, processing next in queue")
+			PlayNextInQueue()
+		end)
+	else
+		DebugPrint("Failed to play sound: " .. tostring(nextSound.file))
+		-- Try next sound immediately if this one failed
+		SoundQueue.isPlaying = false
+		SoundQueue.currentSound = nil
+		PlayNextInQueue()
+	end
+end
+
+local function QueueSound(soundFile, volume, key)
+	if not soundFile then
+		DebugPrint("No sound file provided")
+		return false
+	end
+	
+	-- If nothing is playing, play immediately
+	if not SoundQueue.isPlaying then
+		SoundQueue.queue = {{
+			file = soundFile,
+			volume = volume or 1.0,
+			key = key,
+			timestamp = time()
+		}}
+		PlayNextInQueue()
+		return true
+	end
+	
+	-- Otherwise add to queue
+	return AddSoundToQueue(soundFile, volume, key)
+end
+
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
 local LE_PARTY_CATEGORY_INSTANCE = LE_PARTY_CATEGORY_INSTANCE
 
@@ -1449,7 +1567,7 @@ local soundboard_data_sorted_keys = {};
 							local heroSound = soundboard_data["hero"]
 							if heroSound and heroSound.file then
 								Soundboard:Print("Testing sound at " .. tostring(Soundboard.db.profile.MasterVolume * 100) .. "% volume...")
-								Soundboard:PlaySoundWithVolume(heroSound.file, Soundboard.db.profile.MasterVolume)
+								Soundboard:PlaySoundWithVolume(heroSound.file, Soundboard.db.profile.MasterVolume, "hero")
 							else
 								Soundboard:Print("Hero sound file not found")
 							end
@@ -1890,7 +2008,7 @@ local soundboard_data_sorted_keys = {};
 				local heroSound = soundboard_data["hero"]
 				if heroSound and heroSound.file then
 					Soundboard:Print("Testing sound at " .. tostring(volume * 100) .. "% volume...")
-					Soundboard:PlaySoundWithVolume(heroSound.file, volume)
+					Soundboard:PlaySoundWithVolume(heroSound.file, volume, "hero")
 				else
 					Soundboard:Print("Hero sound file not found")
 				end
@@ -1904,7 +2022,7 @@ local soundboard_data_sorted_keys = {};
 				local heroSound = soundboard_data["hero"]
 				if heroSound and heroSound.file then
 					Soundboard:Print("Testing sound at current volume (" .. tostring(currentVolume * 100) .. "%)...")
-					Soundboard:PlaySoundWithVolume(heroSound.file, currentVolume)
+					Soundboard:PlaySoundWithVolume(heroSound.file, currentVolume, "hero")
 				else
 					Soundboard:Print("Hero sound file not found")
 				end
@@ -1935,7 +2053,18 @@ local soundboard_data_sorted_keys = {};
 		end
 	end
 	_G["SLASH_SOUNDBOARDDB1"] = "/soundboarddb"
-
+	
+	-- Sound Queue Management Commands
+	_G.SlashCmdList["SOUNDBOARDQUEUE"] = function(msg)
+		Soundboard:GetQueueStatus()
+	end
+	_G["SLASH_SOUNDBOARDQUEUE1"] = "/soundboardqueue"
+	
+	_G.SlashCmdList["SOUNDBOARDCLEARQUEUE"] = function(msg)
+		Soundboard:ClearSoundQueue()
+	end
+	_G["SLASH_SOUNDBOARDCLEARQUEUE1"] = "/soundboardclearqueue"
+	
 	
 	if not soundboard_data then
 		self:Print("No soundpacks found! The default soundpack may not have loaded properly.")
@@ -2214,12 +2343,36 @@ function Soundboard:CleanupMissingEntries()
 	end
 end
 
-function Soundboard:PlaySoundWithVolume(soundFile, volume)
+function Soundboard:PlaySoundWithVolume(soundFile, volume, key)
 	-- Ensure volume is valid, fallback to 1.0 if nil or invalid
 	if not volume or volume <= 0 then
 		volume = 1.0
 		DebugPrint("Volume was nil or invalid, using default: 1.0")
 	end
+	
+	DebugPrint("PlaySoundWithVolume called with file: " .. tostring(soundFile) .. ", volume: " .. tostring(volume))
+	
+	-- Use the sound queue system instead of playing directly
+	local success = QueueSound(soundFile, volume, key)
+	
+	if success then
+		DebugPrint("Sound queued successfully at " .. tostring(volume * 100) .. "% volume")
+	else
+		DebugPrint("Sound was ignored (duplicate) or failed to queue: " .. tostring(soundFile))
+	end
+	
+	return success
+end
+
+function Soundboard:PlaySoundDirect(soundFile, volume)
+	-- Internal function for direct sound playing (used by queue system)
+	-- Ensure volume is valid, fallback to 1.0 if nil or invalid
+	if not volume or volume <= 0 then
+		volume = 1.0
+		DebugPrint("Volume was nil or invalid, using default: 1.0")
+	end
+	
+	DebugPrint("PlaySoundDirect called with file: " .. tostring(soundFile) .. ", volume: " .. tostring(volume))
 	
 	-- Store original Master volume
 	local originalVolume = tonumber(GetCVar("Sound_MasterVolume")) or 1.0
@@ -2244,12 +2397,47 @@ function Soundboard:PlaySoundWithVolume(soundFile, volume)
 	end)
 	
 	if success then
-		DebugPrint("Sound played successfully at " .. tostring(volume * 100) .. "% volume")
+		DebugPrint("Sound played directly at " .. tostring(volume * 100) .. "% volume")
 	else
 		DebugPrint("Sound file not found: " .. tostring(soundFile))
 	end
 	
 	return success
+end
+
+-- Sound Queue Management Functions
+function Soundboard:GetQueueStatus()
+	local queueSize = #SoundQueue.queue
+	local isPlaying = SoundQueue.isPlaying
+	local currentSoundFile = SoundQueue.currentSound and SoundQueue.currentSound.file or "None"
+	
+	self:Print("Sound Queue Status:")
+	self:Print("  Currently playing: " .. (isPlaying and "Yes" or "No"))
+	self:Print("  Current sound: " .. (currentSoundFile or "None"))
+	self:Print("  Queued sounds: " .. queueSize)
+	
+	if queueSize > 0 then
+		for i, sound in ipairs(SoundQueue.queue) do
+			local filename = sound.file:match("([^\\]+)$") or sound.file
+			self:Print("    " .. i .. ". " .. filename)
+		end
+	end
+end
+
+function Soundboard:ClearSoundQueue()
+	-- Cancel any active timer
+	if SoundQueue.processingTimer then
+		SoundQueue.processingTimer:Cancel()
+		SoundQueue.processingTimer = nil
+	end
+	
+	-- Clear the queue
+	local queueSize = #SoundQueue.queue
+	SoundQueue.queue = {}
+	SoundQueue.currentSound = nil
+	SoundQueue.isPlaying = false
+	
+	self:Print("Sound queue cleared! Removed " .. queueSize .. " queued sounds.")
 end
 
 function Soundboard:ADDON_LOADED(event, addonName)
@@ -2338,8 +2526,8 @@ function Soundboard:DoEmote(key, arg2)
 						local volume = (db and db.MasterVolume) or 1.0
 						DebugPrint("Master volume: " .. tostring(volume))
 						
-						-- Apply volume control by temporarily adjusting Master sound volume
-						Soundboard:PlaySoundWithVolume(emote["file"], volume)
+						-- Apply volume control using sound queue system
+						Soundboard:PlaySoundWithVolume(emote["file"], volume, key)
 					elseif (emote["file"] ~= nil) and not db.SoundEnabled then
 						DebugPrint("Sound playback disabled - skipping: " .. emote["file"])
 					else

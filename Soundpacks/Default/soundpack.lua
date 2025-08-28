@@ -40,7 +40,7 @@ soundboard_data["lizard"] = {
 soundboard_data["yourfather"] = {
 	["text"] = 		"* Luke, I am your father *",
 	["cmd1"] = "yourfather",
-	["msg"] = "if your father!",
+	["msg"] = "is your father!",
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."yourfather.mp3",
@@ -92,7 +92,7 @@ soundboard_data["hero"] = {
 
 soundboard_data["naruto"] = {
 	["text"] = 		"* NARUTARD POWA! *",
-	["msg"] = "has gone beserk because their seal is broken!",
+	["msg"] = "has gone berserk because their seal is broken!",
 	["emote"] = "roar",
 	["category"] = "Movies/TV",
 	["file"] = dir.."hv.mp3",
@@ -116,7 +116,7 @@ soundboard_data["pkmn2"] = {
 
 soundboard_data["pwrr"] = {
 	["text"] = 		"* GO GO POWER RANGERS! *",
-	["msg"] = "thinks its morphin time!",
+	["msg"] = "thinks it's morphin time!",
 	["emote"] = "flex",
 	["category"] = "Movies/TV",
 	["file"] = dir.."pwrrngs.mp3",
@@ -234,7 +234,7 @@ soundboard_data["ctt"] = {
 
 soundboard_data["dogs"] = {
 	["text"] = 		"* Who let the dogs out! *",
-	["msg"] = "wants to know who aggrod the dogs!",
+	["msg"] = "wants to know who aggroed the dogs!",
 	["emote"] = "gasp",
 	["category"] = "Music",
 	["subcategory"] = "Baha Men",
@@ -401,7 +401,7 @@ soundboard_data["desu"] = {
 
 soundboard_data["toki"] = {
 	["text"] = 		"* TOKI WO TOMARE! *",
-	["msg"] = "prepares to unleash a barage of knives!",
+	["msg"] = "prepares to unleash a barrage of knives!",
 	["category"] = "Video Games",
 	["file"] = dir.."toki.mp3",
 };
@@ -661,7 +661,7 @@ soundboard_data["pi"] = {
 soundboard_data["ohsnap"] = {
 	["text"] = 		"* OH SNAP! *",
 	["emote"] = "gasp",
-	["msg"] = "is suprized.",
+	["msg"] = "is surprised.",
 	["category"] = "Misc",
 	["file"] = dir.."ohsnap.mp3",
 };
@@ -830,7 +830,7 @@ soundboard_data["bde"] = {
 };
 
 soundboard_data["ual"] = {
-	["text"] = 		"* Ualuealue! *",
+	["text"] = 		"* Chacaron, but unintelligible! *",
 	["msg"] = "adsjhfawshfgiuadhsjnads!",
 	["emote"] = "drool",
 	["category"] = "Internet",
@@ -892,14 +892,14 @@ soundboard_data["annoying"] = {
 
 soundboard_data["alrighty"] = {
 	["text"] = 		"* ALRIGHTY THEN! *",
-	["msg"] = "thinks your an idiot.",
+	["msg"] = "thinks you're an idiot.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."alrighthen.mp3",
 };
 
 soundboard_data["offer"] = {
-	["text"] = 		"* I'm gonna make you an offer you can't refuse. *",
-	["msg"] = "makes you an offer you can't refuse.",
+	["text"] = 		"* I\\'m gonna make you an offer you can\\'t refuse. *",
+	["msg"] = "makes you an offer you can\\'t refuse.",
 	["emote"] = "threaten",
 	["category"] = "Movies/TV",
 	["file"] = dir.."anoffer.mp3",
@@ -1004,7 +1004,7 @@ soundboard_data["eeww"] = {
 
 soundboard_data["eheh"] = {
 	["text"] = 		"* Eh Eh Eeeeeh! *",
-	["msg"] = "prods you with he finger.",
+	["msg"] = "prods you with a finger.",
 	["category"] = "Misc",
 	["file"] = dir.."eheheeh.mp3",
 };
@@ -1064,7 +1064,7 @@ soundboard_data["gdamn"] = {
 
 soundboard_data["genius"] = {
 	["text"] = 		"* You are a god damn genius!! *",
-	["msg"] = "thinks your pretty smart.",
+	["msg"] = "thinks you're pretty smart.",
 	["emote"] = "gasp",
 	["category"] = "Movies/TV",
 	["file"] = dir.."gifted.mp3",
@@ -1475,14 +1475,14 @@ soundboard_data["stopit"] = {
 };
 
 soundboard_data["kma"] = {
-	["text"] =  "* Kiss my ass. *",
+	["text"] = 		"* Kiss my ass. *",
 	["msg"] = "wants you to kiss his ass.",
 	["category"] = "Misc",
 	["file"] = dir.."puckerup.mp3",
 };
 
 soundboard_data["luvya"] = {
-	["text"] =  "* I love ya man *",
+	["text"] = 		"* I love ya man *",
 	["emote"] = "love",
 	["category"] = "Misc",
 	["file"] = dir.."luvyaman.mp3",
@@ -1490,28 +1490,28 @@ soundboard_data["luvya"] = {
 
 
 soundboard_data["twilight"] = {
-	["text"] =  "* You're traveling to another dimension *",
+	["text"] = 		"* You're traveling to another dimension *",
 	["msg"] = "enters the twilight zone",
 	["category"] = "Movies/TV",
 	["file"] = dir.."twilight.mp3",
 };
 
 soundboard_data["flipper"] = {
-	["text"] =  "* EE EEEE EE E *",
+	["text"] = 		"* EE EEEE EE E *",
 	["msg"] = "squeeks",
 	["category"] = "Movies/TV",
 	["file"] = dir.."flipper.mp3",
 };
 
 soundboard_data["appl"] = {
-	["text"] =  "* Bravo! *",
+	["text"] = 		"* Bravo! *",
 	["emote"] = "applaud",
 	["category"] = "Misc",
 	["file"] = dir.."applause.mp3",
 };
 
 soundboard_data["violent"] = {
-	["text"] =  "* Parental discretion is advised *",
+	["text"] = 		"* Parental discretion is advised *",
 	["msg"] = "warns everyone around him.",
 	["category"] = "Misc",
 	["file"] = dir.."violent.mp3",
@@ -1519,7 +1519,7 @@ soundboard_data["violent"] = {
 
 
 soundboard_data["saber1"] = {
-	["text"] =  "* KSSHHH wooOOooo*",
+	["text"] = 		"* KSSHHH wooOOooo*",
 	["msg"] = "pulls out his lightsaber",
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
@@ -1528,7 +1528,7 @@ soundboard_data["saber1"] = {
 
 
 soundboard_data["saber2"] = {
-	["text"] =  "* WHOOM KSHH WHOM KSHH KSHH*",
+	["text"] = 		"* WHOOM KSHH WHOM KSHH KSHH*",
 	["msg"] = "is a jedi",
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
@@ -1577,7 +1577,7 @@ soundboard_data["darkside"] = {
 };
 
 soundboard_data["bigboned"] = {
-	["text"] = 		"* I'm not fat. I'm big boned. *",
+	["text"] = 		"* I\\'m not fat. I\\'m big boned. *",
 	["msg"] = "is just big boned. ",
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
@@ -1587,7 +1587,7 @@ soundboard_data["bigboned"] = {
 
 
 soundboard_data["thepulse"] = {
-	["text"] = 		"* Here's the pulse. Here's your finger.  *",
+	["text"] = 		"* Here\\'s the pulse. Here\\'s your finger.  *",
 	["msg"] = "tells you to get your finger out of there. ", 
 	["category"] = "Misc",
 	["file"] = dir.."thepulse.mp3",
@@ -1670,7 +1670,7 @@ soundboard_data["father"] = {
 
 soundboard_data["scumbag"] = {
 	["text"] = 		"* Were you born a scumbag? *",
-	["msg"] = "thinks your a scumbag. ",
+	["msg"] = "thinks you're a scumbag.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."bornscumbag.mp3",
 };
@@ -1774,7 +1774,7 @@ soundboard_data["xfile"] = {
 };
 
 soundboard_data["brain"] = {
-	["text"] = 		"* Alright brain, you dont like me and i dont like you... *",
+	["text"] = 		"* Alright brain, you don\\'t like me and I don\\'t like you... *",
 	["msg"] = "continues drinking. ",
 	["emote"] = "drink",
 	["category"] = "Movies/TV",
@@ -1903,7 +1903,7 @@ soundboard_data["bologna"] = {
 };
 
 soundboard_data["witchtit"] = {
-	["text"] = 		"* Its Colder than a witches titty... *",
+	["text"] = 		"* It\\'s colder than a witch\\'s titty... *",
 	["emote"] = "shivers",
 	["category"] = "Movies/TV",
 	["file"] = dir.."witchtit.mp3",
@@ -2596,7 +2596,7 @@ soundboard_data["wwbbd"] = {
 };
 
 soundboard_data["mrt"] = {
-	["text"] = "* I'm Mr. T, and I'm a night elf mohawk. *",
+	["text"] = "* I\\'m Mr. T, and I\\'m a night elf mohawk. *",
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_mr_t.mp3",
@@ -3179,14 +3179,6 @@ soundboard_data["fgfart"] = {
 	["file"] = dir.."fgfart.mp3",
 };
 
-
-
-
-
-
-
-
-
 soundboard_data["rockboat"] = {
 	["text"] = 		"* Rock the boat, Don't rock the boat baby! *",
 	["emote"] = "dance",
@@ -3358,7 +3350,7 @@ soundboard_data["mage"] = {
 };
 
 soundboard_data["monster"] = {
-	["text"] = 		"* Monster 'Battle'! *",
+	["text"] = 		"* Monster \\'Battle\\'! *",
 	["msg"] = "plays techno while Spartans fight.",
 	["emote"] = "dance",
 	["category"] = "Movies/TV",
@@ -3495,7 +3487,7 @@ soundboard_data["wish"] = {
 };
 
 soundboard_data["yourebeautiful"] = {
-	["text"] = 		"* You're Beautiful, It's true! *",
+	["text"] = 		"* You\\'re Beautiful, It\\'s true! *",
 	["msg"] = "is beautiful.",
 	["emote"] = "happy",
 	["category"] = "Music",
@@ -3535,7 +3527,7 @@ soundboard_data["change"] = {
 };
 
 soundboard_data["hotncold"] = {
-	["text"] = 		"* You're Hot N' You're Cold! *",
+	["text"] = 		"* You\\'re Hot N\\' You\\'re Cold! *",
 	["msg"] = "changes their mind like a girl changes clothes.",
 	["emote"] = "dance",
 	["category"] = "Music",
@@ -3795,7 +3787,7 @@ soundboard_data["twinkle"] = {
 soundboard_data["caught"] = {
  ["text"] = 		"*.. as the day you almost caught Cap't Jack Sparrow! *",
  ["cmd1"] = "caught",
- ["msg"] = "escapes, & knows, that you wont forget this day",
+ ["msg"] = "escapes, & knows, that you won't forget this day",
  ["category"] = "Movies/TV",
  ["subcategory"] = "Pirates of the Caribbean",
  ["file"] = dir.."caught.mp3",
@@ -3803,64 +3795,64 @@ soundboard_data["caught"] = {
 };
 
 soundboard_data["cheat"] = {
- ["text"] = 		"* You cheated! *",
- ["cmd1"] = "cheat",
- ["msg"] = "is making the \"PIRATE-MOVE\"",
- ["category"] = "Movies/TV",
- ["subcategory"] = "Pirates of the Caribbean",
- ["file"] = dir.."cheat.mp3",
-["emote"] = "laugh",
+	["text"] = 		"* You cheated! *",
+	["cmd1"] = "cheat",
+	["msg"] = "is making the 'PIRATE-MOVE'",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Pirates of the Caribbean",
+	["file"] = dir.."cheat.mp3",
+	["emote"] = "laugh",
 };
 
 soundboard_data["dirt"] = {
- ["text"] = 		"* This is a jar of dirt! *",
- ["cmd1"] = "dirt",
- ["msg"] = "wont give up the dirt, he believes in it.",
- ["category"] = "Movies/TV",
- ["subcategory"] = "Pirates of the Caribbean",
- ["file"] = dir.."dirt.mp3",
-["emote"] = "laugh",
+	["text"] = 		"* This is a jar of dirt! *",
+	["cmd1"] = "dirt",
+	["msg"] = "won't give up the dirt, he believes in it.",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Pirates of the Caribbean",
+	["file"] = dir.."dirt.mp3",
+	["emote"] = "laugh",
 };
 
 
 soundboard_data["piratelong"] = {
- ["text"] = 		"* I'm a pirat! *",
- ["cmd1"] = "piratelong",
- ["msg"] = "sails through the Caribbean",
- ["category"] = "Movies/TV",
- ["subcategory"] = "Pirates of the Caribbean",
- ["file"] = dir.."piratelong.mp3",
-["emote"] = "dance",
+	["text"] = 		"* I\\'m a pirat! *",
+	["cmd1"] = "piratelong",
+	["msg"] = "sails through the Caribbean",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Pirates of the Caribbean",
+	["file"] = dir.."piratelong.mp3",
+	["emote"] = "dance",
 };
 
 soundboard_data["pirateshort"] = {
- ["text"] = 		"* I'm a pirat! *",
- ["cmd1"] = "pirateshort",
- ["msg"] = "sails through the caribbean",
- ["category"] = "Movies/TV",
- ["subcategory"] = "Pirates of the Caribbean",
- ["file"] = dir.."pirateshort.mp3",
-["emote"] = "dance",
+	["text"] = 		"* I\\'m a pirat! *",
+	["cmd1"] = "pirateshort",
+	["msg"] = "sails through the caribbean",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Pirates of the Caribbean",
+	["file"] = dir.."pirateshort.mp3",
+	["emote"] = "dance",
 };
 
 soundboard_data["singapore"] = {
- ["text"] = 		"* Singapore *",
- ["cmd1"] = "singapore",
- ["msg"] = "says \"cleary you haven't been to Singapore\"",
- ["category"] = "Movies/TV",
- ["subcategory"] = "Pirates of the Caribbean",
- ["file"] = dir.."singapore.mp3",
-["emote"] = "point",
+	["text"] = 		"* Singapore *",
+	["cmd1"] = "singapore",
+	["msg"] = "says 'clearly you haven\\'t been to Singapore'",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Pirates of the Caribbean",
+	["file"] = dir.."singapore.mp3",
+	["emote"] = "point",
 };
 
 soundboard_data["Gladiator"] = {
- ["text"] = " *Are you not entertained!? *",
- ["cmd1"] = "Gladiator",
- ["msg"] = "says are you not entertained?",
- ["category"] = "Movies/TV",
- ["subcategory"] = "Gladiator",
- ["file"] = dir.."AreYouNotEntertained.mp3",
-["emote"] = "Roar",
+	["text"] = " *Are you not entertained!? *",
+	["cmd1"] = "Gladiator",
+	["msg"] = "says are you not entertained?",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Gladiator",
+	["file"] = dir.."AreYouNotEntertained.mp3",
+	["emote"] = "Roar",
 };
 
 soundboard_data["ponpon"] = {
