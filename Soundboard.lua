@@ -8,12 +8,9 @@ Soundboard = LibStub("AceAddon-3.0"):NewAddon("Soundboard", "AceConsole-3.0", "A
 -- GLOBALS: Soundboard, soundboard_data
 
 -- Debug system
-local SoundboardDebug = {
-	enabled = false, -- Set to false to disable all debug output
-}
-
 local function DebugPrint(...)
-	if SoundboardDebug.enabled then
+	-- Use database setting instead of global variable
+	if Soundboard and Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.DebugMode then
 		Soundboard:Print("[DEBUG]", ...)
 	end
 end
@@ -229,28 +226,67 @@ function SoundboardDropdown:BuildCategories()
 	self.categories = {}
 	
 	local totalSounds = 0
-	-- Organize sounds by category
+	-- Organize sounds by category and subcategory
 	for key, data in pairs(soundboard_data) do
 		local category = data.category or "Uncategorized"
+		local subcategory = data.subcategory
+		
 		if not self.categories[category] then
-			self.categories[category] = {}
+			self.categories[category] = {
+				sounds = {},  -- Direct sounds in this category
+				subcategories = {}  -- Subcategories within this category
+			}
 			DebugPrint("Created new category: " .. category)
 		end
-		tinsert(self.categories[category], {key = key, data = data})
+		
+		if subcategory then
+			-- This sound belongs to a subcategory
+			if not self.categories[category].subcategories[subcategory] then
+				self.categories[category].subcategories[subcategory] = {}
+				DebugPrint("Created new subcategory: " .. category .. " -> " .. subcategory)
+			end
+			tinsert(self.categories[category].subcategories[subcategory], {key = key, data = data})
+		else
+			-- This sound belongs directly to the main category
+			tinsert(self.categories[category].sounds, {key = key, data = data})
+		end
+		
 		totalSounds = totalSounds + 1
 	end
 	
 	DebugPrint("Total sounds processed: " .. totalSounds)
-	DebugPrint("Total categories found: " .. #self.categories)
+	DebugPrint("Total categories found: " .. self:CountCategories())
 	
-	-- Sort each category
-	for categoryName, sounds in pairs(self.categories) do
-		tsort(sounds, function(a, b) return a.key < b.key end)
-		DebugPrint("Category '" .. categoryName .. "' has " .. #sounds .. " sounds")
+	-- Sort sounds in each category and subcategory
+	for categoryName, categoryData in pairs(self.categories) do
+		-- Sort direct sounds in category
+		tsort(categoryData.sounds, function(a, b) return a.key < b.key end)
+		
+		-- Sort sounds in each subcategory
+		for subcategoryName, sounds in pairs(categoryData.subcategories) do
+			tsort(sounds, function(a, b) return a.key < b.key end)
+			DebugPrint("Subcategory '" .. categoryName .. " -> " .. subcategoryName .. "' has " .. #sounds .. " sounds")
+		end
+		
+		local totalInCategory = #categoryData.sounds
+		for _, sounds in pairs(categoryData.subcategories) do
+			totalInCategory = totalInCategory + #sounds
+		end
+		DebugPrint("Category '" .. categoryName .. "' has " .. totalInCategory .. " total sounds")
 	end
 	
 	self.categoriesBuilt = true
 	DebugPrint("Categories built successfully")
+end
+
+function SoundboardDropdown:CountCategories()
+	local count = 0
+	if self.categories then
+		for _ in pairs(self.categories) do
+			count = count + 1
+		end
+	end
+	return count
 end
 
 function SoundboardDropdown:ShowMainMenu()
@@ -351,18 +387,63 @@ function SoundboardDropdown:ShowMainMenu()
 	for category, _ in pairs(self.categories) do
 		tinsert(categoryNames, category)
 	end
-	tsort(categoryNames)
+	
+	-- Custom sort to put miscellaneous categories at the end
+		local function isMiscCategory(categoryName)
+		local lowerName = strlower(categoryName)
+		return lowerName == "misc" or lowerName == "miscellaneous" or
+		       lowerName == "etc" or lowerName == "other" or
+		       lowerName == "uncategorized"
+	end
+	
+	local function isMissingCategory(categoryName)
+		return categoryName == "Missing Configuration"
+	end
+	
+	tsort(categoryNames, function(a, b)
+		local aIsMisc = isMiscCategory(a)
+		local bIsMisc = isMiscCategory(b)
+		local aIsMissing = isMissingCategory(a)
+		local bIsMissing = isMissingCategory(b)
+		
+		-- Missing Configuration always goes last
+		if aIsMissing ~= bIsMissing then
+			return not aIsMissing
+		end
+		
+		-- If both are misc or both are not misc, sort alphabetically  
+		if aIsMisc == bIsMisc then
+			return a < b
+		end
+		
+		-- Otherwise, non-misc categories come first
+		return not aIsMisc
+	end)
 	
 	for _, category in ipairs(categoryNames) do
-		local count = #self.categories[category]
-		local catBtn = self:CreateButton(
-			category .. " |cFF888888(" .. count .. ")|r", 
-			yOffset
-		)
-		catBtn:SetScript("OnClick", function()
-			self:ShowCategory(category)
-		end)
-		yOffset = yOffset - buttonHeight
+		-- Skip Missing Configuration category if debug mode is off
+		if not (category == "Missing Configuration" and not db.DebugMode) then
+			local categoryData = self.categories[category]
+			local count = #categoryData.sounds
+			-- Add sounds from subcategories
+			for _, sounds in pairs(categoryData.subcategories) do
+				count = count + #sounds
+			end
+			
+			-- Apply red text formatting for Missing Configuration category
+			local displayText
+			if category == "Missing Configuration" then
+				displayText = "|cFFFF0000" .. category .. " |cFF888888(" .. count .. ")|r"
+			else
+				displayText = category .. " |cFF888888(" .. count .. ")|r"
+			end
+			
+			local catBtn = self:CreateButton(displayText, yOffset)
+			catBtn:SetScript("OnClick", function()
+				self:ShowCategory(category)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
 	end
 	
 	-- Update content size and scrollbar
@@ -383,13 +464,118 @@ function SoundboardDropdown:ShowCategory(categoryName)
 	end)
 	yOffset = yOffset - buttonHeight - 5
 	
-	-- Category title
-	local title = self:CreateButton(categoryName, yOffset, true)
+	-- Special handling for Missing Configuration category when debug is off
+	if categoryName == "Missing Configuration" and not db.DebugMode then
+		local errorBtn = self:CreateButton("Debug mode required", yOffset)
+		errorBtn:SetScript("OnClick", nil)
+		self.content:SetHeight(math.abs(yOffset) + 10)
+		self:UpdateScrollbar()
+		return
+	end
+	
+	-- Category title with red formatting for Missing Configuration
+	local titleText = categoryName
+	if categoryName == "Missing Configuration" then
+		titleText = "|cFFFF0000" .. categoryName .. "|r"
+	end
+	local title = self:CreateButton(titleText, yOffset, true)
 	title:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight - 5
 	
-	-- Sounds in category
-	local sounds = self.categories[categoryName]
+	local categoryData = self.categories[categoryName]
+	if not categoryData then
+		-- Handle error case
+		local errorBtn = self:CreateButton("Category not found", yOffset)
+		errorBtn:SetScript("OnClick", nil)
+		self.content:SetHeight(math.abs(yOffset) + 10)
+		self:UpdateScrollbar()
+		return
+	end
+	
+	-- Show subcategories first (if any)
+	local subcategoryNames = {}
+	for subcategory, _ in pairs(categoryData.subcategories) do
+		tinsert(subcategoryNames, subcategory)
+	end
+	tsort(subcategoryNames)
+	
+	for _, subcategory in ipairs(subcategoryNames) do
+		local subCategoryCount = #categoryData.subcategories[subcategory]
+		local subcatBtn = self:CreateButton(
+			"» " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
+			yOffset
+		)
+		subcatBtn:SetScript("OnClick", function()
+			self:ShowSubcategory(categoryName, subcategory)
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Show direct sounds in category (if any)
+	if #categoryData.sounds > 0 then
+		-- Add separator if there are subcategories
+		if #subcategoryNames > 0 then
+			local separator = self:CreateButton("--- Direct Sounds ---", yOffset)
+			separator:SetScript("OnClick", nil)
+			yOffset = yOffset - buttonHeight - 3
+		end
+		
+		for _, sound in ipairs(categoryData.sounds) do
+			local displayText = "/" .. sound.key
+			-- Add description if available and not too long
+			if sound.data.text and string.len(sound.data.text) < 30 then
+				displayText = displayText .. " |cFF888888- " .. sound.data.text .. "|r"
+			end
+			
+			-- Apply red text formatting for Missing Configuration category
+			if categoryName == "Missing Configuration" then
+				displayText = "|cFFFF0000" .. displayText .. "|r"
+			end
+			
+			local soundBtn = self:CreateButton(displayText, yOffset)
+			soundBtn:SetScript("OnClick", function()
+				Soundboard:SayGagKey(sound.key)
+				self.frame:Hide()
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+function SoundboardDropdown:ShowSubcategory(categoryName, subcategoryName)
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 20
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to " .. categoryName, yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowCategory(categoryName)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Subcategory title
+	local title = self:CreateButton(categoryName .. " > " .. subcategoryName, yOffset, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	local categoryData = self.categories[categoryName]
+	if not categoryData or not categoryData.subcategories[subcategoryName] then
+		-- Handle error case
+		local errorBtn = self:CreateButton("Subcategory not found", yOffset)
+		errorBtn:SetScript("OnClick", nil)
+		self.content:SetHeight(math.abs(yOffset) + 10)
+		self:UpdateScrollbar()
+		return
+	end
+	
+	-- Show sounds in subcategory
+	local sounds = categoryData.subcategories[subcategoryName]
 	for _, sound in ipairs(sounds) do
 		local displayText = "/" .. sound.key
 		-- Add description if available and not too long
@@ -667,13 +853,15 @@ local soundboard_data_sorted_keys = {};
 					set = function(info, value) db.EmoteEnabled = value end,
 					disabled = function() return not db.IsEnabled end,
 				},
-				sayEnabled = {
+
+
+				guildBroadcast = {
 					order = 2,
 					type = 'toggle',
-					name = 'Enable Say Messages',
-					desc = 'Send messages to Say chat when playing sounds',
-					get = function() return db.SayEnabled end,
-					set = function(info, value) db.SayEnabled = value end,
+					name = 'Guild Broadcasting',
+					desc = 'Share sounds with guild members who have Soundboard installed',
+					get = function() return db.GuildBroadcast end,
+					set = function(info, value) db.GuildBroadcast = value end,
 					disabled = function() return not db.IsEnabled end,
 				},
 			},
@@ -728,8 +916,8 @@ local soundboard_data_sorted_keys = {};
 				ping = {
 					order = 2,
 					type = 'execute',
-					name = 'Ping Group',
-					desc = 'Check which group members have Soundboard installed',
+					name = 'Ping All',
+					desc = 'Check which players can receive your sound broadcasts (group and guild)',
 					func = function() Soundboard:Ping() end,
 					disabled = function() return not db.IsEnabled or not db.GroupEnabled end,
 				},
@@ -769,12 +957,27 @@ local soundboard_data_sorted_keys = {};
 					order = 1,
 					type = 'toggle',
 					name = 'Debug Mode',
-					desc = 'Enable debug output for troubleshooting',
+					desc = 'Enable debug output and show "Missing Configuration" category for unconfigured sound files',
 					get = function() return db.DebugMode end,
 					set = function(info, value) 
 						db.DebugMode = value
-						SoundboardDebug.enabled = value
 						Soundboard:Print("Debug mode " .. (value and "enabled" or "disabled"))
+						-- Handle debug mode changes safely
+						if value then
+							-- Scan for orphaned files now that debug is enabled
+							if soundboard_data and type(soundboard_data) == "table" then
+								Soundboard:ScanForOrphanedFiles()
+								Soundboard:Print("Debug mode enabled - Missing Configuration category available")
+							end
+						else
+							-- Clean up missing configuration entries when debug is disabled
+							Soundboard:CleanupMissingEntries()
+							-- Refresh dropdown if it's currently open
+							if SoundboardDropdown and SoundboardDropdown.isOpen then
+								SoundboardDropdown:ShowMainMenu()
+							end
+							Soundboard:Print("Debug mode disabled - Missing Configuration category hidden")
+						end
 					end,
 				},
 				reloadAddon = {
@@ -807,13 +1010,14 @@ local soundboard_data_sorted_keys = {};
 			IsEnabled = true,
 			GroupEnabled = true,
 			EmoteEnabled = true,
-			SayEnabled = false,
 			LDBIconStorage = {}, -- LibDBIcon storage
 			-- Audio Settings
 			MasterVolume = 1.0,        -- Master volume (0.0 to 1.0)
 			SoundEnabled = true,       -- Enable/disable all sound playback
 			-- UI Settings
 			ShowMinimapButton = true,  -- Show/hide minimap button
+			-- Broadcasting Settings
+			GuildBroadcast = true,     -- true/false
 			-- Advanced Settings
 			DebugMode = false,         -- Enable debug output
 		}
@@ -823,6 +1027,21 @@ local soundboard_data_sorted_keys = {};
 	DebugPrint("Database initialized successfully, db exists: " .. tostring(db ~= nil))
 	DebugPrint("self.db exists: " .. tostring(self.db ~= nil))
 	DebugPrint("self.db.profile exists: " .. tostring(self.db.profile ~= nil))
+	
+	-- Handle database migration for new broadcasting settings
+	if db.GuildBroadcast == nil then
+		db.GuildBroadcast = true
+		DebugPrint("Migrated GuildBroadcast to default: true")
+	end
+	-- Remove old settings if they exist
+	if db.SayEnabled ~= nil then
+		db.SayEnabled = nil
+		DebugPrint("Removed legacy SayEnabled setting")
+	end
+	if db.NearbyBroadcast ~= nil then
+		db.NearbyBroadcast = nil
+		DebugPrint("Removed NearbyBroadcast setting")
+	end
 
 	-- Create direct minimap button (bypass LibDBIcon)
 	self:Print("Creating direct minimap button...")
@@ -945,8 +1164,9 @@ local soundboard_data_sorted_keys = {};
 	
 	-- Add debug toggle command
 	_G.SlashCmdList["SOUNDBOARDDEBUGTOGGLE"] = function()
-		SoundboardDebug.enabled = not SoundboardDebug.enabled
-		Soundboard:Print("Debug mode " .. (SoundboardDebug.enabled and "|cFF00FF00ENABLED|r" or "|cFFFF0000DISABLED|r"))
+		local db = Soundboard.db.profile
+		db.DebugMode = not db.DebugMode
+		Soundboard:Print("Debug mode " .. (db.DebugMode and "|cFF00FF00ENABLED|r" or "|cFFFF0000DISABLED|r"))
 	end
 	_G["SLASH_SOUNDBOARDDEBUGTOGGLE1"] = "/soundboarddebugtoggle"
 	
@@ -1127,9 +1347,10 @@ local soundboard_data_sorted_keys = {};
 	
 	-- Add debug toggle command
 	_G.SlashCmdList["SOUNDBOARDDEBUG"] = function(msg)
-		SoundboardDebug.enabled = not SoundboardDebug.enabled
-		Soundboard:Print("Debug mode " .. (SoundboardDebug.enabled and "|cFF00FF00ENABLED|r" or "|cFFFF0000DISABLED|r"))
-		if SoundboardDebug.enabled then
+		local db = Soundboard.db.profile
+		db.DebugMode = not db.DebugMode
+		Soundboard:Print("Debug mode " .. (db.DebugMode and "|cFF00FF00ENABLED|r" or "|cFFFF0000DISABLED|r"))
+		if db.DebugMode then
 			Soundboard:Print("Minimap button interactions will now show debug output")
 		else
 			Soundboard:Print("Debug output disabled")
@@ -1256,52 +1477,12 @@ function Soundboard:RegisterSlashCommands()
 end
 
 
-function Soundboard:ToggleGroup()
-	if UnitIsGroupLeader("player") then
-		db.GroupEnabled = not db.GroupEnabled
-		if db.GroupEnabled then
-			Soundboard:Send("GroupEnable")
-			self:Print("Enabled for the entire group");
-		else
-			Soundboard:Send("GroupDisable")
-			self:Print("Disabled for the entire group");
-		end
-	else
-		self:Print("You are not the group leader");
-	end
-end
-
-function Soundboard:Send(msg, to)
-	if to then
-		self:SendCommMessage("Soundboard", msg, "WHISPER", to)
-	else
-		if IsInRaid() then
-			local channel = "RAID"
-			if HAS_PARTY_CATEGORIES and (not IsInRaid(LE_PARTY_CATEGORY_HOME) and IsInRaid(LE_PARTY_CATEGORY_INSTANCE)) then
-				channel = "INSTANCE_CHAT"
-			end
-			self:SendCommMessage("Soundboard", msg, channel);
-		elseif IsInGroup() then
-			local channel = "PARTY"
-			if HAS_PARTY_CATEGORIES and (not IsInGroup(LE_PARTY_CATEGORY_HOME) and IsInGroup(LE_PARTY_CATEGORY_INSTANCE)) then
-				channel = "INSTANCE_CHAT"
-			end
-			self:SendCommMessage("Soundboard", msg, channel);
-		end
-	end
-end
-
-function Soundboard:Ping()
-	Soundboard:Send("PingSend")
-	self:Print("Players in your group with Soundboard installed:");
-end
-
 function Soundboard:GROUP_ROSTER_UPDATE()
 	if UnitIsGroupLeader("player") then
 		if(db.GroupEnabled) then
-			Soundboard:Send("GroupEnable");
+			self:SendCommMessage("Soundboard", "GroupEnable", IsInRaid() and "RAID" or "PARTY")
 		else
-			Soundboard:Send("GroupDisable")
+			self:SendCommMessage("Soundboard", "GroupDisable", IsInRaid() and "RAID" or "PARTY")
 		end
 	end
 end
@@ -1314,6 +1495,11 @@ function Soundboard:LoadSoundpacks()
 		self:Print("ERROR: No soundpack data found! Default soundpack may not have loaded.")
 		soundboard_data = {}
 		return
+	end
+	
+	-- Scan for orphaned sound files (only in debug mode)
+	if db.DebugMode then
+		self:ScanForOrphanedFiles()
 	end
 	
 	local soundCount = self:CountSounds()
@@ -1332,6 +1518,177 @@ function Soundboard:CountSounds()
 		end
 	end
 	return count
+end
+
+function Soundboard:ScanForOrphanedFiles()
+	DebugPrint("Scanning for orphaned sound files... (Debug mode enabled)")
+	
+	-- Only proceed if debug mode is enabled
+	if not db.DebugMode then
+		DebugPrint("Debug mode disabled, skipping orphaned file scan")
+		return
+	end
+	
+	-- Get list of all .mp3 files referenced in soundboard_data
+	local referencedFiles = {}
+	if soundboard_data then
+		for key, data in pairs(soundboard_data) do
+			if data.file then
+				-- Extract just the filename from the full path
+				local filename = string.match(data.file, "([^\\]+)$")
+				if filename then
+					referencedFiles[string.lower(filename)] = true
+				end
+			end
+		end
+	end
+	
+	DebugPrint("Found " .. self:CountTable(referencedFiles) .. " referenced sound files")
+	
+	-- Complete list of all .mp3 files in the Sounds directory
+	local knownFiles = {
+		"6871.mp3", "afterlife.mp3", "ahhhh.mp3", "alrighthen.mp3", "anoffer.mp3", "apology2.mp3", "applause.mp3",
+		"AreYouNotEntertained.mp3", "army.mp3", "arnie.mp3", "ateam.mp3", "badgerbadgerbadger.mp3", "badtouch.mp3",
+		"badtouch2.mp3", "badtouch3.mp3", "badtouch4.mp3", "bailamos.mp3", "banana1.mp3", "banana2.mp3",
+		"barrelroll.mp3", "bbd.mp3", "bde.mp3", "beautiful.mp3", "beback.mp3", "belikeyou.mp3", "belly.mp3",
+		"bennyhill.mp3", "bf.mp3", "bf2.mp3", "bigboned.mp3", "bigbutts.mp3", "billiejean.mp3", "billnye.mp3",
+		"bing.mp3", "bkb.mp3", "blade.mp3", "BladeRemix.mp3", "bleep.mp3", "blue.mp3", "boat.mp3", "bologna.mp3",
+		"bomb.mp3", "bond.mp3", "Boogie.mp3", "Boomdiada.mp3", "BOOMHS.mp3", "bornscumbag.mp3", "brain.mp3",
+		"brightside.mp3", "buddy.mp3", "business.mp3", "butthead.mp3", "byakuya.mp3", "byebye.mp3", "cake.mp3",
+		"candy.mp3", "canonrock.mp3", "canonrock2.mp3", "canonrock3.mp3", "caramell2.mp3", "caramelldansen.mp3",
+		"carryon.mp3", "caught.mp3", "cbsmail.mp3", "cgs.mp3", "champions.mp3", "change.mp3", "CHARGE.mp3",
+		"chealers.mp3", "cheat.mp3", "cheeseburger.mp3", "chefsong.mp3", "chewy.mp3", "chickendance.mp3",
+		"Chocolate_Rain.mp3", "chumbawamba.mp3", "cloudsong.mp3", "comeondown.mp3", "comply.mp3", "cop.mp3",
+		"cotc.mp3", "crawl.mp3", "crazy.mp3", "ctm.mp3", "ctt.mp3", "cuppycake.mp3", "damned.mp3", "damnyou.mp3",
+		"darkpower.mp3", "darkside.mp3", "db.mp3", "despicable.mp3", "desu.mp3", "devoted.mp3", "diabetus.mp3",
+		"dirt.mp3", "dkp.mp3", "dogs.mp3", "donotgo.mp3", "donthug.mp3", "dontmake.mp3", "dontstop.mp3",
+		"dontstop2.mp3", "donttazemebro.mp3", "dota.mp3", "druid.mp3", "druidtank.mp3", "EBN.mp3", "eewww.mp3",
+		"eheheeh.mp3", "ellinia.mp3", "entrytovagin.mp3", "escape.mp3", "escape2.mp3", "evillaugh.mp3",
+		"eyeofthetiger.mp3", "facedeath.mp3", "failed.mp3", "failuretocomm.mp3", "famguy.mp3", "familyguyhummer.mp3",
+		"fart.mp3", "feelgood.mp3", "feellucky.mp3", "ff-fightsong-start.mp3", "fgfart.mp3", "finesthour.mp3",
+		"fish.mp3", "flame.mp3", "flamewreathshort.mp3", "flipper.mp3", "footloose.mp3", "friendship.mp3",
+		"fries.mp3", "gameover.mp3", "gas.mp3", "gdleeroy.mp3", "getdown.mp3", "getdown2.mp3", "gg.mp3",
+		"ghost love score.mp3", "gifted.mp3", "ginjoint.mp3", "givethemnothing.mp3", "godlike.mp3", "gomer.mp3",
+		"goofed.mp3", "gotohell.mp3", "gp.mp3", "GTFO.mp3", "gum.mp3", "h3f.mp3", "haha.mp3", "halloween.mp3",
+		"hamster.mp3", "handletruth.mp3", "hard3.mp3", "HardlikeHeroic.mp3", "HardlikeHeroic2.mp3",
+		"HardlikeHeroic4.mp3", "hardware.mp3", "hassan.mp3", "hasta.mp3", "hastababy.mp3", "hatedit.mp3",
+		"hax.mp3", "headshot.mp3", "heart.mp3", "heman.mp3", "hereitgoesagain.mp3", "hero.mp3", "hibaby.mp3",
+		"hideandseek.mp3", "hitit.mp3", "HollaBack.mp3", "HollaBackBananas.mp3", "hookedonafeeling.mp3",
+		"horoscope.mp3", "hotncold.mp3", "hotpussy.mp3", "houstonproblem.mp3", "httk.mp3", "hulk-sad piano.mp3",
+		"humiliation.mp3", "hunter.mp3", "hustle.mp3", "hv.mp3", "iamlady.mp3", "Icandothisallday.mp3",
+		"ikeeelu.mp3", "ikeelu.mp3", "illmakeamanoutofyou.mp3", "imperial_march.mp3", "info.mp3", "innocent.mp3",
+		"intheend.mp3", "IOUS.mp3", "itn.mp3", "itsmylife.mp3", "itsybitsy.mp3", "iwantcandy.mp3", "jarofdirt.mp3",
+		"jasb1.mp3", "jb.mp3", "jeopardy.mp3", "jeopardy1.mp3", "jeopardy2.mp3", "jeopardy3.mp3", "jeopardy4.mp3",
+		"jumponit.mp3", "justdance.mp3", "kame.mp3", "katamari.mp3", "ketchup.mp3", "killbill.mp3", "killingspree.mp3",
+		"kittycat.mp3", "koolaid.mp3", "kurrosaki.mp3", "landdownunder.mp3", "lean.mp3", "lean2.mp3", "leek.mp3",
+		"leeroy.mp3", "leeroychicken.mp3", "letsfightinglove.mp3", "life.mp3", "lind.mp3", "lionsleeps.mp3",
+		"lis-wrng.mp3", "livetowin.mp3", "lizard-long.mp3", "lizard-single.mp3", "llap.mp3", "lls.mp3", "loca.mp3",
+		"lolguild.mp3", "Lollipops.mp3", "lookin2.mp3", "loser5.mp3", "luvyaman.mp3", "macarena.mp3", "macho.mp3",
+		"madness.mp3", "mage.mp3", "magic.mp3", "MakeLove.mp3", "makemyday.mp3", "mambo.mp3", "margarita.mp3",
+		"mario.mp3", "matrix.mp3", "meeatcookie.mp3", "megatron.mp3", "melted.mp3", "milkshake.mp3", "mining.mp3",
+		"mission.mp3", "missionimp.mp3", "mkedit.mp3", "ml.mp3", "mmmbop.mp3", "mo.mp3", "monster.mp3",
+		"monsterkill.mp3", "moonlight.mp3", "moredots.mp3", "moredots2.mp3", "morningtrain.mp3", "mortal.mp3",
+		"moskau.mp3", "mreh.mp3", "mt1.mp3", "mt2.mp3", "mt3.mp3", "mudabudabuda.mp3", "mudada.mp3", "murloc.mp3",
+		"nannerpuss.mp3", "napoleon.mp3", "narnia.mp3", "nedm.mp3", "needajew.mp3", "ninja.mp3", "nintendo64.mp3",
+		"nl.mp3", "nof.mp3", "noooo.mp3", "normalboyfriend.mp3", "numa2.mp3", "numalong2.mp3", "numanuma.mp3",
+		"numanumalong.mp3", "numnuts.mp3", "o fortuna.mp3", "ocanada.mp3", "ohsnap.mp3", "ohyeah.mp3",
+		"onemorequestion.mp3", "OneOnly.mp3", "ooga.mp3", "oompa.mp3", "over9000.mp3", "paladin.mp3", "party1.mp3",
+		"party2.mp3", "party3.mp3", "pbj.mp3", "peewee.mp3", "peeweela.mp3", "peterlol.mp3", "peterlol2.mp3",
+		"peterlol3.mp3", "petersoap.mp3", "pg.mp3", "pi.mp3", "picard.mp3", "picardlong.mp3", "pirate.mp3",
+		"piratelong.mp3", "pirateshort.mp3", "PiSong.mp3", "pissing.mp3", "playwow.mp3", "pokemon.mp3",
+		"pokemon2.mp3", "pokemondk.mp3", "ponpon.mp3", "ponponlong.mp3", "portal.mp3", "portal2.mp3",
+		"powerofchrist.mp3", "ppanther.mp3", "prepare.mp3", "priest.mp3", "prime.mp3", "prince.mp3", "puckerup.mp3",
+		"pussy.mp3", "pwlaugh.mp3", "pwrrngs.mp3", "quick.mp3", "rabies.mp3", "racist.mp3", "rainingmen.mp3",
+		"rampage.mp3", "reattached.mp3", "redalert.mp3", "remember.mp3", "repressed.mp3", "rff.mp3",
+		"ride spinnaz.mp3", "rit9.mp3", "rockandrollallnite.mp3", "rockboat.mp3", "rocky.mp3", "rockyou.mp3",
+		"roflmao.mp3", "rogue.mp3", "rollout.mp3", "rosham.mp3", "rumble.mp3", "runaway.mp3", "saber1.mp3",
+		"saber2.mp3", "safetydance.mp3", "safetydance2.mp3", "sailor.mp3", "salami.mp3", "sandman.mp3", "santa.mp3",
+		"sayhello.mp3", "sexything.mp3", "shadowform.mp3", "shagpwr.mp3", "shaman.mp3", "shamanrogue.mp3",
+		"shoes.mp3", "shrimpbarbie.mp3", "Shuffeling.mp3", "shun.mp3", "shutupfool.mp3", "sidious.mp3",
+		"silence.mp3", "singapore.mp3", "smellslikeass.mp3", "smokin.mp3", "snickers.mp3", "spartans.mp3",
+		"standbyme.mp3", "StarTrek.mp3", "StayAlive.mp3", "stewiechocolates.mp3", "stm.mp3", "stolemybike.mp3",
+		"stopit.mp3", "surprisemothafucka.mp3", "survival.mp3", "tarzanandjane.mp3", "tarzanboy.mp3", "tequila.mp3",
+		"tffm.mp3", "tffm2.mp3", "the mystery song.mp3", "thefinalcountdown.mp3", "thegoggles.mp3", "thepulse.mp3",
+		"thinking.mp3", "ThisisMadness.mp3", "ThisisSparta.mp3", "thrall.mp3", "thrallsball.mp3", "thundercatsho.mp3",
+		"tiggers.mp3", "to.mp3", "toki.mp3", "toml.mp3", "toosexy.mp3", "topgun.mp3", "touchmyself.mp3", "tralala.mp3",
+		"trap.mp3", "tree.mp3", "troops.mp3", "trynot.mp3", "ttlo.mp3", "tuba.mp3", "tunaktunak.mp3", "tunatown.mp3",
+		"twilight.mp3", "twinkle.mp3", "ualuealue.mp3", "uhohhotdog.mp3", "ultrakill.mp3", "undrpnts.mp3",
+		"unstoppable.mp3", "vaderfather.mp3", "vegeta.mp3", "venga.mp3", "victory.mp3", "violent.mp3", "wacky.mp3",
+		"waffles.mp3", "walkingonsunshine.mp3", "wantme.mp3", "warlock.mp3", "warrior.mp3", "watchu.mp3",
+		"weakestlink.mp3", "whatislove.mp3", "whatwouldbrianboitanodo.mp3", "whelps.mp3", "whine.mp3", "whitewomen.mp3",
+		"willsurvive.mp3", "willsurvive2.mp3", "willtell.mp3", "wish.mp3", "witchtit.mp3", "wonderful time.mp3",
+		"world.mp3", "worldfavor.mp3", "wow_mr_t.mp3", "wow_shatner.mp3", "wow_van_damme.mp3", "wow_verne.mp3",
+		"wow_willy_toledo.mp3", "wrong.mp3", "WRYYYYYYYYYYY.mp3", "Wurzel.mp3", "xfile.mp3", "xkill.mp3",
+		"yatta.mp3", "yesmom.mp3", "YMCA2.mp3", "yngskwlk.mp3", "you lose.mp3", "youplay.mp3", "yourebeautiful.mp3",
+		"yourethebest.mp3", "yourfather.mp3", "yousuck.mp3", "ytmnd.mp3", "zawarudo.mp3", "zombienation.mp3", "zzz.mp3"
+	}
+	
+	-- Check for orphaned files
+	local orphanedCount = 0
+	local orphanedFiles = {}
+	
+	for _, filename in pairs(knownFiles) do
+		local lowerFilename = string.lower(filename)
+		if not referencedFiles[lowerFilename] then
+			-- Found an orphaned file
+			local soundKey = string.gsub(filename, "%.mp3$", "")
+			soundKey = "missing_" .. soundKey  -- Prefix to avoid conflicts
+			
+			-- Add to soundboard_data
+			soundboard_data[soundKey] = {
+				["text"] = "* " .. soundKey .. " *",
+				["msg"] = "plays an unconfigured sound.",
+				["category"] = "Missing Configuration",
+				["file"] = "Interface\\AddOns\\Soundboard\\Soundpacks\\Default\\Sounds\\" .. filename,
+			}
+			
+			orphanedCount = orphanedCount + 1
+			table.insert(orphanedFiles, filename)
+			DebugPrint("Added orphaned file: " .. filename .. " as key: " .. soundKey)
+		end
+	end
+	
+	if orphanedCount > 0 then
+		self:Print("Found " .. orphanedCount .. " unconfigured sound files - added to 'Missing Configuration' category")
+		DebugPrint("Orphaned files: " .. table.concat(orphanedFiles, ", "))
+	else
+		DebugPrint("No orphaned sound files found")
+	end
+end
+
+function Soundboard:CountTable(tbl)
+	local count = 0
+	for _ in pairs(tbl) do
+		count = count + 1
+	end
+	return count
+end
+
+function Soundboard:CleanupMissingEntries()
+	DebugPrint("Cleaning up Missing Configuration entries...")
+	
+	if not soundboard_data then return end
+	
+	local removedCount = 0
+	local keysToRemove = {}
+	
+	-- Find all missing_ prefixed entries
+	for key, data in pairs(soundboard_data) do
+		if key and data and string.sub(key, 1, 8) == "missing_" and data.category == "Missing Configuration" then
+			table.insert(keysToRemove, key)
+		end
+	end
+	
+	-- Remove the entries
+	for _, key in ipairs(keysToRemove) do
+		soundboard_data[key] = nil
+		removedCount = removedCount + 1
+		DebugPrint("Removed missing entry: " .. key)
+	end
+	
+	if removedCount > 0 then
+		DebugPrint("Cleaned up " .. removedCount .. " Missing Configuration entries")
+	end
 end
 
 function Soundboard:PlaySoundWithVolume(soundFile, volume)
@@ -1412,14 +1769,15 @@ function Soundboard:SayGagKey(key)
 				local emote = soundboard_data and soundboard_data[key];
 				if emote then
 					DebugPrint("Found emote data for: " .. key)
+					
+					-- Handle emote messages
 					if (emote["msg"] ~= nil) and db.EmoteEnabled then 
 						SendChatMessage(emote["msg"], "EMOTE"); 
 						DebugPrint("Sent emote message: " .. emote["msg"])
 					end
-					if (emote["text"] ~= nil) and db.SayEnabled then 
-						SendChatMessage(emote["text"], "SAY"); 
-						DebugPrint("Sent say message: " .. emote["text"])
-					end
+					
+
+					
 				Soundboard:DoEmote(key, true);
 				else
 					DebugPrint("No emote data found for: " .. tostring(key))
@@ -1466,8 +1824,22 @@ function Soundboard:DoEmote(key, arg2)
 					end
 					
 				if arg2 then
-					Soundboard:Send(key)
-						DebugPrint("Sent to group: " .. key)
+					-- Handle broadcasting to other Soundboard users
+					local guildEnabled = db.GuildBroadcast
+					if guildEnabled == nil then
+						guildEnabled = true -- Default for existing users
+						db.GuildBroadcast = true
+					end
+					
+					-- Send to group members (existing functionality)
+					Soundboard:Send(key, "PARTY")
+					DebugPrint("Sent to group: " .. key)
+					
+					-- Send to guild members if enabled
+					if guildEnabled and IsInGuild() then
+						Soundboard:Send(key, "GUILD")
+						DebugPrint("Sent to guild: " .. key)
+					end
 				end
 				LastEmoteTime = time();
 				else
@@ -1491,13 +1863,193 @@ function Soundboard:OnCommReceived(prefix, msg, distri, sender)
 			db.GroupEnabled = false
 
 		elseif msg == "PingSend" then
-			Soundboard:Send("PingReply", sender)
+			-- Reply to ping with channel information
+			self:SendCommMessage("Soundboard", "PingReply:" .. (distri or "UNKNOWN"), distri, sender)
 
-		elseif msg == "PingReply" then
-			self:Print(sender)
+		elseif string.match(msg, "^PingReply:") then
+			-- Handle ping response with channel info
+			local channel = string.match(msg, "^PingReply:(.+)")
+			self:HandlePingReply(sender, channel)
 
 		else
 			Soundboard:DoEmote(msg, false)
+		end
+	end
+end
+
+-- Communication functions
+function Soundboard:Send(key, channel)
+	channel = channel or "PARTY"
+	
+	if not key then 
+		DebugPrint("Send: No key provided")
+		return 
+	end
+	
+	DebugPrint("Sending sound '" .. key .. "' via " .. channel .. " channel")
+	
+	-- Determine the appropriate distribution channel
+	local distribution
+	if channel == "GUILD" then
+		distribution = "GUILD"
+	elseif channel == "PARTY" then
+		if IsInRaid() then
+			distribution = "RAID"
+		elseif IsInGroup() then
+			distribution = "PARTY"
+		else
+			DebugPrint("Not in group/raid, cannot send to party channel")
+			return
+		end
+	else
+		DebugPrint("Unknown channel: " .. tostring(channel))
+		return
+	end
+	
+	-- Send the communication message
+	self:SendCommMessage("Soundboard", key, distribution)
+	DebugPrint("Sent '" .. key .. "' via " .. distribution .. " distribution")
+end
+
+function Soundboard:Ping()
+	DebugPrint("Pinging for all eligible Soundboard users...")
+	
+	-- Initialize response tracking
+	if not self.pingResponses then
+		self.pingResponses = {}
+	end
+	self.pingResponses = {} -- Clear previous responses
+	
+	local channelsPinged = {}
+	
+	-- Send ping to party/raid
+	if IsInRaid() then
+		self:SendCommMessage("Soundboard", "PingSend", "RAID")
+		DebugPrint("Sent ping to RAID")
+		table.insert(channelsPinged, "Raid")
+	elseif IsInGroup() then 
+		self:SendCommMessage("Soundboard", "PingSend", "PARTY")
+		DebugPrint("Sent ping to PARTY")
+		table.insert(channelsPinged, "Party")
+	end
+	
+	-- Send ping to guild if guild broadcasting is enabled
+	if db.GuildBroadcast and IsInGuild() then
+		self:SendCommMessage("Soundboard", "PingSend", "GUILD")
+		DebugPrint("Sent ping to GUILD")
+		table.insert(channelsPinged, "Guild")
+	end
+	
+	if #channelsPinged > 0 then
+		self:Print("Pinging for Soundboard users in: " .. table.concat(channelsPinged, ", "))
+		self:Print("Responses will appear below...")
+		
+		-- Set up timer to show summary after responses
+		if C_Timer and C_Timer.After then
+			C_Timer.After(3, function()
+				self:ShowPingResults()
+			end)
+		end
+	else
+		self:Print("No eligible channels to ping (not in group/raid/guild or guild broadcasting disabled)")
+	end
+end
+
+function Soundboard:ToggleGroup()
+	if db.GroupEnabled then
+		if UnitIsGroupLeader("player") then
+			self:SendCommMessage("Soundboard", "GroupEnable", IsInRaid() and "RAID" or "PARTY")
+			self:Print("Group sounds enabled for all members")
+		end
+	else 
+		if UnitIsGroupLeader("player") then
+			self:SendCommMessage("Soundboard", "GroupDisable", IsInRaid() and "RAID" or "PARTY")
+			self:Print("Group sounds disabled for all members")  
+		end
+	end
+end
+
+function Soundboard:HandlePingReply(sender, channel)
+	if not self.pingResponses then
+		self.pingResponses = {}
+	end
+	
+	-- Store the response with channel info
+	if not self.pingResponses[sender] then
+		self.pingResponses[sender] = {}
+	end
+	self.pingResponses[sender][channel] = true
+	
+	-- Format channel name for display
+	local channelDisplay = channel
+	if channel == "PARTY" then
+		channelDisplay = "Party"
+	elseif channel == "RAID" then
+		channelDisplay = "Raid"  
+	elseif channel == "GUILD" then
+		channelDisplay = "Guild"
+	end
+	
+	-- Show immediate response
+	self:Print("├ " .. sender .. " (via " .. channelDisplay .. ")")
+	DebugPrint("Received ping reply from " .. sender .. " via " .. channel)
+end
+
+function Soundboard:ShowPingResults()
+	if not self.pingResponses then
+		self:Print("└ No Soundboard users found")
+		return
+	end
+	
+	local totalUsers = 0
+	local partyUsers = 0
+	local guildUsers = 0
+	local bothUsers = 0
+	
+	-- Count responses by channel
+	for sender, channels in pairs(self.pingResponses) do
+		totalUsers = totalUsers + 1
+		local hasParty = channels["PARTY"] or channels["RAID"]
+		local hasGuild = channels["GUILD"]
+		
+		if hasParty and hasGuild then
+			bothUsers = bothUsers + 1
+		elseif hasParty then
+			partyUsers = partyUsers + 1
+		elseif hasGuild then
+			guildUsers = guildUsers + 1
+		end
+	end
+	
+	-- Show summary
+	if totalUsers == 0 then
+		self:Print("└ No Soundboard users found")
+	else
+		local summary = "└ Found " .. totalUsers .. " Soundboard user" .. (totalUsers > 1 and "s" or "") .. ":"
+		if partyUsers > 0 then
+			summary = summary .. " " .. partyUsers .. " group"
+		end
+		if guildUsers > 0 then
+			summary = summary .. " " .. guildUsers .. " guild-only"
+		end
+		if bothUsers > 0 then
+			summary = summary .. " " .. bothUsers .. " both"
+		end
+		self:Print(summary)
+		
+		-- Show broadcast reach
+		local canReceive = {}
+		if IsInGroup() or IsInRaid() then
+			table.insert(canReceive, "Group sounds → " .. (partyUsers + bothUsers) .. " users")
+		end
+		if db.GuildBroadcast and IsInGuild() then
+			table.insert(canReceive, "Guild sounds → " .. (guildUsers + bothUsers) .. " users")
+		end
+		
+		if #canReceive > 0 then
+			for _, reach in ipairs(canReceive) do
+				self:Print("  " .. reach)
+			end
 		end
 	end
 end

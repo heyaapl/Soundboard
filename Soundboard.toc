@@ -7,7 +7,7 @@
 ## Interface-MoP: 50400
 ## Notes: Play sound emotes for yourself and anyone else who has the mod!
 ## Title: Soundboard
-## Version: 1.0.0
+## Version: 1.0.1
 ## SavedVariables: SoundboardDB
 embeds.xml
 Soundpacks\Default\soundpack.lua

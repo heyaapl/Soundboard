@@ -29,12 +29,21 @@ soundboard_data["finalfantasy"] = {
 	["file"] = dir.."ff-fightsong-start.mp3",
 };
 
-soundboard_data["lizard-single"] = {
+soundboard_data["lizard"] = {
 	["text"] = 		"* Single Lizard *",
-	["cmd1"] = "lizard-single",
+	["cmd1"] = "lizard",
 	["msg"] = "is a lizard!",
 	["category"] = "Memes",
 	["file"] = dir.."lizard-single.mp3",
+};
+
+soundboard_data["yourfather"] = {
+	["text"] = 		"* Luke, I am your father *",
+	["cmd1"] = "yourfather",
+	["msg"] = "if your father!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Star Wars",
+	["file"] = dir.."yourfather.mp3",
 };
 
 soundboard_data["lizard-long"] = {
@@ -43,14 +52,6 @@ soundboard_data["lizard-long"] = {
 	["msg"] = "is a lizard!",
 	["category"] = "Memes",
 	["file"] = dir.."lizard-long.mp3",
-};
-
-soundboard_data["finalfantasyloop"] = {
-	["text"] = 		"* Green Ogre 6hits 9999! *",
-	["cmd1"] = "ffl",
-	["msg"] = "is locked in combat!",
-	["category"] = "Video Games",
-	["file"] = dir.."ff-fightsong-loop.mp3",
 };
 
 soundboard_data["win"] = {
@@ -85,6 +86,7 @@ soundboard_data["hero"] = {
 	["msg"] = "needs a hero!",
 	["emote"] = "roar",
 	["category"] = "Music",
+	["subcategory"] = "Bonnie Tyler",
 	["file"] = dir.."hero.mp3",
 };
 
@@ -99,14 +101,16 @@ soundboard_data["naruto"] = {
 soundboard_data["pkmn"] = {
 	["text"] = 		"* Gotta catch em all! *",
 	["msg"] = "gotta catch em all!",
-	["category"] = "Movies/TV",
+	["category"] = "Video Games",
+	["subcategory"] = "Pokemon",
 	["file"] = dir.."pokemon.mp3",
 };
 
 soundboard_data["pkmn2"] = {
 	["text"] = 		"* Wild NUB wants to fight! *",
 	["msg"] = "chooses you!",
-	["category"] = "Movies/TV",
+	["category"] = "Video Games",
+	["subcategory"] = "Pokemon",
 	["file"] = dir.."pokemon2.mp3",
 };
 
@@ -130,7 +134,7 @@ soundboard_data["mortal"] = {
 	["text"] = 		"* MORTAL KOMBAT! *",
 	["msg"] = "scores BRUTALITY!",
 	["emote"] = "roar",
-	["category"] = "Music",
+	["category"] = "Video Games",
 	["file"] = dir.."mortal.mp3",
 };
 
@@ -148,6 +152,7 @@ soundboard_data["tiger"] = {
 	["msg"] = "has the eye.... of the tiger!",
 	["emote"] = "ready",
 	["category"] = "Music",
+	["subcategory"] = "Survivor",
 	["file"] = dir.."eyeofthetiger.mp3",
 };
 
@@ -164,7 +169,7 @@ soundboard_data["leeroy"] = {
 	["text"] = 		"* invokes the power of Leeroy Jenkins! *",
 	["msg"] = "invokes the power of Leeroy Jenkins!",
 	["emote"] = "roar",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."leeroy.mp3",
 };
@@ -213,6 +218,7 @@ soundboard_data["ymca"] = {
 	["msg"] = "has no need to feel down!",
 	["emote"] = "dance",
 	["category"] = "Music",
+	["subcategory"] = "Village People",
 	["file"] = dir.."YMCA2.mp3",
 };
 
@@ -222,6 +228,7 @@ soundboard_data["ctt"] = {
 	["msg"] = "is untouchable!",
 	["emote"] = "dance",
 	["category"] = "Music",
+	["subcategory"] = "MC Hammer",
 	["file"] = dir.."CTT.mp3",
 };
 
@@ -230,6 +237,7 @@ soundboard_data["dogs"] = {
 	["msg"] = "wants to know who aggrod the dogs!",
 	["emote"] = "gasp",
 	["category"] = "Music",
+	["subcategory"] = "Baha Men",
 	["file"] = dir.."dogs.mp3",
 };
 
@@ -238,6 +246,7 @@ soundboard_data["itn"] = {
 	["msg"] = "wants to sail the seven seas!",
 	["emote"] = "dance",
 	["category"] = "Music",
+	["subcategory"] = "Village People",
 	["file"] = dir.."itn.mp3",
 };
 
@@ -246,6 +255,7 @@ soundboard_data["bj"] = {
 	["msg"] = "claims the kid is not their son!",
 	["emote"] = "dance",
 	["category"] = "Music",
+	["subcategory"] = "Michael Jackson",
 	["file"] = dir.."billiejean.mp3",
 };
 
@@ -421,7 +431,7 @@ soundboard_data["muda"] = {
 soundboard_data["dots"] = {
 	["text"] = 		"* MORE DOTS! *",
 	["msg"] = "demands more DoTs!",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."moredots.mp3",
 };
@@ -429,7 +439,7 @@ soundboard_data["dots"] = {
 soundboard_data["hitit"] = {
 	["text"] = 		"* Hit it like ya mean it! *",
 	["msg"] = "wants you to put more effort in.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."hitit.mp3",
 };
@@ -439,7 +449,7 @@ soundboard_data["dkp"] = {
 	["msg"] = "takes away your DKP!",
 	["emote"] = "angry",
 	["file"] = dir.."dkp.mp3",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["nsfw"] = true,
 };
@@ -447,7 +457,7 @@ soundboard_data["dkp"] = {
 soundboard_data["dots2"] = {
 	["text"] = 		"* Need more DoTs! *",
 	["msg"] = "wants more DoTs.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."moredots2.mp3",
 };
@@ -455,7 +465,7 @@ soundboard_data["dots2"] = {
 soundboard_data["whelps"] = {
 	["text"] = 		"* WHELPS! *",
 	["msg"] = "aggroed the whelp cave!",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."whelps.mp3",
 };
@@ -471,7 +481,7 @@ soundboard_data["cloudsong"] = {
 soundboard_data["sandlol"] = {
 	["text"] =		"* SANDLOL! *",
 	["msg"] = "has got a jar of dirt!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."jarofdirt.mp3",
 };
 
@@ -479,6 +489,7 @@ soundboard_data["repressed"] = {
 	["text"] =		"* HELP HELP I'M BEIN REPRESSED! *",
 	["msg"] = "is being REPRESSED!",
 	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
 	["file"] = dir.."repressed.mp3",
 };
 
@@ -501,8 +512,8 @@ soundboard_data["tunak"] = {
 soundboard_data["murloc"] = {
 	["text"] = 		"* RLRLRLRLGLRLGLR *",
 	["msg"] = "is a murloc!",
-	["category"] = "Video Games",
-	["subcategory"] = "World of Warcraft",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Creatures",
 	["file"] = dir.."murloc.mp3",
 };
 
@@ -511,7 +522,8 @@ soundboard_data["tehpwnerer"] = {
 	["msg"] = "is teh_pwnerer.",
 	["cmd1"] = "tpr",
 	["emote"] = "talk",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "General",
 	["file"] = dir.."shamanrogue.mp3",
 };
 
@@ -519,7 +531,8 @@ soundboard_data["shadowform"] = {
 	["text"] = 		"* Is shadowform okay? *",
 	["msg"] = "is itchy to melt faces.",
 	["cmd1"] = "shf",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."shadowform.mp3",
 };
 
@@ -528,14 +541,16 @@ soundboard_data["druidtank"] = {
 	["msg"] = "wants a druid to tank Rag.",
 	["cmd1"] = "druid",
 	["emote"] = "frown",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Raids",
 	["file"] = dir.."druidtank.mp3",
 };
 
 soundboard_data["byh"] = {
 	["text"] = 		"* I can be your healer baby! *",
 	["msg"] = "assures you that they are 40 yards away.",
-	["category"] = "Music",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."chealers.mp3",
 };
 
@@ -543,7 +558,8 @@ soundboard_data["thrall"] = {
 	["text"] = 		"* Club Thrall! *",
 	["msg"] = "sees lots of colors!",
 	["emote"] = "dance",
-	["category"] = "Music",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Characters",
 	["file"] = dir.."thrall.mp3",
 };
 
@@ -551,14 +567,15 @@ soundboard_data["thrall2"] = {
 	["text"] = 		"* Thralls Ball! *",
 	["msg"] = "goes into a trance.",
 	["emote"] = "dance",
-	["category"] = "Music",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Characters",
 	["file"] = dir.."thrallsball.mp3",
 };
 
 soundboard_data["mreh"] = {
 	["text"] = 		"* MREH *",
 	["msg"] = "mrehs",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."mreh.mp3",
 };
 
@@ -574,7 +591,7 @@ soundboard_data["rush"] = {
 	["text"] = 		"* Charge! *",
 	["msg"] = "orders everyone to charge!",
 	["emote"] = "charge",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."CHARGE.mp3",
 };
 	
@@ -590,6 +607,7 @@ soundboard_data["kame"] = {
 	["text"] = 		"* KAMEHAMEHA!!! *",
 	["msg"] = "charges energy into his palms!",
 	["category"] = "Movies/TV",
+	["subcategory"] = "Dragon Ball Z",
 	["file"] = dir.."kame.mp3",
 };
 
@@ -621,7 +639,7 @@ soundboard_data["wonderful"] = {
 soundboard_data["spinnaz"] = {
 	["text"] = 		"* I ride spinnaz... they don't stop... *",
 	["msg"] = "rides spinnaz, also loots!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."ride spinnaz.mp3",
 };
 
@@ -644,7 +662,7 @@ soundboard_data["ohsnap"] = {
 	["text"] = 		"* OH SNAP! *",
 	["emote"] = "gasp",
 	["msg"] = "is suprized.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."ohsnap.mp3",
 };
 
@@ -675,7 +693,7 @@ soundboard_data["pirate"] = {
 soundboard_data["fail"] = {
 	["text"] = 		"* YOU HAVE FAILED! *",
 	["msg"] = "says you fail!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."failed.mp3",
 };
 
@@ -683,7 +701,7 @@ soundboard_data["topgun"] = {
 	["text"] = 		"* HIGHWAY TO THE DANGER ZONE!! *",
 	["msg"] = "RIDES INTO THE DANGER ZONE!",
 	["emote"] = "dance",
-	["category"] = "Music",
+	["category"] = "Movies/TV",
 	["file"] = dir.."topgun.mp3",
 };
 
@@ -698,7 +716,7 @@ soundboard_data["tralala"] = {
 soundboard_data["hassan"] = {
 	["text"] = 		"* AYAYLELEAYALELEALA! *",
 	["emote"] = "roar",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."hassan.mp3",
 };
 
@@ -728,7 +746,7 @@ soundboard_data["noo"] = {
 soundboard_data["stole"] = {
 	["text"] = 		"* STOLE MY FLAG! *",
 	["msg"] = "chases after their flag thief.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."stolemybike.mp3",
 };
 
@@ -737,6 +755,7 @@ soundboard_data["whatislove"] = {
 	["msg"] = "swings head back and forth in rhythm.",
 	["emote"] = "dance",
 	["category"] = "Music",
+	["subcategory"] = "Haddaway",
 	["file"] = dir.."whatislove.mp3",
 };
 
@@ -821,7 +840,8 @@ soundboard_data["ual"] = {
 soundboard_data["epic"] = {
 	["text"] =		"* EPIC WoW Maneuver! *",
 	["msg"] = "pulls an epic maneuver!",
-	["category"] = "Music",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "General",
 	["file"] = dir.."ghost love score.mp3",
 };
 
@@ -888,7 +908,7 @@ soundboard_data["offer"] = {
 soundboard_data["rsry"] = {
 	["text"] = 		"* I'm really really sorry! *",
 	["msg"] = "apologises profusely.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."apology2.mp3",
 };
 
@@ -912,7 +932,7 @@ soundboard_data["king"] = {
 soundboard_data["bing"] = {
 	["text"] = 		"* Bing! *",
 	["msg"] = "goes bing!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."bing.mp3",
 };
 
@@ -949,7 +969,7 @@ soundboard_data["cbye"] = {
 soundboard_data["leeroychicken"] = {
 	["text"] = 		"* At least I have chicken! *",
 	["msg"] = "has some chicken.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."leeroychicken.mp3",
 };
@@ -964,7 +984,7 @@ soundboard_data["comply"] = {
 soundboard_data["devoted"] = {
 	["text"] = 		"* I'm hopelessly devoted to you! <vomit> *",
 	["msg"] = "is sickeningly ingratiating.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."devoted.mp3",
 };
 
@@ -978,21 +998,21 @@ soundboard_data["hulk"] = {
 soundboard_data["eeww"] = {
 	["text"] = 		"* EEEEEEEeeeewwwwwww! *",
 	["msg"] = "is disgusted.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."eewww.mp3",
 };
 
 soundboard_data["eheh"] = {
 	["text"] = 		"* Eh Eh Eeeeeh! *",
 	["msg"] = "prods you with he finger.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."eheheeh.mp3",
 };
 
 soundboard_data["elol"] = {
 	["text"] = 		"* Mwahahaha! *",
 	["msg"] = "laughs with an evil glint in his eye.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."evillaugh.mp3",
 };
 
@@ -1008,6 +1028,7 @@ soundboard_data["feelgood"] = {
 	["msg"] = "is feeling great.",
 	["emote"] = "dance",
 	["category"] = "Music",
+	["subcategory"] = "James Brown",
 	["file"] = dir.."feelgood.mp3",
 };
 
@@ -1036,7 +1057,7 @@ soundboard_data["friendship"] = {
 soundboard_data["gdamn"] = {
 	["text"] = 		"* G'damnit leeroy! *",
 	["msg"] = "accuses you of acting like Leeroy Jenkins.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."gdleeroy.mp3",
 };
@@ -1059,7 +1080,8 @@ soundboard_data["chatup"] = {
 soundboard_data["hamster"] = {
 	["text"] = 		"* You mother was a hamster! *",
 	["msg"] = "laughs at you.",
-	["category"] = "Etc",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
 	["file"] = dir.."hamster.mp3",
 };
 
@@ -1081,7 +1103,7 @@ soundboard_data["hasta"] = {
 soundboard_data["hotpussy"] = {
 	["text"] = 		"* Here kitty kitty!! *",
 	["msg"] = "sings a song.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."hotpussy.mp3",
 };
 
@@ -1095,14 +1117,14 @@ soundboard_data["houston"] = {
 soundboard_data["lady"] = {
 	["text"] = 		"* I am a lady! *",
 	["msg"] = "expresses his femininity.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."iamlady.mp3",
 };
 
 soundboard_data["nofault"] = {
 	["text"] = 		"* It's not my fault *",
 	["msg"] = "pleades innocence.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."innocent.mp3",
 };
@@ -1125,7 +1147,7 @@ soundboard_data["loser"] = {
 soundboard_data["mission"] = {
 	["text"] = 		"* We're on a mission from God! *",
 	["msg"] = "looks up at the sky...",
-	["category"] = "Etc",
+	["category"] = "Movies/TV",
 	["file"] = dir.."mission.mp3",
 };
 
@@ -1139,7 +1161,7 @@ soundboard_data["mmd"] = {
 soundboard_data["boyfriend"] = {
 	["text"] = 		"* Can't I just have a normal boyfriend? *",
 	["msg"] = "screams!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."normalboyfriend.mp3",
 };
 
@@ -1148,7 +1170,7 @@ soundboard_data["ohyeah"] = {
 	["text"] = 		"* OH YEAH! *",
 	["msg"] = "is the pimp daddy!",
 	["emote"] = "dance",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."ohyeah.mp3",
 };
 
@@ -1156,7 +1178,7 @@ soundboard_data["onemore"] = {
 	["text"] = 		"* You ask me another question... *",
 	["msg"] = "looks menacing.",
 	["emote"] = "threaten",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."onemorequestion.mp3",
 };
 
@@ -1181,21 +1203,21 @@ soundboard_data["shag"] = {
 soundboard_data["shrimp"] = {
 	["text"] = 		"* Let's throw another shrimp on the barbie! *",
 	["msg"] = "is getting excited!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."shrimpbarbie.mp3",
 };
 
 soundboard_data["smokin"] = {
 	["text"] = 		"* SMOKIN! *",
 	["msg"] = "is smokin!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."smokin.mp3",
 };
 
 soundboard_data["survival"] = {
 	["text"] = 		"* I'm getting a 32.33 percent chance of survival *",
 	["msg"] = "is calculating the odds of success.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."survival.mp3",
 };
@@ -1203,7 +1225,7 @@ soundboard_data["survival"] = {
 soundboard_data["thinking"] = {
 	["text"] = 		"* I'm trying to think, but nothing happens! *",
 	["msg"] = "is trying to think.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."thinking.mp3",
 };
 
@@ -1225,35 +1247,35 @@ soundboard_data["tree"] = {
 soundboard_data["insult1"] = {
 	["text"] = 		"* Your head is as empty as a eunoch's underpants! *",
 	["msg"] = "insults you.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."undrpnts.mp3",
 };
 
 soundboard_data["weakestlink"] = {
 	["text"] = 		"* You are the weakest link! *",
 	["msg"] = "insults you.",
-	["category"] = "Etc",
+	["category"] = "Movies/TV",
 	["file"] = dir.."weakestlink.mp3",
 };
 
 soundboard_data["girls"] = {
 	["text"] = 		"* Where the white women at? *",
 	["msg"] = "is lookin for the laydeez!",
-	["category"] = "Etc",
+	["category"] = "Movies/TV",
 	["file"] = dir.."whitewomen.mp3",
 };
 
 soundboard_data["favour"] = {
 	["text"] = 		"* Why don't you do the world a favour! *",
 	["msg"] = "insults you!",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."worldfavor.mp3",
 };
 
 soundboard_data["yesmom"] = {
 	["text"] = 		"* Yes Mommy! *",
 	["msg"] = "agrees.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."yesmom.mp3",
 };
 
@@ -1285,7 +1307,7 @@ soundboard_data["gtfo"] = {
 	["text"] = 		"* Get the out ma house B! *",
 	["msg"] = "politely asks you to leave.",
 	["emote"] = "threaten",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."GTFO.mp3",
 };
 
@@ -1325,7 +1347,8 @@ soundboard_data["startrek"] = {
 	["text"] = 		"* Star Trekking accross the universe! *",
 	["msg"] = "is a tekky!",
 	["emote"] = "dance",
-	["category"] = "Etc",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Star Trek",
 	["file"] = dir.."StarTrek.mp3",
 };
 
@@ -1402,14 +1425,14 @@ soundboard_data["melted"] = {
 soundboard_data["hibaby"] = {
 	["text"] = 		"* HELLOOOO BABY! *",
 	["msg"] = "is feeling lucky",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."hibaby.mp3",
 };
 
 soundboard_data["cbsmail"] = {
 	["text"] = 		"* Lets open... *",
 	["msg"] = "wonders what's in the mail",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."cbsmail.mp3",
 };
 
@@ -1423,14 +1446,14 @@ soundboard_data["gomer"] = {
 soundboard_data["hatedit"] = {
 	["text"] = 		"* HATED IT *",
 	["emote"] = "no",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."hatedit.mp3",
 };
 
 soundboard_data["yourewrong"] = {
 	["text"] = 		"* What you have done... *",
 	["emote"] = "no",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."lis-wrng.mp3",
 };
 
@@ -1454,14 +1477,14 @@ soundboard_data["stopit"] = {
 soundboard_data["kma"] = {
 	["text"] =  "* Kiss my ass. *",
 	["msg"] = "wants you to kiss his ass.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."puckerup.mp3",
 };
 
 soundboard_data["luvya"] = {
 	["text"] =  "* I love ya man *",
 	["emote"] = "love",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."luvyaman.mp3",
 };
 
@@ -1483,14 +1506,14 @@ soundboard_data["flipper"] = {
 soundboard_data["appl"] = {
 	["text"] =  "* Bravo! *",
 	["emote"] = "applaud",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."applause.mp3",
 };
 
 soundboard_data["violent"] = {
 	["text"] =  "* Parental discretion is advised *",
 	["msg"] = "warns everyone around him.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."violent.mp3",
 };
 
@@ -1525,7 +1548,7 @@ soundboard_data["chocolate"] = {
 soundboard_data["excellent"] = {
 	["text"] = 		"* Excellent. Yeeessss! *",
 	["msg"] = "is unbeatable! ",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."megatron.mp3",
 };
 
@@ -1566,14 +1589,15 @@ soundboard_data["bigboned"] = {
 soundboard_data["thepulse"] = {
 	["text"] = 		"* Here's the pulse. Here's your finger.  *",
 	["msg"] = "tells you to get your finger out of there. ", 
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."thepulse.mp3",
 };
 
 soundboard_data["chewy"] = {
 	["text"] = 		"* Raaaaaawwwwwww. *",
 	["msg"] = "makes a wookie sound. ",
-	["category"] = "Etc",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Star Wars",
 	["file"] = dir.."chewy.mp3",
 };
 
@@ -1617,7 +1641,7 @@ soundboard_data["trynot"] = {
 soundboard_data["prime"] = {
 	["text"] = 		"* Well, that's just Prime. *",
 	["msg"] = "looks annoyed. ",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."prime.mp3",
 };
 
@@ -1632,7 +1656,7 @@ soundboard_data["info"] = {
 soundboard_data["poc"] = {
 	["text"] = 		"* THE POWER OF CHRIST COMPELS YOU! *",
 	["msg"] = "tries to get the demons out of you. ",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."powerofchrist.mp3",
 };
 
@@ -1669,7 +1693,7 @@ soundboard_data["gotohell"] = {
 
 soundboard_data["balls"] = {
 	["text"] = 		"* I think you need your balls reattached. *",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."reattached.mp3",
 };
 
@@ -1678,7 +1702,7 @@ soundboard_data["ssfart"] = {
 	["text"] = 		"* Surround sound fart! *",
 	["msg"] = "farts all around you. ",
 	["emote"] = "fart",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."fart.mp3",
 };
 
@@ -1713,7 +1737,7 @@ soundboard_data["httk"] = {
 soundboard_data["gas"] = {
 	["text"] = 		"* GASEOUS SUBSTANCE DETECTED *",
 	["msg"] = "sniffs at you. ",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."gas.mp3",
 };
 
@@ -1770,7 +1794,8 @@ soundboard_data["rosham"] = {
 soundboard_data["blade"] = {
 	["text"] = 		"* Enters the Thrall Techno Club. *",
 	["emote"] = "dance",
-	["category"] = "Music",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Characters",
 	["file"] = dir.."blade.mp3",
 };
 
@@ -1799,7 +1824,7 @@ soundboard_data["ious"] = {
 soundboard_data["donotgo"] = {
 	["text"] = 		"* Do not go in there. *",
 	["msg"] = "pulls up pants after taking a huge dump. ",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."donotgo.mp3",
 };
 
@@ -1900,7 +1925,7 @@ soundboard_data["tunatown"] = {
 
 soundboard_data["rabies"] = {
 	["text"] = 		"* It bit me. *",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."rabies.mp3",
 };
 
@@ -1921,7 +1946,7 @@ soundboard_data["belly"] = {
 
 soundboard_data["bleep"] = {
 	["text"] = 		"* CENSORED *",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["emote"] = "gasp",
 	["file"] = dir.."bleep.mp3",
 };
@@ -1945,7 +1970,7 @@ soundboard_data["shutup"] = {
 
 soundboard_data["missionimp"] = {
 	["text"] = 		"* Goes into stealth mode*",
-	["category"] = "Music",
+	["category"] = "Movies/TV",
 	["emote"] = "",
 	["file"] = dir.."missionimp.mp3",
 };
@@ -1963,21 +1988,23 @@ soundboard_data["mining"] = {
 soundboard_data["cookie"] = {
 	["text"] = 		"* Om nom nom nom nom! *",
 	["emote"] = "eat",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."meeatcookie.mp3",
 };
 
 soundboard_data["powerlevel"] = {
 	["text"] = 		"* What's his power level? *",
 	["emote"] = "ponder",
-	["category"] = "Internet",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Dragon Ball Z",
 	["file"] = dir.."vegeta.mp3",
 };
 
 soundboard_data["over9000"] = {
 	["text"] = 		"* IT'S OVER 9000!! *",
 	["emote"] = "gasp",
-	["category"] = "Internet",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Dragon Ball Z",
 	["file"] = dir.."over9000.mp3",
 };
 
@@ -1985,7 +2012,8 @@ soundboard_data["flame"] = {
 	["text"] = 		"* DO NOT MOVE! *",
 	["msg"] = "will not move when flame wreath is cast.",
 	["emote"] = "kneel",
-	["category"] = "Video Games",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Raids",
 	["file"] = dir.."flamewreathshort.mp3",
 };
 
@@ -1993,7 +2021,8 @@ soundboard_data["flamelong"] = {
 	["text"] = 		"* I will not move when flame wreath is cast *",
 	["msg"] = "will not move when flame wreath is cast.",
 	["emote"] = "kneel",
-	["category"] = "Video Games",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Raids",
 	["file"] = dir.."flame.mp3",
 };
 
@@ -2050,7 +2079,8 @@ soundboard_data["picard"] = {
 	["text"] = "* Captain Jean Luc Picard. *",
 	["emote"] = "dance",
 	["msg"] = "of the USS. Enterprise",
-	["category"] = "Internet",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Star Trek",
 	["file"] = dir.."picard.mp3",
 };
 
@@ -2058,7 +2088,8 @@ soundboard_data["picardlong"] = {
 	["text"] = "* Captain.  Jean Luc Picard. *",
 	["emote"] = "dance",
 	["msg"] = "of the USS. Enterprise",
-	["category"] = "Internet",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Star Trek",
 	["file"] = dir.."picardlong.mp3",
 };
 
@@ -2074,7 +2105,7 @@ soundboard_data["rickroll"] = {
 soundboard_data["portal"] = {
 	["text"] = "* for the people who are still alive *",
 	["emote"] = "dance",
-	["category"] = "Music",
+	["category"] = "Video Games",
 	["file"] = dir.."portal.mp3",
 };
 
@@ -2102,7 +2133,8 @@ soundboard_data["bright"] = {
 	["text"] = "* Always look on the bright side of life! *",
 	["emote"] = "dance",
 	["msg"] = "is feeling optimistic!",
-	["category"] = "Music",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
 	["file"] = dir.."brightside.mp3",
 };
 
@@ -2127,6 +2159,7 @@ soundboard_data["dontstop"] = {
 	["emote"] = "dance",
 	["msg"] = "is having such a good time!",
 	["category"] = "Music",
+	["subcategory"] = "Queen",
 	["file"] = dir.."dontstop.mp3",
 };
 
@@ -2135,6 +2168,7 @@ soundboard_data["dontstop2"] = {
 	["emote"] = "dance",
 	["msg"] = "is a sex machine, ready to reload!",
 	["category"] = "Music",
+	["subcategory"] = "Queen",
 	["file"] = dir.."dontstop2.mp3",
 };
 soundboard_data["footloose"] = {
@@ -2149,6 +2183,7 @@ soundboard_data["getdown"] = {
 	["emote"] = "dance",
 	["msg"] = "does a little dance.",
 	["category"] = "Music",
+	["subcategory"] = "KC and the Sunshine Band",
 	["file"] = dir.."getdown.mp3",
 };
 
@@ -2158,6 +2193,7 @@ soundboard_data["getdown2"] = {
 	["emote"] = "dance",
 	["msg"] = "gets down.",
 	["category"] = "Music",
+	["subcategory"] = "KC and the Sunshine Band",
 	["file"] = dir.."getdown2.mp3",
 };
 soundboard_data["hooked"] = {
@@ -2219,7 +2255,7 @@ soundboard_data["mtrain"] = {
 soundboard_data["ooga"] = {
 	["text"] = "* OOGACHAKA *",
 	["msg"] = "grunts.",
-	["category"] = "Etc",
+	["category"] = "Misc",
 	["file"] = dir.."ooga.mp3",
 };
 
@@ -2227,7 +2263,8 @@ soundboard_data["l2p"] = {
 	["text"] = "* LEARN 2 PLAY *",
 	["emote"] = "dance",
 	["msg"] = "demands that you play wow every day.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "General",
 	["file"] = dir.."playwow.mp3",
 };
 
@@ -2262,8 +2299,8 @@ soundboard_data["iamagod"] = {
 	["text"] = "* Yes! I am a GOD! *",
 	["msg"] = "is a god!",
 	["emote"] = "roar",
-	["category"] = "Video Games",
-	["subcategory"] = "World of Warcraft",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "NPCs",
 	["file"] = "Sound\\Creature\\SelimFireheart\\SELIMEMPOWERED.mp3",
 };
 
@@ -2303,14 +2340,15 @@ soundboard_data["dota"] = {
 	["text"] = "* Vi sitter har i venten och spelar lite DotA *",
 	["msg"] = "is ready to play some DotA.",
 	["emote"] = "dance",
-	["category"] = "Internet",
+	["category"] = "Video Games",
 	["file"] = dir.."dota.mp3",
 };
 
 soundboard_data["hard"] = {
 	["text"] = "* Grind, baby, grind, baby *",
 	["emote"] = "dance",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "General",
 	["file"] = dir.."hardlikeheroic.mp3",
 };
 
@@ -2318,7 +2356,8 @@ soundboard_data["hard2"] = {
 	["text"] = "* Hard like heroic, more than you can handle *",
 	["msg"] = "wants do do it like a druid in the general channel",
 	["emote"] = "dance",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "General",
 	["file"] = dir.."hardlikeheroic2.mp3",
 };
 
@@ -2537,6 +2576,7 @@ soundboard_data["finalcountdown"] = {
 	["text"] = "* Dana na! na! *",
 	["emote"] = "roar",
 	["category"] = "Music",
+	["subcategory"] = "Europe",
 	["file"] = dir.."thefinalcountdown.mp3",
 };
 
@@ -2557,36 +2597,36 @@ soundboard_data["wwbbd"] = {
 
 soundboard_data["mrt"] = {
 	["text"] = "* I'm Mr. T, and I'm a night elf mohawk. *",
-	["category"] = "Video Games",
-	["subcategory"] = "World of Warcraft",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_mr_t.mp3",
 }
 
 soundboard_data["shatner"] = {
 	["text"] = "* Hello, I'm William Shatner. *",
-	["category"] = "Video Games",
-	["subcategory"] = "World of Warcraft",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_shatner.mp3",
 }
 
 soundboard_data["vandamme"] = {
 	["text"] = "* Mon nom c'est Jean Claude Van Damme, et je suis un mage. *",
-	["category"] = "Video Games",
-	["subcategory"] = "World of Warcraft",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_van_damme.mp3",
 }
 
 soundboard_data["verne"] = {
 	["text"] = "* Hello, I'm Verne Troyer. *",
-	["category"] = "Video Games",
-	["subcategory"] = "World of Warcraft",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_verne.mp3",
 }
 
 soundboard_data["toledo"] = {
 	["text"] = "* Hola, mi nomre es Willy Toledo. Y soy un paladin. *",
-	["category"] = "Video Games",
-	["subcategory"] = "World of Warcraft",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_willy_toledo.mp3",
 }
 
@@ -2726,7 +2766,8 @@ soundboard_data["youplay"] = {
 	["emote"] = "dance",
 	["cmd1"] = "youplay",
 	["msg"] = "plays World of Warcraft.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
 	["file"] = dir.."youplay.mp3",
 };
 
@@ -2771,7 +2812,8 @@ soundboard_data["roflmao"] = {
 	["emote"] = "lol",
 	["cmd1"] = "roflmao",
 	["msg"] = "is a muppet!.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
 	["file"] = dir.."roflmao.mp3",
 };
 
@@ -2813,7 +2855,8 @@ soundboard_data["gg"] = {
 	["text"] = 		"* World of Warcraft is the greatest game *",
 	["cmd1"] = "gg",
 	["msg"] = "sings.",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
 	["file"] = dir.."gg.mp3",
 };
 
@@ -2900,7 +2943,8 @@ soundboard_data["wacky"] = {
 	["emote"] = "cheer",
 	["cmd1"] = "wacky",
 	["msg"] = "spazzes and falls to the ground.",
-	["category"] = "Internet",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Family Guy",
 	["file"] = dir.."wacky.mp3",
 };
 
@@ -2910,6 +2954,7 @@ soundboard_data["survive"] = {
 	["cmd1"] = "survive",
 	["msg"] = "will survive.",
 	["category"] = "Music",
+	["subcategory"] = "Gloria Gaynor",
 	["file"] = dir.."willsurvive.mp3",
 };
 
@@ -2919,6 +2964,7 @@ soundboard_data["survive2"] = {
 	["cmd1"] = "survive2",
 	["msg"] = "will survive.",
 	["category"] = "Music",
+	["subcategory"] = "Gloria Gaynor",
 	["file"] = dir.."willsurvive2.mp3",
 };
 
@@ -3101,7 +3147,6 @@ soundboard_data["sailor"] = {
 	["cmd1"] = "sailor",
 	["msg"] = "jumps on the Titanic.",
 	["category"] = "Music",
-	["subcategory"] = "Toybox",
 	["file"] = dir.."sailor.mp3",
 };
 
@@ -3111,6 +3156,7 @@ soundboard_data["tarzanandjane"] = {
 	["cmd1"] = "tarzanandjane",
 	["msg"] = "swings through the jungle.",
 	["category"] = "Music",
+	["subcategory"] = "Toybox",
 	["file"] = dir.."tarzanandjane.mp3",
 };
 
@@ -3155,7 +3201,8 @@ soundboard_data["hard3"] = {
 	["emote"] = "dance",
 	["cmd1"] = "hard3",
 	["msg"] = "wants to do it like a druid.",
-	["category"] = "Music",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "General",
 	["file"] = dir.."hard3.mp3",
 };
 
@@ -3189,6 +3236,7 @@ soundboard_data["champions"] = {
 	["msg"] = "wins.",
 	["emote"] = "happy",
 	["category"] = "Music",
+	["subcategory"] = "Queen",
 	["file"] = dir.."champions.mp3",
 };
 
@@ -3221,7 +3269,8 @@ soundboard_data["druid"] = {
 	["text"] = 		"* There'll be travel in your future... *",
 	["msg"] = "is a druid.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."druid.mp3",
 };
 
@@ -3270,7 +3319,8 @@ soundboard_data["hunter"] = {
 	["text"] = 		"* You Will want every single weapon... *",
 	["msg"] = "is a hunter.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."hunter.mp3",
 };
 
@@ -3302,7 +3352,8 @@ soundboard_data["mage"] = {
 	["text"] = 		"* You think you're almighty with your epic staff... *",
 	["msg"] = "is a mage.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."mage.mp3",
 };
 
@@ -3311,6 +3362,7 @@ soundboard_data["monster"] = {
 	["msg"] = "plays techno while Spartans fight.",
 	["emote"] = "dance",
 	["category"] = "Movies/TV",
+	["subcategory"] = "300",
 	["file"] = dir.."monster.mp3",
 };
 
@@ -3335,7 +3387,8 @@ soundboard_data["paladin"] = {
 	["text"] = 		"* You strike fear into the hearts of the Horde! *",
 	["msg"] = "is a paladin.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."paladin.mp3",
 };
 
@@ -3343,7 +3396,8 @@ soundboard_data["priest"] = {
 	["text"] = 		"* You think you are a shadow priest but... *",
 	["msg"] = "is a priest.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."priest.mp3",
 };
 
@@ -3361,6 +3415,7 @@ soundboard_data["rockyou"] = {
 	["msg"] = "stomps his feet.",
 	["emote"] = "threaten",
 	["category"] = "Music",
+	["subcategory"] = "Queen",
 	["file"] = dir.."rockyou.mp3",
 };
 
@@ -3384,7 +3439,8 @@ soundboard_data["shaman"] = {
 	["text"] = 		"* You are the most overpowered class... *",
 	["msg"] = "is a shaman.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."shaman.mp3",
 };
 
@@ -3416,7 +3472,8 @@ soundboard_data["warlock"] = {
 	["text"] = 		"* You should be able to be kill someone with a... *",
 	["msg"] = "is a warlock.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."warlock.mp3",
 };
 
@@ -3424,7 +3481,8 @@ soundboard_data["warrior"] = {
 	["text"] = 		"* You might have incredible strength... *",
 	["msg"] = "is a warrior.",
 	["emote"] = "flex",
-	["category"] = "Internet",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Classes",
 	["file"] = dir.."warrior.mp3",
 };
 
@@ -3612,7 +3670,8 @@ soundboard_data["blade1"] = {
 	["text"] = 		"* Enters the Thrall Techno Club *",
 	["cmd1"] = "b1",
 	["msg"] = "turns on the Radio at max Volume",
-	["category"] = "Music",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Characters",
 	["file"] = dir.."BladeRemix.mp3",
 };
 
@@ -3643,8 +3702,8 @@ soundboard_data["mo"] = {
  ["text"] = 		"* Okay, moving on... *",
  ["cmd1"] = "mo",
  ["msg"] = "is moving on",
- ["category"] = "Ventriloquist",
- ["subcategory"] = "Achmed",
+ ["category"] = "Movies/TV",
+ ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."mo.mp3",
 ["emote"] = "",
 };
@@ -3653,8 +3712,8 @@ soundboard_data["nl"] = {
  ["text"] = 		"* When I'm not looking, are you going to kill me? *",
  ["cmd1"] = "mo",
  ["msg"] = "looks away...",
- ["category"] = "Ventriloquist",
- ["subcategory"] = "Achmed",
+ ["category"] = "Movies/TV",
+ ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."nl.mp3",
 ["emote"] = "",
 };
@@ -3664,8 +3723,8 @@ soundboard_data["silence"] = {
  ["text"] = 		"* SILENCE! *",
  ["cmd1"] = "silence",
  ["msg"] = "tells you all, to shut up!",
- ["category"] = "Ventriloquist",
- ["subcategory"] = "Achmed",
+ ["category"] = "Movies/TV",
+ ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."silence.mp3",
 ["emote"] = "",
 };
@@ -3674,8 +3733,8 @@ soundboard_data["stm"] = {
  ["text"] = 		"* STOP TOUCHING ME! *",
  ["cmd1"] = "stm",
  ["msg"] = "dosen't want you, to touch him!",
- ["category"] = "Ventriloquist",
- ["subcategory"] = "Achmed",
+ ["category"] = "Movies/TV",
+ ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."stm.mp3",
 ["emote"] = "",
 };
@@ -3684,8 +3743,8 @@ soundboard_data["pissing"] = {
  ["text"] = 		"* I'm I pissing you off? *",
  ["cmd1"] = "pissing",
  ["msg"] = "thinks that he is pissing you off",
- ["category"] = "Ventriloquist",
- ["subcategory"] = "Peanut",
+ ["category"] = "Movies/TV",
+ ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."pissing.mp3",
 ["emote"] = "laugh",
 };
@@ -3694,8 +3753,8 @@ soundboard_data["quick"] = {
  ["text"] = 		"* HOLY CRAP YOU'RE QUICK! *",
  ["cmd1"] = "quick",
  ["msg"] = "looks suspicious at you",
- ["category"] = "Ventriloquist",
- ["subcategory"] = "Peanut",
+ ["category"] = "Movies/TV",
+ ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."quick.mp3",
 ["emote"] = "",
 };
@@ -3705,8 +3764,8 @@ soundboard_data["santa"] = {
  ["text"] = 		"* How do Santa get to the kids in apartments? *",
  ["cmd1"] = "santa",
  ["msg"] = "buzzes your door",
- ["category"] = "Ventriloquist",
- ["subcategory"] = "Peanut",
+ ["category"] = "Movies/TV",
+ ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."santa.mp3",
 ["emote"] = "",
 };
@@ -3719,7 +3778,8 @@ soundboard_data["santa"] = {
 soundboard_data["pokemon"] = {
 	["text"] = 		"* Gotta catch em all! *",
 	["msg"] = "skal fange dem!",
-	["category"] = "Movies/TV",
+	["category"] = "Video Games",
+	["subcategory"] = "Pokemon",
 	["file"] = dir.."pokemondk.mp3",
 };
 
