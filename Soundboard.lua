@@ -665,7 +665,7 @@ local function CalculateQueueTime()
 	return totalTime
 end
 
-local function QueueSound(soundFile, volume, key)
+local function QueueSound(soundFile, volume, key, sender)
 	if not soundFile then
 		DebugPrint("No sound file provided")
 		return false
@@ -687,7 +687,8 @@ local function QueueSound(soundFile, volume, key)
 		
 		-- Provide user feedback for immediate play
 		local soundName = key and ("/" .. key) or "Sound"
-		Soundboard:Print(soundName .. " is now playing!")
+		local senderText = sender and (" (sent by " .. sender .. ")") or ""
+		Soundboard:Print(soundName .. " is now playing" .. senderText .. "!")
 		return true
 	end
 	
@@ -701,15 +702,16 @@ local function QueueSound(soundFile, volume, key)
 	if success then
 		-- Provide user feedback with queue position and estimated time
 		local soundName = key and ("/" .. key) or "Sound"
+		local senderText = sender and (" (sent by " .. sender .. ")") or ""
 		local soundsAhead = queuePosition - 1  -- Sounds ahead in queue (not counting currently playing)
 		
 		-- Round the wait time to a reasonable precision
 		local waitTimeRounded = math.max(1, math.ceil(estimatedWaitTime))
 		
 		if soundsAhead == 0 then
-			Soundboard:Print(soundName .. " will play next in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s"))
+			Soundboard:Print(soundName .. " will play next in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. senderText)
 		else
-			Soundboard:Print(soundName .. " will play in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. ", and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or ""))
+			Soundboard:Print(soundName .. " will play in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. ", and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or "") .. senderText)
 		end
 		
 		-- Debug output for troubleshooting
@@ -2328,7 +2330,7 @@ local soundboard_data_sorted_keys = {};
 							local heroSound = soundboard_data["hero"]
 							if heroSound and heroSound.file then
 								Soundboard:Print("Testing sound at " .. tostring(Soundboard.db.profile.MasterVolume * 100) .. "% volume...")
-								Soundboard:PlaySoundWithVolume(heroSound.file, Soundboard.db.profile.MasterVolume, "hero")
+								Soundboard:PlaySoundWithVolume(heroSound.file, Soundboard.db.profile.MasterVolume, "hero", nil)
 							else
 								Soundboard:Print("Hero sound file not found")
 							end
@@ -2742,7 +2744,7 @@ local soundboard_data_sorted_keys = {};
 				local heroSound = soundboard_data["hero"]
 				if heroSound and heroSound.file then
 					Soundboard:Print("Testing sound at " .. tostring(volume * 100) .. "% volume...")
-					Soundboard:PlaySoundWithVolume(heroSound.file, volume, "hero")
+					Soundboard:PlaySoundWithVolume(heroSound.file, volume, "hero", nil)
 				else
 					Soundboard:Print("Hero sound file not found")
 				end
@@ -2756,7 +2758,7 @@ local soundboard_data_sorted_keys = {};
 				local heroSound = soundboard_data["hero"]
 				if heroSound and heroSound.file then
 					Soundboard:Print("Testing sound at current volume (" .. tostring(currentVolume * 100) .. "%)...")
-					Soundboard:PlaySoundWithVolume(heroSound.file, currentVolume, "hero")
+					Soundboard:PlaySoundWithVolume(heroSound.file, currentVolume, "hero", nil)
 				else
 					Soundboard:Print("Hero sound file not found")
 				end
@@ -3253,17 +3255,17 @@ function Soundboard:CalculateSoundDurations()
 	end
 end
 
-function Soundboard:PlaySoundWithVolume(soundFile, volume, key)
+function Soundboard:PlaySoundWithVolume(soundFile, volume, key, sender)
 	-- Ensure volume is valid, fallback to 1.0 if nil or invalid
 	if not volume or volume <= 0 then
 		volume = 1.0
 		DebugPrint("Volume was nil or invalid, using default: 1.0")
 	end
 	
-	DebugPrint("PlaySoundWithVolume called with file: " .. tostring(soundFile) .. ", volume: " .. tostring(volume))
+	DebugPrint("PlaySoundWithVolume called with file: " .. tostring(soundFile) .. ", volume: " .. tostring(volume) .. (sender and (" from " .. sender) or ""))
 	
 	-- Use the sound queue system instead of playing directly
-	local success = QueueSound(soundFile, volume, key)
+	local success = QueueSound(soundFile, volume, key, sender)
 	
 	if success then
 		DebugPrint("Sound queued successfully at " .. tostring(volume * 100) .. "% volume")
@@ -3432,8 +3434,8 @@ function Soundboard:SayGagKey(key)
 	end
 end
 
-function Soundboard:DoEmote(key, arg2)
-	DebugPrint("DoEmote called for: " .. tostring(key))
+function Soundboard:DoEmote(key, arg2, sender)
+	DebugPrint("DoEmote called for: " .. tostring(key) .. (sender and (" from " .. sender) or ""))
 	
 	if (db.IsEnabled) then
 		if (db.GroupEnabled) then
@@ -3455,7 +3457,7 @@ function Soundboard:DoEmote(key, arg2)
 						DebugPrint("Master volume: " .. tostring(volume))
 						
 						-- Apply volume control using sound queue system
-						Soundboard:PlaySoundWithVolume(emote["file"], volume, key)
+						Soundboard:PlaySoundWithVolume(emote["file"], volume, key, sender)
 					elseif (emote["file"] ~= nil) and not db.SoundEnabled then
 						DebugPrint("Sound playback disabled - skipping: " .. emote["file"])
 					else
@@ -3511,7 +3513,7 @@ function Soundboard:OnCommReceived(prefix, msg, distri, sender)
 			self:HandlePingReply(sender, channel)
 
 		else
-			Soundboard:DoEmote(msg, false)
+			Soundboard:DoEmote(msg, false, sender)
 		end
 	end
 end

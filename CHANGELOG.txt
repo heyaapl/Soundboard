@@ -1,6 +1,8 @@
 # Soundboard Changelog
+## Version 1.1.2
+- **See Who Sent Sounds**: Soundboard will now tell you who is sending sound bites. In a future update, you'll have the ability to blocklist players and specific sounds that you don't want to hear
 
-## Version 1.1.1
+## Version 1.1
 Major feature update with queue system, learning AI, favorites, and search functionality!
 
 ### 🎵 Sound Queue System
