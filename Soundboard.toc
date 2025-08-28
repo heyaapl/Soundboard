@@ -6,7 +6,7 @@
 ## Interface-Cata: 40400
 ## Interface-MoP: 50400
 ## Interface-SoD: 55000
-## Notes: Play sound emotes for yourself and anyone else who has the mod!
+## Notes: Play sound emotes for yourself and anyone else who has the addon!
 ## Title: Soundboard
 ## Version: 1.1.0
 ## SavedVariables: SoundboardDB
