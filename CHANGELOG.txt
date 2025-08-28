@@ -9,56 +9,12 @@ Major feature update with queue system, learning AI, favorites, and search funct
 - **Duplicate Prevention**: Blocks identical sounds from being queued multiple times
 - **Seamless Playback**: Automatic progression through queued sounds
 
-### 🧠 Dynamic Duration Learning
-- **AI Learning System**: Automatically learns actual sound durations over time
-- **Pattern Recognition**: Intelligent initial estimates based on filename patterns
-- **Persistent Memory**: Saves learned durations account-wide across sessions
-- **Self-Improving**: Gets more accurate with usage, no manual configuration needed
-- **Debug Command**: `/soundboardlearned` to view learned durations
-
 ### ⭐ Favorites System
 - **Star Sounds**: Click star icons to favorite/unfavorite sounds
-- **Smart Category**: Favorites appear in dedicated category at top of menu
-- **Account-wide**: Favorites saved across all characters
-- **Dynamic Display**: Favorites category only shows when you have favorites
 
 ### 🔍 Search System
 - **Instant Search**: Search bar to find sounds and categories quickly
 - **Smart Results**: Shows categories above individual sounds in results
-- **Enter to Search**: Optimized search triggering on Enter key
-- **Persistent UI**: Search bar stays visible during navigation
 
 ### 🎨 User Interface Improvements  
-- **Fixed Text Colors**: Proper theme color application for all menu items
 - **Improved Button Sizing**: Better border rendering and text display
-- **Enhanced Icons**: WoW-native raid target star for favorites category
-- **Stable Search Bar**: Resolved disappearing search bar issues
-- **Better Sound Display**: Shows command and description format (`/command - description`)
-
-### ⏱️ Queue Timing Accuracy
-- **Precise Calculations**: Improved queue time estimates using actual remaining time
-- **Better Feedback**: More accurate "will play in X seconds" messages
-- **Enhanced Debug**: Detailed timing information for troubleshooting
-- **Smart Rounding**: Proper singular/plural handling for time messages
-
-### 🐛 Bug Fixes & Stability
-- **Syntax Corrections**: Fixed numerous Lua syntax errors in soundpack data
-- **Quote Escaping**: Resolved string literal issues with apostrophes and quotes
-- **Merge Conflicts**: Successfully integrated main branch improvements
-- **Race Conditions**: Fixed timing race conditions in queue system
-
----
-
-## Version 1.0.1
-Below are the changes in the first update to Soundboard now that it's on Curseforge!
-
-### Sound System
-- **Default Soundpack**: Added comprehensive sound library with 450+ sound files
-- **Template System**: Sound pack template for creating custom sound collections
-- **Multi-format Support**: MP3 audio file support with embedded metadata
-
-### User Interface & Experience
-- **GUI Framework**: Complete graphical interface using AceGUI widgets
-- **Configuration System**: In-game configuration panels and slash commands
-- **Minimap Integration**: LibDBIcon integration for minimap button
-- **Multi-Version Support**: Compatible with Classic, TBC, Wrath, Cata, and MoP (Interface versions 11503-50400)
