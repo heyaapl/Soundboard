@@ -9,7 +9,7 @@
 ## Interface-Retail: 110205
 ## Notes: Play sound emotes for yourself and anyone else who has the addon!
 ## Title: Soundboard
-## Version: 1.1.1a
+## Version: 1.1.2
 ## SavedVariables: SoundboardDB
 embeds.xml
 Soundpacks\Default\soundpack.lua
