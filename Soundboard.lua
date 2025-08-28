@@ -2065,13 +2065,6 @@ local soundboard_data_sorted_keys = {};
 	end
 	_G["SLASH_SOUNDBOARDCLEARQUEUE1"] = "/soundboardclearqueue"
 	
-	-- Manual soundpack reload command
-	_G.SlashCmdList["SOUNDBOARDRELOAD"] = function(msg)
-		Soundboard:Print("=== Manual Soundpack Reload ===")
-		Soundboard:LoadSoundpacks()
-	end
-	_G["SLASH_SOUNDBOARDRELOAD1"] = "/soundboardreload"
-
 	
 	if not soundboard_data then
 		self:Print("No soundpacks found! The default soundpack may not have loaded properly.")
@@ -2148,36 +2141,12 @@ end
 
 function Soundboard:LoadSoundpacks()
 	DebugPrint("Checking soundpack data...")
-	DebugPrint("Global soundboard_data type: " .. tostring(type(soundboard_data)))
-	DebugPrint("Global soundboard_data value: " .. tostring(soundboard_data))
 	
 	-- Check if soundboard_data exists (loaded by TOC)
 	if not soundboard_data or type(soundboard_data) ~= "table" then
 		self:Print("ERROR: No soundpack data found! Default soundpack may not have loaded.")
-		self:Print("soundboard_data type: " .. tostring(type(soundboard_data)))
-		self:Print("Attempting to load soundpack manually...")
-		
-		-- Try to manually load the soundpack file
-		local loadSuccess, errorMsg = pcall(function()
-			local chunk, err = loadfile("Interface\\AddOns\\Soundboard\\Soundpacks\\Default\\soundpack.lua")
-			if chunk then
-				chunk()
-				self:Print("Manual soundpack load attempted")
-			else
-				self:Print("Failed to load soundpack file: " .. tostring(err))
-			end
-		end)
-		
-		if not loadSuccess then
-			self:Print("Manual load error: " .. tostring(errorMsg))
-		end
-		
-		-- Check again after manual load attempt
-		if not soundboard_data or type(soundboard_data) ~= "table" then
-			soundboard_data = {}
-			self:Print("Soundpack data still not available after manual load attempt")
-			return
-		end
+		soundboard_data = {}
+		return
 	end
 	
 	-- Scan for orphaned sound files (only in debug mode)
