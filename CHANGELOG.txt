@@ -1,6 +1,6 @@
 # Soundboard Changelog
 
-## Version 1.1.0
+## Version 1.1.1
 Major feature update with queue system, learning AI, favorites, and search functionality!
 
 ### 🎵 Sound Queue System

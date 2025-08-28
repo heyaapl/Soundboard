@@ -1,14 +1,15 @@
 ## Author: heyaapl
-## Interface: 55000
+## Interface: 11503
 ## Interface-Classic: 11503
 ## Interface-BCC: 20504
 ## Interface-Wrath: 30403
 ## Interface-Cata: 40400
 ## Interface-MoP: 50400
 ## Interface-SoD: 55000
+## Interface-Retail: 110205
 ## Notes: Play sound emotes for yourself and anyone else who has the addon!
 ## Title: Soundboard
-## Version: 1.1.0
+## Version: 1.1.1
 ## SavedVariables: SoundboardDB
 embeds.xml
 Soundpacks\Default\soundpack.lua
