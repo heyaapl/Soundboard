@@ -27,6 +27,7 @@ soundboard_data["finalfantasy"] = {
 	["msg"] = "warns you of an approaching enemy!",
 	["category"] = "Video Games",
 	["file"] = dir.."ff-fightsong-start.mp3",
+	["duration"] = 45,
 };
 
 soundboard_data["lizard"] = {
@@ -35,6 +36,7 @@ soundboard_data["lizard"] = {
 	["msg"] = "is a lizard!",
 	["category"] = "Memes",
 	["file"] = dir.."lizard-single.mp3",
+	["duration"] = 2,
 };
 
 soundboard_data["yourfather"] = {
@@ -44,6 +46,7 @@ soundboard_data["yourfather"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."yourfather.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["lizard-long"] = {
@@ -52,6 +55,7 @@ soundboard_data["lizard-long"] = {
 	["msg"] = "is a lizard!",
 	["category"] = "Memes",
 	["file"] = dir.."lizard-long.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["win"] = {
@@ -60,6 +64,7 @@ soundboard_data["win"] = {
 	["emote"] = "cheer",
 	["category"] = "Video Games",
 	["file"] = dir.."victory.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["rocky"] = {
@@ -69,8 +74,8 @@ soundboard_data["rocky"] = {
 	["emote"] = "flex",
 	["category"] = "Movies/TV",
 	["file"] = dir.."rocky.mp3",
+	["duration"] = 32,
 };
-
 
 soundboard_data["rff"] = {
 	["text"] = 		"* FEUER FREI! *",
@@ -78,8 +83,8 @@ soundboard_data["rff"] = {
 	["emote"] = "openfire",
 	["category"] = "Music",
 	["file"] = dir.."rff.mp3",
+	["duration"] = 22,
 };
-
 
 soundboard_data["hero"] = {
 	["text"] = 		"* I NEED A HERO! *",
@@ -88,6 +93,7 @@ soundboard_data["hero"] = {
 	["category"] = "Music",
 	["subcategory"] = "Bonnie Tyler",
 	["file"] = dir.."hero.mp3",
+	["duration"] = 47,
 };
 
 soundboard_data["naruto"] = {
@@ -96,6 +102,7 @@ soundboard_data["naruto"] = {
 	["emote"] = "roar",
 	["category"] = "Movies/TV",
 	["file"] = dir.."hv.mp3",
+	["duration"] = 34,
 };
 
 soundboard_data["pkmn"] = {
@@ -104,6 +111,7 @@ soundboard_data["pkmn"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Pokemon",
 	["file"] = dir.."pokemon.mp3",
+	["duration"] = 65,
 };
 
 soundboard_data["pkmn2"] = {
@@ -112,6 +120,7 @@ soundboard_data["pkmn2"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Pokemon",
 	["file"] = dir.."pokemon2.mp3",
+	["duration"] = 65,
 };
 
 soundboard_data["pwrr"] = {
@@ -120,6 +129,7 @@ soundboard_data["pwrr"] = {
 	["emote"] = "flex",
 	["category"] = "Movies/TV",
 	["file"] = dir.."pwrrngs.mp3",
+	["duration"] = 61,
 };
 
 soundboard_data["ateam"] = {
@@ -128,6 +138,7 @@ soundboard_data["ateam"] = {
 	["emote"] = "roar",
 	["category"] = "Movies/TV",
 	["file"] = dir.."ateam.mp3",
+	["duration"] = 76,
 };
 
 soundboard_data["mortal"] = {
@@ -136,6 +147,7 @@ soundboard_data["mortal"] = {
 	["emote"] = "roar",
 	["category"] = "Video Games",
 	["file"] = dir.."mortal.mp3",
+	["duration"] = 32,
 };
 
 soundboard_data["imp"] = {
@@ -145,6 +157,7 @@ soundboard_data["imp"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."imperial_march.mp3",
+	["duration"] = 48,
 };
 
 soundboard_data["tiger"] = {
@@ -154,6 +167,7 @@ soundboard_data["tiger"] = {
 	["category"] = "Music",
 	["subcategory"] = "Survivor",
 	["file"] = dir.."eyeofthetiger.mp3",
+	["duration"] = 14,
 };
 
 soundboard_data["benny"] = {
@@ -163,6 +177,7 @@ soundboard_data["benny"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."bennyhill.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["leeroy"] = {
@@ -172,6 +187,7 @@ soundboard_data["leeroy"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."leeroy.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["tcats"] = {
@@ -180,6 +196,7 @@ soundboard_data["tcats"] = {
 	["cmd1"] = "thundercats",
 	["category"] = "Movies/TV",
 	["file"] = dir.."thundercatsho.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["power"] = {
@@ -187,6 +204,7 @@ soundboard_data["power"] = {
 	["msg"] = "screams BY THE POWER OF GREYSKULL!",
 	["category"] = "Movies/TV",
 	["file"] = dir.."heman.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["venga"] = {
@@ -195,6 +213,7 @@ soundboard_data["venga"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."venga.mp3",
+	["duration"] = 16,
 };
 
 soundboard_data["goninja"] = {
@@ -203,6 +222,7 @@ soundboard_data["goninja"] = {
 	["msg"] = "busts out the ninja moves!",
 	["category"] = "Music",
 	["file"] = dir.."ninja.mp3",
+	["duration"] = 20,
 };
 	
 soundboard_data["matrix"] = {
@@ -211,6 +231,7 @@ soundboard_data["matrix"] = {
 	["emote"] = "flex",
 	["category"] = "Movies/TV",
 	["file"] = dir.."matrix.mp3",
+	["duration"] = 20,
 };
 
 soundboard_data["ymca"] = {
@@ -220,8 +241,8 @@ soundboard_data["ymca"] = {
 	["category"] = "Music",
 	["subcategory"] = "Village People",
 	["file"] = dir.."YMCA2.mp3",
+	["duration"] = 50,
 };
-
 
 soundboard_data["ctt"] = {
 	["text"] = 		"* Can't touch this! *",
@@ -230,6 +251,7 @@ soundboard_data["ctt"] = {
 	["category"] = "Music",
 	["subcategory"] = "MC Hammer",
 	["file"] = dir.."CTT.mp3",
+	["duration"] = 31.0,
 };
 
 soundboard_data["dogs"] = {
@@ -239,6 +261,7 @@ soundboard_data["dogs"] = {
 	["category"] = "Music",
 	["subcategory"] = "Baha Men",
 	["file"] = dir.."dogs.mp3",
+	["duration"] = 17,
 };
 
 soundboard_data["itn"] = {
@@ -248,6 +271,7 @@ soundboard_data["itn"] = {
 	["category"] = "Music",
 	["subcategory"] = "Village People",
 	["file"] = dir.."itn.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["bj"] = {
@@ -257,6 +281,7 @@ soundboard_data["bj"] = {
 	["category"] = "Music",
 	["subcategory"] = "Michael Jackson",
 	["file"] = dir.."billiejean.mp3",
+	["duration"] = 43,
 };
 
 soundboard_data["watchu"] = {
@@ -265,6 +290,7 @@ soundboard_data["watchu"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."watchu.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["unstoppable"] = {
@@ -273,6 +299,7 @@ soundboard_data["unstoppable"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Unreal Tournament",
 	["file"] = dir.."unstoppable.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["humiliation"] = {
@@ -282,6 +309,7 @@ soundboard_data["humiliation"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Unreal Tournament",
 	["file"] = dir.."humiliation.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["rampage"] = {
@@ -290,22 +318,16 @@ soundboard_data["rampage"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Unreal Tournament",
 	["file"] = dir.."rampage.mp3",
+	["duration"] = 4,
 };
-
-
-
-
 
 soundboard_data["prepare"] = {
 	["text"] = 		"* PREPARE TO FIGHT! *",
 	["msg"] = "hits B, 8, 2, B, 4, 2, B, 1, and 4!",
 	["category"] = "Video Games",
 	["file"] = dir.."prepare.mp3",
+	["duration"] = 3,
 };
-
-
-
-
 
 soundboard_data["glike"] = {
 	["text"] = 		"* GOD LIKE! *",
@@ -313,10 +335,8 @@ soundboard_data["glike"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Unreal Tournament",
 	["file"] = dir.."godlike.mp3",
+	["duration"] = 3,
 };
-
-
-
 
 soundboard_data["headshot"] = {
 	["text"] = 		"* HEADSHOT *",
@@ -325,6 +345,7 @@ soundboard_data["headshot"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Unreal Tournament",
 	["file"] = dir.."headshot.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["fpsdoug"] = {
@@ -334,6 +355,7 @@ soundboard_data["fpsdoug"] = {
 	["msg"] = "molds his hands into holding an Arctic Warfare Magnum.",
 	["category"] = "Internet",
 	["file"] = dir.."BOOMHS.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["lls"] = {
@@ -342,6 +364,7 @@ soundboard_data["lls"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."lls.mp3",
+	["duration"] = 56,
 };
 
 soundboard_data["lind"] = {
@@ -350,6 +373,7 @@ soundboard_data["lind"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."lind.mp3",
+	["duration"] = 39,
 };
 
 soundboard_data["nof"] = {
@@ -358,6 +382,7 @@ soundboard_data["nof"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."nof.mp3",
+	["duration"] = 28,
 };
 
 soundboard_data["gp"] = {
@@ -366,6 +391,7 @@ soundboard_data["gp"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."gp.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["hb"] = {
@@ -374,6 +400,7 @@ soundboard_data["hb"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."heart.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["yatta"] = {
@@ -382,6 +409,7 @@ soundboard_data["yatta"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."yatta.mp3",
+	["duration"] = 31,
 };
 
 soundboard_data["wryy"] = {
@@ -390,6 +418,7 @@ soundboard_data["wryy"] = {
 	["emote"] = "roar",
 	["category"] = "Video Games",
 	["file"] = dir.."WRYYYYYYYYYYY.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["desu"] = {
@@ -397,6 +426,7 @@ soundboard_data["desu"] = {
 	["msg"] = "continues time.",
 	["category"] = "Video Games",
 	["file"] = dir.."desu.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["toki"] = {
@@ -404,6 +434,7 @@ soundboard_data["toki"] = {
 	["msg"] = "prepares to unleash a barrage of knives!",
 	["category"] = "Video Games",
 	["file"] = dir.."toki.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["zaw"] = {
@@ -412,6 +443,7 @@ soundboard_data["zaw"] = {
 	["emote"] = "roar",
 	["category"] = "Video Games",
 	["file"] = dir.."zawarudo.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["mudabu"] = {
@@ -419,6 +451,7 @@ soundboard_data["mudabu"] = {
 	["msg"] = "unleashes a flurry of punches!",
 	["category"] = "Video Games",
 	["file"] = dir.."mudabudabuda.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["muda"] = {
@@ -426,6 +459,7 @@ soundboard_data["muda"] = {
 	["msg"] = "does not think so!",
 	["category"] = "Video Games",
 	["file"] = dir.."mudada.mp3",
+	["duration"] = 2,
 };
 
 soundboard_data["dots"] = {
@@ -434,6 +468,7 @@ soundboard_data["dots"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."moredots.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["hitit"] = {
@@ -442,6 +477,7 @@ soundboard_data["hitit"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."hitit.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["dkp"] = {
@@ -452,6 +488,7 @@ soundboard_data["dkp"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["nsfw"] = true,
+	["duration"] = 9,
 };
 
 soundboard_data["dots2"] = {
@@ -460,6 +497,7 @@ soundboard_data["dots2"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."moredots2.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["whelps"] = {
@@ -468,6 +506,7 @@ soundboard_data["whelps"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Onyxia Wipe",
 	["file"] = dir.."whelps.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["cloudsong"] = {
@@ -476,6 +515,7 @@ soundboard_data["cloudsong"] = {
 	["emote"] = "threaten",
 	["category"] = "Internet",
 	["file"] = dir.."cloudsong.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["sandlol"] = {
@@ -483,6 +523,7 @@ soundboard_data["sandlol"] = {
 	["msg"] = "has got a jar of dirt!",
 	["category"] = "Misc",
 	["file"] = dir.."jarofdirt.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["repressed"] = {
@@ -491,6 +532,7 @@ soundboard_data["repressed"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Monty Python",
 	["file"] = dir.."repressed.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["napoleon"] = {
@@ -499,6 +541,7 @@ soundboard_data["napoleon"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."napoleon.mp3",
+	["duration"] = 67,
 };
 
 soundboard_data["tunak"] = {
@@ -507,6 +550,7 @@ soundboard_data["tunak"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."tunaktunak.mp3",
+	["duration"] = 15,
 };
 
 soundboard_data["murloc"] = {
@@ -515,6 +559,7 @@ soundboard_data["murloc"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Creatures",
 	["file"] = dir.."murloc.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["tehpwnerer"] = {
@@ -525,6 +570,7 @@ soundboard_data["tehpwnerer"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "General",
 	["file"] = dir.."shamanrogue.mp3",
+	["duration"] = 54,
 };
 
 soundboard_data["shadowform"] = {
@@ -534,6 +580,7 @@ soundboard_data["shadowform"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."shadowform.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["druidtank"] = {
@@ -544,6 +591,7 @@ soundboard_data["druidtank"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Raids",
 	["file"] = dir.."druidtank.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["byh"] = {
@@ -552,6 +600,7 @@ soundboard_data["byh"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."chealers.mp3",
+	["duration"] = 39,
 };
 
 soundboard_data["thrall"] = {
@@ -561,6 +610,7 @@ soundboard_data["thrall"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Characters",
 	["file"] = dir.."thrall.mp3",
+	["duration"] = 113,
 };
 
 soundboard_data["thrall2"] = {
@@ -570,6 +620,7 @@ soundboard_data["thrall2"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Characters",
 	["file"] = dir.."thrallsball.mp3",
+	["duration"] = 60,
 };
 
 soundboard_data["mreh"] = {
@@ -577,6 +628,7 @@ soundboard_data["mreh"] = {
 	["msg"] = "mrehs",
 	["category"] = "Misc",
 	["file"] = dir.."mreh.mp3",
+	["duration"] = 2,
 };
 
 soundboard_data["whine"] = {
@@ -585,6 +637,7 @@ soundboard_data["whine"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Arnold Swarchenegger",
 	["file"] = dir.."whine.mp3",
+	["duration"] = 3,
 };
 	
 soundboard_data["rush"] = {
@@ -593,6 +646,7 @@ soundboard_data["rush"] = {
 	["emote"] = "charge",
 	["category"] = "Misc",
 	["file"] = dir.."CHARGE.mp3",
+	["duration"] = 7,
 };
 	
 soundboard_data["gover"] = {
@@ -601,6 +655,7 @@ soundboard_data["gover"] = {
 	["emote"] = "cry",
 	["category"] = "Movies/TV",
 	["file"] = dir.."gameover.mp3",
+	["duration"] = 5,
 };
 	
 soundboard_data["kame"] = {
@@ -609,8 +664,8 @@ soundboard_data["kame"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Dragon Ball Z",
 	["file"] = dir.."kame.mp3",
+	["duration"] = 9,
 };
-
 
 soundboard_data["hax"] = {
 	["text"] = 		"* WTF UBER HAX!!1 *",
@@ -618,6 +673,7 @@ soundboard_data["hax"] = {
 	["msg"] = "thinks they got new hax!",
 	["category"] = "Music",
 	["file"] = dir.."hax.mp3",
+	["duration"] = 26,
 };
 
 soundboard_data["cuppycake"] = {
@@ -626,6 +682,7 @@ soundboard_data["cuppycake"] = {
 	["msg"] = "thinks you're the apple of their eye.",
 	["category"] = "Music",
 	["file"] = dir.."cuppycake.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["wonderful"] = {
@@ -634,6 +691,7 @@ soundboard_data["wonderful"] = {
 	["msg"] = "is having a wonderful time!",
 	["category"] = "Music",
 	["file"] = dir.."wonderful time.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["spinnaz"] = {
@@ -641,6 +699,7 @@ soundboard_data["spinnaz"] = {
 	["msg"] = "rides spinnaz, also loots!",
 	["category"] = "Misc",
 	["file"] = dir.."ride spinnaz.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["ytmnd"] = {
@@ -649,6 +708,7 @@ soundboard_data["ytmnd"] = {
 	["msg"] = "thinks you've made a breakthrough!",
 	["category"] = "Internet",
 	["file"] = dir.."ytmnd.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["pi"] = {
@@ -656,6 +716,7 @@ soundboard_data["pi"] = {
 	["msg"] = "3.14159265358979323846264338327950288419716939937510",
 	["category"] = "Music",
 	["file"] = dir.."pi.mp3",
+	["duration"] = 66,
 };
 
 soundboard_data["ohsnap"] = {
@@ -664,6 +725,7 @@ soundboard_data["ohsnap"] = {
 	["msg"] = "is surprised.",
 	["category"] = "Misc",
 	["file"] = dir.."ohsnap.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["wookies"] = {
@@ -671,14 +733,15 @@ soundboard_data["wookies"] = {
 	["msg"] = "saw some wookies.",
 	["category"] = "Music",
 	["file"] = dir.."o fortuna.mp3",
+	["duration"] = 13,
 };
-
 
 soundboard_data["youlose"] = {
 	["text"] = 		"* You LOSE! Good day sir! *",
 	["msg"] = "kicks you out of his factory!",
 	["category"] = "Movies/TV",
 	["file"] = dir.."you lose.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["pirate"] = {
@@ -687,14 +750,15 @@ soundboard_data["pirate"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."pirate.mp3",
+	["duration"] = 14,
 };
-
 
 soundboard_data["fail"] = {
 	["text"] = 		"* YOU HAVE FAILED! *",
 	["msg"] = "says you fail!",
 	["category"] = "Misc",
 	["file"] = dir.."failed.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["topgun"] = {
@@ -703,6 +767,7 @@ soundboard_data["topgun"] = {
 	["emote"] = "dance",
 	["category"] = "Movies/TV",
 	["file"] = dir.."topgun.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["tralala"] = {
@@ -711,6 +776,7 @@ soundboard_data["tralala"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."tralala.mp3",
+	["duration"] = 22,
 };
 
 soundboard_data["hassan"] = {
@@ -718,6 +784,7 @@ soundboard_data["hassan"] = {
 	["emote"] = "roar",
 	["category"] = "Misc",
 	["file"] = dir.."hassan.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["barrel"] = {
@@ -725,6 +792,7 @@ soundboard_data["barrel"] = {
 	["msg"] = "does a barrel roll!",
 	["category"] = "Video Games",
 	["file"] = dir.."barrelroll.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["katamari"] = {
@@ -733,6 +801,7 @@ soundboard_data["katamari"] = {
 	["emote"] = "dance",
 	["category"] = "Video Games",
 	["file"] = dir.."katamari.mp3",
+	["duration"] = 27,
 };
 
 soundboard_data["noo"] = {
@@ -741,6 +810,7 @@ soundboard_data["noo"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."noooo.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["stole"] = {
@@ -748,6 +818,7 @@ soundboard_data["stole"] = {
 	["msg"] = "chases after their flag thief.",
 	["category"] = "Misc",
 	["file"] = dir.."stolemybike.mp3",
+	["duration"] = 2,
 };
 
 soundboard_data["whatislove"] = {
@@ -757,6 +828,7 @@ soundboard_data["whatislove"] = {
 	["category"] = "Music",
 	["subcategory"] = "Haddaway",
 	["file"] = dir.."whatislove.mp3",
+	["duration"] = 48,
 };
 
 soundboard_data["moskau"] = {
@@ -765,6 +837,7 @@ soundboard_data["moskau"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."moskau.mp3",
+	["duration"] = 16,
 };
 
 soundboard_data["rit9"] = {
@@ -773,6 +846,7 @@ soundboard_data["rit9"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."rit9.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["wrists"] = {
@@ -781,6 +855,7 @@ soundboard_data["wrists"] = {
 	["emote"] = "cry",
 	["category"] = "Music",
 	["file"] = dir.."crawl.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["gog"] = {
@@ -789,6 +864,7 @@ soundboard_data["gog"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Simpsons",
 	["file"] = dir.."thegoggles.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["cotc"] = {
@@ -796,6 +872,7 @@ soundboard_data["cotc"] = {
 	["msg"] = "is hungry.",
 	["category"] = "Music",
 	["file"] = dir.."cotc.mp3",
+	["duration"] = 17,
 };
 
 soundboard_data["leek"] = {
@@ -804,6 +881,7 @@ soundboard_data["leek"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."leek.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["milks"] = {
@@ -811,6 +889,7 @@ soundboard_data["milks"] = {
 	["msg"] = "claims their milkshake is better.",
 	["category"] = "Music",
 	["file"] = dir.."milkshake.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["pill"] = {
@@ -819,6 +898,7 @@ soundboard_data["pill"] = {
 	["emote"] = "roar",
 	["category"] = "Movies/TV",
 	["file"] = dir.."crazy.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["bde"] = {
@@ -827,6 +907,7 @@ soundboard_data["bde"] = {
 	["emote"] = "cheer",
 	["category"] = "Movies/TV",
 	["file"] = dir.."bde.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["ual"] = {
@@ -835,6 +916,7 @@ soundboard_data["ual"] = {
 	["emote"] = "drool",
 	["category"] = "Internet",
 	["file"] = dir.."ualuealue.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["epic"] = {
@@ -843,6 +925,7 @@ soundboard_data["epic"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "General",
 	["file"] = dir.."ghost love score.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["nedm"] = {
@@ -851,6 +934,7 @@ soundboard_data["nedm"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."nedm.mp3",
+	["duration"] = 63,
 };
 	
 soundboard_data["nint64"] = {
@@ -859,6 +943,7 @@ soundboard_data["nint64"] = {
 	["emote"] = "gasp",
 	["category"] = "Internet",
 	["file"] = dir.."nintendo64.mp3",
+	["duration"] = 14,
 };
 
 soundboard_data["demon"] = {
@@ -866,6 +951,7 @@ soundboard_data["demon"] = {
 	["msg"] = "strikes down his enemies with holy light!",
 	["category"] = "Music",
 	["file"] = dir.."the mystery song.mp3",
+	["duration"] = 32,
 };
 
 soundboard_data["wrong"] = {
@@ -873,6 +959,7 @@ soundboard_data["wrong"] = {
 	["msg"] = "proves you wrong.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."wrong.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["Correct"] = {
@@ -880,6 +967,7 @@ soundboard_data["Correct"] = {
 	["msg"] = "sets the odds at 68.71% chance of being correct.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."6871.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["annoying"] = {
@@ -888,6 +976,7 @@ soundboard_data["annoying"] = {
 	["emote"] = "roar",
 	["category"] = "Movies/TV",
 	["file"] = dir.."ahhhh.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["alrighty"] = {
@@ -895,6 +984,7 @@ soundboard_data["alrighty"] = {
 	["msg"] = "thinks you're an idiot.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."alrighthen.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["offer"] = {
@@ -903,6 +993,7 @@ soundboard_data["offer"] = {
 	["emote"] = "threaten",
 	["category"] = "Movies/TV",
 	["file"] = dir.."anoffer.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["rsry"] = {
@@ -910,6 +1001,7 @@ soundboard_data["rsry"] = {
 	["msg"] = "apologises profusely.",
 	["category"] = "Misc",
 	["file"] = dir.."apology2.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["ibb"] = {
@@ -919,6 +1011,7 @@ soundboard_data["ibb"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Arnold Swarchenegger",
 	["file"] = dir.."arnie.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["king"] = {
@@ -927,6 +1020,7 @@ soundboard_data["king"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."belikeyou.mp3",
+	["duration"] = 14,
 };
 
 soundboard_data["bing"] = {
@@ -934,6 +1028,7 @@ soundboard_data["bing"] = {
 	["msg"] = "goes bing!",
 	["category"] = "Misc",
 	["file"] = dir.."bing.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["bond"] = {
@@ -941,6 +1036,7 @@ soundboard_data["bond"] = {
 	["msg"] = "pretends to be a spy.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."bond.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["buddy"] = {
@@ -949,6 +1045,7 @@ soundboard_data["buddy"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Simpsons",
 	["file"] = dir.."buddy.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["butthead"] = {
@@ -956,6 +1053,7 @@ soundboard_data["butthead"] = {
 	["msg"] = "calls you a butthead.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."butthead.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["cbye"] = {
@@ -964,6 +1062,7 @@ soundboard_data["cbye"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Simpsons",
 	["file"] = dir.."byebye.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["leeroychicken"] = {
@@ -972,6 +1071,7 @@ soundboard_data["leeroychicken"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."leeroychicken.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["comply"] = {
@@ -979,6 +1079,7 @@ soundboard_data["comply"] = {
 	["msg"] = "presses you for action.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."comply.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["devoted"] = {
@@ -986,6 +1087,7 @@ soundboard_data["devoted"] = {
 	["msg"] = "is sickeningly ingratiating.",
 	["category"] = "Misc",
 	["file"] = dir.."devoted.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["hulk"] = {
@@ -993,6 +1095,7 @@ soundboard_data["hulk"] = {
 	["msg"] = "starts to turn green.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."dontmake.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["eeww"] = {
@@ -1000,6 +1103,7 @@ soundboard_data["eeww"] = {
 	["msg"] = "is disgusted.",
 	["category"] = "Misc",
 	["file"] = dir.."eewww.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["eheh"] = {
@@ -1007,6 +1111,7 @@ soundboard_data["eheh"] = {
 	["msg"] = "prods you with a finger.",
 	["category"] = "Misc",
 	["file"] = dir.."eheheeh.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["elol"] = {
@@ -1014,6 +1119,7 @@ soundboard_data["elol"] = {
 	["msg"] = "laughs with an evil glint in his eye.",
 	["category"] = "Misc",
 	["file"] = dir.."evillaugh.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["comfail"] = {
@@ -1021,6 +1127,7 @@ soundboard_data["comfail"] = {
 	["msg"] = "is dissapointed at our attempts to interact succesfully.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."failuretocomm.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["feelgood"] = {
@@ -1030,6 +1137,7 @@ soundboard_data["feelgood"] = {
 	["category"] = "Music",
 	["subcategory"] = "James Brown",
 	["file"] = dir.."feelgood.mp3",
+	["duration"] = 16,
 };
 
 soundboard_data["feellucky"] = {
@@ -1038,6 +1146,7 @@ soundboard_data["feellucky"] = {
 	["emote"] = "threaten",
 	["category"] = "Movies/TV",
 	["file"] = dir.."feellucky.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["finest"] = {
@@ -1045,6 +1154,7 @@ soundboard_data["finest"] = {
 	["msg"] = "is filled with confidence.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."finesthour.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["friendship"] = {
@@ -1052,6 +1162,7 @@ soundboard_data["friendship"] = {
 	["msg"] = "likes you.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."friendship.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["gdamn"] = {
@@ -1060,6 +1171,7 @@ soundboard_data["gdamn"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."gdleeroy.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["genius"] = {
@@ -1068,6 +1180,7 @@ soundboard_data["genius"] = {
 	["emote"] = "gasp",
 	["category"] = "Movies/TV",
 	["file"] = dir.."gifted.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["chatup"] = {
@@ -1075,6 +1188,7 @@ soundboard_data["chatup"] = {
 	["msg"] = "feeds you a sleazy line.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."ginjoint.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["hamster"] = {
@@ -1083,6 +1197,7 @@ soundboard_data["hamster"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Monty Python",
 	["file"] = dir.."hamster.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["truth"] = {
@@ -1090,6 +1205,7 @@ soundboard_data["truth"] = {
 	["msg"] = "laughs at you.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."handletruth.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["hasta"] = {
@@ -1098,6 +1214,7 @@ soundboard_data["hasta"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Arnold Swarchenegger",
 	["file"] = dir.."hastababy.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["hotpussy"] = {
@@ -1105,6 +1222,7 @@ soundboard_data["hotpussy"] = {
 	["msg"] = "sings a song.",
 	["category"] = "Misc",
 	["file"] = dir.."hotpussy.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["houston"] = {
@@ -1112,6 +1230,7 @@ soundboard_data["houston"] = {
 	["msg"] = "shows signs of concern.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."houstonproblem.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["lady"] = {
@@ -1119,6 +1238,7 @@ soundboard_data["lady"] = {
 	["msg"] = "expresses his femininity.",
 	["category"] = "Misc",
 	["file"] = dir.."iamlady.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["nofault"] = {
@@ -1127,14 +1247,15 @@ soundboard_data["nofault"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."innocent.mp3",
+	["duration"] = 3,
 };
-
 
 soundboard_data["lookin"] = {
 	["text"] = 		"* Here's lookin at you kid! *",
 	["msg"] = "gives you a wink.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."lookin2.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["loser"] = {
@@ -1142,6 +1263,7 @@ soundboard_data["loser"] = {
 	["msg"] = "laughs at your moronic actions.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."loser5.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["mission"] = {
@@ -1149,6 +1271,7 @@ soundboard_data["mission"] = {
 	["msg"] = "looks up at the sky...",
 	["category"] = "Movies/TV",
 	["file"] = dir.."mission.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["mmd"] = {
@@ -1156,6 +1279,7 @@ soundboard_data["mmd"] = {
 	["msg"] = "looks at you menacingly.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."makemyday.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["boyfriend"] = {
@@ -1163,8 +1287,8 @@ soundboard_data["boyfriend"] = {
 	["msg"] = "screams!",
 	["category"] = "Misc",
 	["file"] = dir.."normalboyfriend.mp3",
+	["duration"] = 9,
 };
-
 
 soundboard_data["ohyeah"] = {
 	["text"] = 		"* OH YEAH! *",
@@ -1172,6 +1296,7 @@ soundboard_data["ohyeah"] = {
 	["emote"] = "dance",
 	["category"] = "Misc",
 	["file"] = dir.."ohyeah.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["onemore"] = {
@@ -1180,8 +1305,8 @@ soundboard_data["onemore"] = {
 	["emote"] = "threaten",
 	["category"] = "Misc",
 	["file"] = dir.."onemorequestion.mp3",
+	["duration"] = 4,
 };
-
 
 soundboard_data["panther"] = {
 	["text"] = 		"* Smooth baby! *",
@@ -1189,6 +1314,7 @@ soundboard_data["panther"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."ppanther.mp3",
+	["duration"] = 45,
 };
 
 soundboard_data["shag"] = {
@@ -1198,6 +1324,7 @@ soundboard_data["shag"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Austin Powers",
 	["file"] = dir.."shagpwr.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["shrimp"] = {
@@ -1205,6 +1332,7 @@ soundboard_data["shrimp"] = {
 	["msg"] = "is getting excited!",
 	["category"] = "Misc",
 	["file"] = dir.."shrimpbarbie.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["smokin"] = {
@@ -1212,6 +1340,7 @@ soundboard_data["smokin"] = {
 	["msg"] = "is smokin!",
 	["category"] = "Misc",
 	["file"] = dir.."smokin.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["survival"] = {
@@ -1220,6 +1349,7 @@ soundboard_data["survival"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Leeroy Jenkins",
 	["file"] = dir.."survival.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["thinking"] = {
@@ -1227,6 +1357,7 @@ soundboard_data["thinking"] = {
 	["msg"] = "is trying to think.",
 	["category"] = "Misc",
 	["file"] = dir.."thinking.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["tiggers"] = {
@@ -1235,6 +1366,7 @@ soundboard_data["tiggers"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."tiggers.mp3",
+	["duration"] = 16,
 };
 
 soundboard_data["tree"] = {
@@ -1242,6 +1374,7 @@ soundboard_data["tree"] = {
 	["msg"] = "is a bit stupid.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."tree.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["insult1"] = {
@@ -1249,6 +1382,7 @@ soundboard_data["insult1"] = {
 	["msg"] = "insults you.",
 	["category"] = "Misc",
 	["file"] = dir.."undrpnts.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["weakestlink"] = {
@@ -1256,6 +1390,7 @@ soundboard_data["weakestlink"] = {
 	["msg"] = "insults you.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."weakestlink.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["girls"] = {
@@ -1263,6 +1398,7 @@ soundboard_data["girls"] = {
 	["msg"] = "is lookin for the laydeez!",
 	["category"] = "Movies/TV",
 	["file"] = dir.."whitewomen.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["favour"] = {
@@ -1270,6 +1406,7 @@ soundboard_data["favour"] = {
 	["msg"] = "insults you!",
 	["category"] = "Misc",
 	["file"] = dir.."worldfavor.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["yesmom"] = {
@@ -1277,6 +1414,7 @@ soundboard_data["yesmom"] = {
 	["msg"] = "agrees.",
 	["category"] = "Misc",
 	["file"] = dir.."yesmom.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["theforce"] = {
@@ -1285,6 +1423,7 @@ soundboard_data["theforce"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."yngskwlk.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["father"] = {
@@ -1293,6 +1432,7 @@ soundboard_data["father"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."yourfather.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["boogie"] = {
@@ -1301,6 +1441,7 @@ soundboard_data["boogie"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."Boogie.mp3",
+	["duration"] = 48,
 };
 
 soundboard_data["gtfo"] = {
@@ -1309,6 +1450,7 @@ soundboard_data["gtfo"] = {
 	["emote"] = "threaten",
 	["category"] = "Misc",
 	["file"] = dir.."GTFO.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["lollipop"] = {
@@ -1317,6 +1459,7 @@ soundboard_data["lollipop"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."Lollipops.mp3",
+	["duration"] = 99,
 };
 
 soundboard_data["makelove"] = {
@@ -1325,6 +1468,7 @@ soundboard_data["makelove"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."makelove.mp3",
+	["duration"] = 31.0,
 };
 
 soundboard_data["iamtheone"] = {
@@ -1333,6 +1477,7 @@ soundboard_data["iamtheone"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."OneOnly.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["bikini"] = {
@@ -1341,6 +1486,7 @@ soundboard_data["bikini"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."itsybitsy.mp3",
+	["duration"] = 41,
 };
 
 soundboard_data["startrek"] = {
@@ -1350,6 +1496,7 @@ soundboard_data["startrek"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Trek",
 	["file"] = dir.."StarTrek.mp3",
+	["duration"] = 60,
 };
 
 soundboard_data["stayalive"] = {
@@ -1358,6 +1505,7 @@ soundboard_data["stayalive"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."StayAlive.mp3",
+	["duration"] = 60,
 };
 
 soundboard_data["wurzel"] = {
@@ -1366,6 +1514,7 @@ soundboard_data["wurzel"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."Wurzel.mp3",
+	["duration"] = 46,
 };
 
 --BLERIC'S
@@ -1375,6 +1524,7 @@ soundboard_data["jeopardy"] = {
 	["msg"] = "plays the jeopardy song.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."jeopardy.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["peewee"] = {
@@ -1383,6 +1533,7 @@ soundboard_data["peewee"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Pee wee",
 	["file"] = dir.."peewee.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["peeweelol"] = {
@@ -1391,6 +1542,7 @@ soundboard_data["peeweelol"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Pee wee",
 	["file"] = dir.."pwlaugh.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["peeweela"] = {
@@ -1399,6 +1551,7 @@ soundboard_data["peeweela"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Pee wee",
 	["file"] = dir.."peeweela.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["billnye"] = {
@@ -1406,6 +1559,7 @@ soundboard_data["billnye"] = {
 	["msg"] = "thinks science is cool",
 	["category"] = "Movies/TV",
 	["file"] = dir.."billnye.mp3",
+	["duration"] = 31,
 };
 
 soundboard_data["goofed"] = {
@@ -1413,6 +1567,7 @@ soundboard_data["goofed"] = {
 	["emote"] = "sorry",
 	["category"] = "Movies/TV",
 	["file"] = dir.."goofed.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["melted"] = {
@@ -1420,6 +1575,7 @@ soundboard_data["melted"] = {
 	["msg"] = "wants to take a break",
 	["category"] = "Movies/TV",
 	["file"] = dir.."melted.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["hibaby"] = {
@@ -1427,6 +1583,7 @@ soundboard_data["hibaby"] = {
 	["msg"] = "is feeling lucky",
 	["category"] = "Misc",
 	["file"] = dir.."hibaby.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["cbsmail"] = {
@@ -1434,6 +1591,7 @@ soundboard_data["cbsmail"] = {
 	["msg"] = "wonders what's in the mail",
 	["category"] = "Misc",
 	["file"] = dir.."cbsmail.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["gomer"] = {
@@ -1441,6 +1599,7 @@ soundboard_data["gomer"] = {
 	["msg"] = "sings the Gomer Pile theme song",
 	["category"] = "Music",
 	["file"] = dir.."gomer.mp3",
+	["duration"] = 28,
 };
 
 soundboard_data["hatedit"] = {
@@ -1448,6 +1607,7 @@ soundboard_data["hatedit"] = {
 	["emote"] = "no",
 	["category"] = "Misc",
 	["file"] = dir.."hatedit.mp3",
+	["duration"] = 2,
 };
 
 soundboard_data["yourewrong"] = {
@@ -1455,6 +1615,7 @@ soundboard_data["yourewrong"] = {
 	["emote"] = "no",
 	["category"] = "Misc",
 	["file"] = dir.."lis-wrng.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["cop"] = {
@@ -1463,6 +1624,7 @@ soundboard_data["cop"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Arnold Swarchenegger",
 	["file"] = dir.."cop.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["stopit"] = {
@@ -1472,6 +1634,7 @@ soundboard_data["stopit"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Arnold Swarchenegger",
 	["file"] = dir.."stopit.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["kma"] = {
@@ -1479,6 +1642,7 @@ soundboard_data["kma"] = {
 	["msg"] = "wants you to kiss his ass.",
 	["category"] = "Misc",
 	["file"] = dir.."puckerup.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["luvya"] = {
@@ -1486,14 +1650,15 @@ soundboard_data["luvya"] = {
 	["emote"] = "love",
 	["category"] = "Misc",
 	["file"] = dir.."luvyaman.mp3",
+	["duration"] = 3,
 };
-
 
 soundboard_data["twilight"] = {
 	["text"] = 		"* You're traveling to another dimension *",
 	["msg"] = "enters the twilight zone",
 	["category"] = "Movies/TV",
 	["file"] = dir.."twilight.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["flipper"] = {
@@ -1501,6 +1666,7 @@ soundboard_data["flipper"] = {
 	["msg"] = "squeeks",
 	["category"] = "Movies/TV",
 	["file"] = dir.."flipper.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["appl"] = {
@@ -1508,6 +1674,7 @@ soundboard_data["appl"] = {
 	["emote"] = "applaud",
 	["category"] = "Misc",
 	["file"] = dir.."applause.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["violent"] = {
@@ -1515,8 +1682,8 @@ soundboard_data["violent"] = {
 	["msg"] = "warns everyone around him.",
 	["category"] = "Misc",
 	["file"] = dir.."violent.mp3",
+	["duration"] = 5,
 };
-
 
 soundboard_data["saber1"] = {
 	["text"] = 		"* KSSHHH wooOOooo*",
@@ -1524,8 +1691,8 @@ soundboard_data["saber1"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."saber1.mp3",
+	["duration"] = 4,
 };
-
 
 soundboard_data["saber2"] = {
 	["text"] = 		"* WHOOM KSHH WHOM KSHH KSHH*",
@@ -1533,6 +1700,7 @@ soundboard_data["saber2"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."saber2.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["chocolate"] = {
@@ -1541,6 +1709,7 @@ soundboard_data["chocolate"] = {
 	["emote"] = "dance", 
 	["category"] = "Music",
 	["file"] = dir.."Chocolate_Rain.mp3",
+	["duration"] = 32,
 };
 
 --FIREWALL
@@ -1550,6 +1719,7 @@ soundboard_data["excellent"] = {
 	["msg"] = "is unbeatable! ",
 	["category"] = "Misc",
 	["file"] = dir.."megatron.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["llap"] = {
@@ -1558,6 +1728,7 @@ soundboard_data["llap"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Trek",
 	["file"] = dir.."llap.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["rollout"] = {
@@ -1565,8 +1736,8 @@ soundboard_data["rollout"] = {
 	["msg"] = "tells everyone to rollout. ",
 	["category"] = "Movies/TV",
 	["file"] = dir.."rollout.mp3",
+	["duration"] = 11,
 };
-
 
 soundboard_data["darkside"] = {
 	["text"] = 		"* You don't know the power of the dark side. *",
@@ -1574,6 +1745,7 @@ soundboard_data["darkside"] = {
 	["subcategory"] = "Star Wars",
 	["msg"] = "tempts you with the dark side. ",
 	["file"] = dir.."darkside.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["bigboned"] = {
@@ -1582,15 +1754,15 @@ soundboard_data["bigboned"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."bigboned.mp3",
+	["duration"] = 4,
 };
-
-
 
 soundboard_data["thepulse"] = {
 	["text"] = 		"* Here\\'s the pulse. Here\\'s your finger.  *",
 	["msg"] = "tells you to get your finger out of there. ", 
 	["category"] = "Misc",
 	["file"] = dir.."thepulse.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["chewy"] = {
@@ -1599,6 +1771,7 @@ soundboard_data["chewy"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."chewy.mp3",
+	["duration"] = 2,
 };
 
 soundboard_data["donthug"] = {
@@ -1607,8 +1780,8 @@ soundboard_data["donthug"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Trek",
 	["file"] = dir.."donthug.mp3",
+	["duration"] = 2,
 };
-
 
 soundboard_data["redalert"] = {
 	["text"] = 		"* Red Alert. Battle stations. *",
@@ -1616,16 +1789,16 @@ soundboard_data["redalert"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Trek",
 	["file"] = dir.."redalert.mp3",
+	["duration"] = 6,
 };
-
 
 soundboard_data["jasb1"] = {
 	["text"] = 		"* Jay and Silent Bob are in the house! *",
 	["msg"] = "is stoned. ",
 	["category"] = "Movies/TV",
 	["file"] = dir.."jasb1.mp3",
+	["duration"] = 10,
 };
-
 
 soundboard_data["trynot"] = {
 	["text"] = 		"* Do, or do not. There is no try. *",
@@ -1633,16 +1806,15 @@ soundboard_data["trynot"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."trynot.mp3",
+	["duration"] = 4,
 };
-
-
-
 
 soundboard_data["prime"] = {
 	["text"] = 		"* Well, that's just Prime. *",
 	["msg"] = "looks annoyed. ",
 	["category"] = "Misc",
 	["file"] = dir.."prime.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["info"] = {
@@ -1651,6 +1823,7 @@ soundboard_data["info"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Austin Powers",
 	["file"] = dir.."info.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["poc"] = {
@@ -1658,6 +1831,7 @@ soundboard_data["poc"] = {
 	["msg"] = "tries to get the demons out of you. ",
 	["category"] = "Misc",
 	["file"] = dir.."powerofchrist.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["father"] = {
@@ -1666,6 +1840,7 @@ soundboard_data["father"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Wars",
 	["file"] = dir.."vaderfather.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["scumbag"] = {
@@ -1673,6 +1848,7 @@ soundboard_data["scumbag"] = {
 	["msg"] = "thinks you're a scumbag.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."bornscumbag.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["vagin"] = {
@@ -1680,8 +1856,8 @@ soundboard_data["vagin"] = {
 	["msg"] = "asks you how much you want. ",
 	["category"] = "Movies/TV",
 	["file"] = dir.."entrytovagin.mp3",
+	["duration"] = 9,
 };
-
 
 soundboard_data["gotohell"] = {
 	["text"] = 		"* If I were human... *",
@@ -1689,14 +1865,15 @@ soundboard_data["gotohell"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Trek",
 	["file"] = dir.."gotohell.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["balls"] = {
 	["text"] = 		"* I think you need your balls reattached. *",
 	["category"] = "Misc",
 	["file"] = dir.."reattached.mp3",
+	["duration"] = 3,
 };
-
 
 soundboard_data["ssfart"] = {
 	["text"] = 		"* Surround sound fart! *",
@@ -1704,6 +1881,7 @@ soundboard_data["ssfart"] = {
 	["emote"] = "fart",
 	["category"] = "Misc",
 	["file"] = dir.."fart.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["suck"] = {
@@ -1711,6 +1889,7 @@ soundboard_data["suck"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Duke Nukem",
 	["file"] = dir.."yousuck.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["gum"] = {
@@ -1718,6 +1897,7 @@ soundboard_data["gum"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Duke Nukem",
 	["file"] = dir.."gum.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["cgs"] = {
@@ -1725,6 +1905,7 @@ soundboard_data["cgs"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Duke Nukem",
 	["file"] = dir.."cgs.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["httk"] = {
@@ -1732,6 +1913,7 @@ soundboard_data["httk"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Duke Nukem",
 	["file"] = dir.."httk.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["gas"] = {
@@ -1739,6 +1921,7 @@ soundboard_data["gas"] = {
 	["msg"] = "sniffs at you. ",
 	["category"] = "Misc",
 	["file"] = dir.."gas.mp3",
+	["duration"] = 3,
 };
 
 --NITROS
@@ -1748,6 +1931,7 @@ soundboard_data["db"] = {
 	["category"] = "Movies/TV",
 	["msg"] = "disembowels you! ",
 	["file"] = dir.."db.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["troops"] = {
@@ -1755,8 +1939,8 @@ soundboard_data["troops"] = {
 	["msg"] = "Orders you to prepare for an attack. ",
 	["category"] = "Movies/TV",
 	["file"] = dir.."troops.mp3",
+	["duration"] = 5,
 };
-
 
 soundboard_data["victory"] = {
 	["text"] = 		"* Victory is mine. *",
@@ -1764,6 +1948,7 @@ soundboard_data["victory"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."victory.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["xfile"] = {
@@ -1771,6 +1956,7 @@ soundboard_data["xfile"] = {
 	["msg"] = "wonders why allys would do this. ",
 	["category"] = "Movies/TV",
 	["file"] = dir.."xfile.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["brain"] = {
@@ -1781,6 +1967,8 @@ soundboard_data["brain"] = {
 	["subcategory"] = "Simpsons",
 	["file"] = dir.."brain.mp3",
 
+
+	["duration"] = 10,
 };
 
 soundboard_data["rosham"] = {
@@ -1789,6 +1977,7 @@ soundboard_data["rosham"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."rosham.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["blade"] = {
@@ -1797,6 +1986,7 @@ soundboard_data["blade"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Characters",
 	["file"] = dir.."blade.mp3",
+	["duration"] = 44,
 };
 
 soundboard_data["despicable"] = {
@@ -1804,6 +1994,7 @@ soundboard_data["despicable"] = {
 	["msg"] = "frowns upon you. ",
 	["category"] = "Movies/TV",
 	["file"] = dir.."despicable.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["damned"] = {
@@ -1812,6 +2003,7 @@ soundboard_data["damned"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Simpsons",
 	["file"] = dir.."damned.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["ious"] = {
@@ -1819,6 +2011,7 @@ soundboard_data["ious"] = {
 	["msg"] = "laughs at how bad you suck. ",
 	["category"] = "Video Games",
 	["file"] = dir.."IOUS.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["donotgo"] = {
@@ -1826,6 +2019,7 @@ soundboard_data["donotgo"] = {
 	["msg"] = "pulls up pants after taking a huge dump. ",
 	["category"] = "Misc",
 	["file"] = dir.."donotgo.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["numnuts"] = {
@@ -1833,12 +2027,14 @@ soundboard_data["numnuts"] = {
 	["msg"] = "slaps you silly and tells you to drop and give him 20. ",
 	["category"] = "Movies/TV",
 	["file"] = dir.."numnuts.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["to"] = {
 	["text"] = 		"* WE'RE TRYING TO TAKE OVER THE WORLD*",
 	["category"] = "Movies/TV",
 	["file"] = dir.."to.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["beback"] = {
@@ -1847,6 +2043,7 @@ soundboard_data["beback"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Arnold Swarchenegger",
 	["file"] = dir.."beback.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["hasta"] = {
@@ -1854,6 +2051,7 @@ soundboard_data["hasta"] = {
 	["emote"] = "wave",
 	["category"] = "Movies/TV",
 	["file"] = dir.."hasta.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["mkedit"] = {
@@ -1861,6 +2059,7 @@ soundboard_data["mkedit"] = {
 	["emote"] = "flex",
 	["category"] = "Music",
 	["file"] = dir.."mkedit.mp3",
+	["duration"] = 54,
 };
 
 soundboard_data["pg"] = {
@@ -1869,6 +2068,7 @@ soundboard_data["pg"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."pg.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["chefsong"] = {
@@ -1877,6 +2077,7 @@ soundboard_data["chefsong"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."chefsong.mp3",
+	["duration"] = 17,
 };
 
 soundboard_data["smellslikeass"] = {
@@ -1885,6 +2086,7 @@ soundboard_data["smellslikeass"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."smellslikeass.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["pussy"] = {
@@ -1893,6 +2095,7 @@ soundboard_data["pussy"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."pussy.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["bologna"] = {
@@ -1900,6 +2103,7 @@ soundboard_data["bologna"] = {
 	["emote"] = "cheer",
 	["category"] = "Movies/TV",
 	["file"] = dir.."bologna.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["witchtit"] = {
@@ -1907,6 +2111,7 @@ soundboard_data["witchtit"] = {
 	["emote"] = "shivers",
 	["category"] = "Movies/TV",
 	["file"] = dir.."witchtit.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["salami"] = {
@@ -1914,6 +2119,7 @@ soundboard_data["salami"] = {
 	["emote"] = "cheer",
 	["category"] = "Movies/TV",
 	["file"] = dir.."salami.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["tunatown"] = {
@@ -1921,12 +2127,14 @@ soundboard_data["tunatown"] = {
 	["emote"] = "cheer",
 	["category"] = "Movies/TV",
 	["file"] = dir.."tunatown.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["rabies"] = {
 	["text"] = 		"* It bit me. *",
 	["category"] = "Misc",
 	["file"] = dir.."rabies.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["sayhello"] = {
@@ -1934,6 +2142,7 @@ soundboard_data["sayhello"] = {
 	["category"] = "Movies/TV",
 	["emote"] = "roar",
 	["file"] = dir.."sayhello.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["belly"] = {
@@ -1942,6 +2151,7 @@ soundboard_data["belly"] = {
 	["subcategory"] = "Austin Powers",
 	["emote"] = "roar",
 	["file"] = dir.."belly.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["bleep"] = {
@@ -1949,8 +2159,8 @@ soundboard_data["bleep"] = {
 	["category"] = "Misc",
 	["emote"] = "gasp",
 	["file"] = dir.."bleep.mp3",
+	["duration"] = 12,
 };
-
 
 soundboard_data["darkpower"] = {
 	["text"] = 		"* If you only knew the power of the darkside*",
@@ -1958,14 +2168,15 @@ soundboard_data["darkpower"] = {
 	["subcategory"] = "Star Wars",
 	["emote"] = "",
 	["file"] = dir.."darkpower.mp3",
+	["duration"] = 6,
 };
-
 
 soundboard_data["shutup"] = {
 	["text"] = 		"* Hahahaha SHUT UP*",
 	["category"] = "Movies/TV",
 	["emote"] = "",
 	["file"] = dir.."haha.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["missionimp"] = {
@@ -1973,6 +2184,7 @@ soundboard_data["missionimp"] = {
 	["category"] = "Movies/TV",
 	["emote"] = "",
 	["file"] = dir.."missionimp.mp3",
+	["duration"] = 32,
 };
 
 soundboard_data["mining"] = {
@@ -1981,6 +2193,7 @@ soundboard_data["mining"] = {
 	["subcategory"] = "South Park",
 	["emote"] = "",
 	["file"] = dir.."mining.mp3",
+	["duration"] = 9,
 };
 
 --More sounds gathered by Bleric:
@@ -1990,6 +2203,7 @@ soundboard_data["cookie"] = {
 	["emote"] = "eat",
 	["category"] = "Misc",
 	["file"] = dir.."meeatcookie.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["powerlevel"] = {
@@ -1998,6 +2212,7 @@ soundboard_data["powerlevel"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Dragon Ball Z",
 	["file"] = dir.."vegeta.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["over9000"] = {
@@ -2006,6 +2221,7 @@ soundboard_data["over9000"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Dragon Ball Z",
 	["file"] = dir.."over9000.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["flame"] = {
@@ -2015,6 +2231,7 @@ soundboard_data["flame"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Raids",
 	["file"] = dir.."flamewreathshort.mp3",
+	["duration"] = 17,
 };
 
 soundboard_data["flamelong"] = {
@@ -2024,6 +2241,7 @@ soundboard_data["flamelong"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Raids",
 	["file"] = dir.."flame.mp3",
+	["duration"] = 100,
 };
 
 soundboard_data["oc"] = {
@@ -2032,6 +2250,7 @@ soundboard_data["oc"] = {
 	["emote"] = "cry",
 	["category"] = "Music",
 	["file"] = dir.."hideandseek.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["cake"] = {
@@ -2040,6 +2259,7 @@ soundboard_data["cake"] = {
 	["msg"] = "loves cake!",
 	["category"] = "Music",
 	["file"] = dir.."cake.mp3",
+	["duration"] = 30,
 };
 
 soundboard_data["take"] = {
@@ -2049,6 +2269,7 @@ soundboard_data["take"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "300",
 	["file"] = dir.."givethemnothing.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["party1"] = {
@@ -2057,6 +2278,7 @@ soundboard_data["party1"] = {
 	["msg"] = "is ready to PARTY",
 	["category"] = "Music",
 	["file"] = dir.."party1.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["party2"] = {
@@ -2065,6 +2287,7 @@ soundboard_data["party2"] = {
 	["msg"] = "likes what he does!",
 	["category"] = "Music",
 	["file"] = dir.."party2.mp3",
+	["duration"] = 37,
 };
 
 soundboard_data["party3"] = {
@@ -2073,6 +2296,7 @@ soundboard_data["party3"] = {
 	["msg"] = "will always party hard!",
 	["category"] = "Music",
 	["file"] = dir.."party3.mp3",
+	["duration"] = 14,
 };
 
 soundboard_data["picard"] = {
@@ -2082,6 +2306,7 @@ soundboard_data["picard"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Trek",
 	["file"] = dir.."picard.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["picardlong"] = {
@@ -2091,8 +2316,8 @@ soundboard_data["picardlong"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Star Trek",
 	["file"] = dir.."picardlong.mp3",
+	["duration"] = 65,
 };
-
 
 soundboard_data["rickroll"] = {
 	["text"] = "* RICKROLLED! *",
@@ -2100,6 +2325,7 @@ soundboard_data["rickroll"] = {
 	["msg"] = "rickrolls you!",
 	["category"] = "Music",
 	["file"] = dir.."rickroll.mp3",
+	["duration"] = 31.0,
 };
 
 soundboard_data["portal"] = {
@@ -2107,6 +2333,7 @@ soundboard_data["portal"] = {
 	["emote"] = "dance",
 	["category"] = "Video Games",
 	["file"] = dir.."portal.mp3",
+	["duration"] = 23,
 };
 
 soundboard_data["dine"] = {
@@ -2116,6 +2343,7 @@ soundboard_data["dine"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "300",
 	["file"] = dir.."spartans.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["trap"] = {
@@ -2124,10 +2352,8 @@ soundboard_data["trap"] = {
 	["msg"] = "has walked into a trap!",
 	["category"] = "Internet",
 	["file"] = dir.."trap.mp3",
+	["duration"] = 2,
 };
-
-
-
 
 soundboard_data["bright"] = {
 	["text"] = "* Always look on the bright side of life! *",
@@ -2136,6 +2362,7 @@ soundboard_data["bright"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Monty Python",
 	["file"] = dir.."brightside.mp3",
+	["duration"] = 39,
 };
 
 soundboard_data["chickendance"] = {
@@ -2144,6 +2371,7 @@ soundboard_data["chickendance"] = {
 	["msg"] = "doesn't want to be a chicken!",
 	["category"] = "Music",
 	["file"] = dir.."chickendance.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["getup"] = {
@@ -2152,6 +2380,7 @@ soundboard_data["getup"] = {
 	["msg"] = "gets knocked down!",
 	["category"] = "Music",
 	["file"] = dir.."chumbawamba.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["dontstop"] = {
@@ -2161,6 +2390,7 @@ soundboard_data["dontstop"] = {
 	["category"] = "Music",
 	["subcategory"] = "Queen",
 	["file"] = dir.."dontstop.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["dontstop2"] = {
@@ -2170,6 +2400,7 @@ soundboard_data["dontstop2"] = {
 	["category"] = "Music",
 	["subcategory"] = "Queen",
 	["file"] = dir.."dontstop2.mp3",
+	["duration"] = 32,
 };
 soundboard_data["footloose"] = {
 	["text"] = "* Kick off your Sunday shoes! *",
@@ -2177,6 +2408,7 @@ soundboard_data["footloose"] = {
 	["msg"] = "has to cut loose!",
 	["category"] = "Music",
 	["file"] = dir.."footloose.mp3",
+	["duration"] = 27,
 };
 soundboard_data["getdown"] = {
 	["text"] = "* Get down tonight! *",
@@ -2185,8 +2417,8 @@ soundboard_data["getdown"] = {
 	["category"] = "Music",
 	["subcategory"] = "KC and the Sunshine Band",
 	["file"] = dir.."getdown.mp3",
+	["duration"] = 36,
 };
-
 
 soundboard_data["getdown2"] = {
 	["text"] = "* Get down tonight baby! *",
@@ -2195,6 +2427,7 @@ soundboard_data["getdown2"] = {
 	["category"] = "Music",
 	["subcategory"] = "KC and the Sunshine Band",
 	["file"] = dir.."getdown2.mp3",
+	["duration"] = 27,
 };
 soundboard_data["hooked"] = {
 	["text"] = "* Iiiii'm hooked on a feeling! *",
@@ -2202,6 +2435,7 @@ soundboard_data["hooked"] = {
 	["msg"] = "is in love.",
 	["category"] = "Music",
 	["file"] = dir.."hookedonafeeling.mp3",
+	["duration"] = 37,
 };
 
 soundboard_data["ketchup"] = {
@@ -2210,6 +2444,7 @@ soundboard_data["ketchup"] = {
 	["msg"] = "asereje ja de je de jebe tu de jebere seibiunouva, majavi an de bugui an de buididipi!",
 	["category"] = "Music",
 	["file"] = dir.."ketchup.mp3",
+	["duration"] = 30,
 };
 
 soundboard_data["kitty"] = {
@@ -2218,6 +2453,7 @@ soundboard_data["kitty"] = {
 	["msg"] = "is a kitty cat.",
 	["category"] = "Internet",
 	["file"] = dir.."kittycat.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["macarena"] = {
@@ -2226,6 +2462,7 @@ soundboard_data["macarena"] = {
 	["msg"] = "does the macarena.",
 	["category"] = "Music",
 	["file"] = dir.."macarena.mp3",
+	["duration"] = 20,
 };
 
 soundboard_data["magic"] = {
@@ -2234,6 +2471,7 @@ soundboard_data["magic"] = {
 	["msg"] = "does a little magic.",
 	["category"] = "Music",
 	["file"] = dir.."magic.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["mambo"] = {
@@ -2242,6 +2480,7 @@ soundboard_data["mambo"] = {
 	["msg"] = "is a pimp.",
 	["category"] = "Music",
 	["file"] = dir.."mambo.mp3",
+	["duration"] = 30,
 };
 
 soundboard_data["mtrain"] = {
@@ -2250,6 +2489,7 @@ soundboard_data["mtrain"] = {
 	["msg"] = "is in love.",
 	["category"] = "Music",
 	["file"] = dir.."morningtrain.mp3",
+	["duration"] = 17,
 };
 
 soundboard_data["ooga"] = {
@@ -2257,6 +2497,7 @@ soundboard_data["ooga"] = {
 	["msg"] = "grunts.",
 	["category"] = "Misc",
 	["file"] = dir.."ooga.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["l2p"] = {
@@ -2266,18 +2507,16 @@ soundboard_data["l2p"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "General",
 	["file"] = dir.."playwow.mp3",
+	["duration"] = 18,
 };
-
-
 
 soundboard_data["tequila"] = {
 	["text"] = "* Tequila! *",
 	["emote"] = "drink",
 	["category"] = "Music",
 	["file"] = dir.."tequila.mp3",
+	["duration"] = 23,
 };
-
-
 
 soundboard_data["touch"] = {
 	["text"] = "* When I think about you *",
@@ -2285,6 +2524,7 @@ soundboard_data["touch"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."touchmyself.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["sunshine"] = {
@@ -2293,6 +2533,7 @@ soundboard_data["sunshine"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."walkingonsunshine.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["iamagod"] = {
@@ -2302,6 +2543,7 @@ soundboard_data["iamagod"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "NPCs",
 	["file"] = "Sound\\Creature\\SelimFireheart\\SELIMEMPOWERED.mp3",
+	["duration"] = 4.0,
 };
 
 soundboard_data["badger"] = {
@@ -2310,6 +2552,7 @@ soundboard_data["badger"] = {
 	["emote"] = "dance",
 	["category"] = "Internet",
 	["file"] = dir.."badgerbadgerbadger.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["caramell"] = {
@@ -2318,6 +2561,7 @@ soundboard_data["caramell"] = {
 	["emote"] = "dance",
 	["category"] = "Internet",
 	["file"] = dir.."caramelldansen.mp3",
+	["duration"] = 26,
 };
 
 soundboard_data["carryon"] = {
@@ -2326,6 +2570,7 @@ soundboard_data["carryon"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."carryon.mp3",
+	["duration"] = 47,
 };
 
 soundboard_data["donttazeme"] = {
@@ -2334,6 +2579,7 @@ soundboard_data["donttazeme"] = {
 	["emote"] = "laydown",
 	["category"] = "Internet",
 	["file"] = dir.."donttazemebro.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["dota"] = {
@@ -2342,6 +2588,7 @@ soundboard_data["dota"] = {
 	["emote"] = "dance",
 	["category"] = "Video Games",
 	["file"] = dir.."dota.mp3",
+	["duration"] = 37,
 };
 
 soundboard_data["hard"] = {
@@ -2350,6 +2597,7 @@ soundboard_data["hard"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "General",
 	["file"] = dir.."hardlikeheroic.mp3",
+	["duration"] = 11.0,
 };
 
 soundboard_data["hard2"] = {
@@ -2359,6 +2607,7 @@ soundboard_data["hard2"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "General",
 	["file"] = dir.."hardlikeheroic2.mp3",
+	["duration"] = 11.0,
 };
 
 soundboard_data["hard4"] = {
@@ -2367,6 +2616,7 @@ soundboard_data["hard4"] = {
 	["emote"] = "dance",
 	["category"] = "Internet",
 	["file"] = dir.."hardlikeheroic4.mp3",
+	["duration"] = 11.0,
 };
 
 soundboard_data["hereitgoes"] = {
@@ -2375,6 +2625,7 @@ soundboard_data["hereitgoes"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."hereitgoesagain.mp3",
+	["duration"] = 42,
 };
 
 soundboard_data["hollaback"] = {
@@ -2383,6 +2634,7 @@ soundboard_data["hollaback"] = {
 	["emote"] = "no",
 	["category"] = "Music",
 	["file"] = dir.."HollaBack.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["bananas"] = {
@@ -2391,6 +2643,7 @@ soundboard_data["bananas"] = {
 	["emote"] = "confused",
 	["category"] = "Music",
 	["file"] = dir.."HollaBackBananas.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["emo"] = {
@@ -2399,6 +2652,7 @@ soundboard_data["emo"] = {
 	["emote"] = "cry",
 	["category"] = "Music",
 	["file"] = dir.."intheend.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["itsmylife"] = {
@@ -2407,6 +2661,7 @@ soundboard_data["itsmylife"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."itsmylife.mp3",
+	["duration"] = 63,
 };
 
 soundboard_data["livetowin"] = {
@@ -2415,6 +2670,7 @@ soundboard_data["livetowin"] = {
 	["emote"] = "flex",
 	["category"] = "Music",
 	["file"] = dir.."livetowin.mp3",
+	["duration"] = 40,
 };
 
 soundboard_data["numa"] = {
@@ -2423,6 +2679,7 @@ soundboard_data["numa"] = {
 	["emote"] = "dance",
 	["category"] = "Internet",
 	["file"] = dir.."numanuma.mp3",
+	["duration"] = 16,
 };
 
 soundboard_data["numalong"] = {
@@ -2431,6 +2688,7 @@ soundboard_data["numalong"] = {
 	["emote"] = "dance",
 	["category"] = "Internet",
 	["file"] = dir.."numanumalong.mp3",
+	["duration"] = 99,
 };
 
 soundboard_data["pbj"] = {
@@ -2439,6 +2697,7 @@ soundboard_data["pbj"] = {
 	["emote"] = "dance",
 	["category"] = "Internet",
 	["file"] = dir.."pbj.mp3",
+	["duration"] = 25,
 };
 
 soundboard_data["tarzan"] = {
@@ -2446,6 +2705,7 @@ soundboard_data["tarzan"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."tarzanboy.mp3",
+	["duration"] = 19,
 };
 
 soundboard_data["thebest"] = {
@@ -2454,6 +2714,7 @@ soundboard_data["thebest"] = {
 	["msg"] = "is in the middle of an 80s montage.",
 	["category"] = "Music",
 	["file"] = dir.."yourethebest.mp3",
+	["duration"] = 19,
 };
 
 soundboard_data["surprise"] = {
@@ -2462,22 +2723,23 @@ soundboard_data["surprise"] = {
 	["msg"] = "is one angry person.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."surprisemothafucka.mp3",
+	["duration"] = 3,
 };
-
 
 soundboard_data["bankai"] = {
 	["text"] = "* Bankai... Tensa Zangetsu! *",
 	["category"] = "Movies/TV",
 	["subcategory"] = "Bleach",
 	["file"] = dir.."kurrosaki.mp3",
+	["duration"] = 19,
 };
-
 
 soundboard_data["bankai2"] = {
 	["text"] = "* Scatter... Senbonzakura Kageyoshi *",
 	["category"] = "Movies/TV",
 	["subcategory"] = "Bleach",
 	["file"] = dir.."byakuya.mp3",
+	["duration"] = 20,
 };
 
 soundboard_data["cod"] = {
@@ -2485,6 +2747,7 @@ soundboard_data["cod"] = {
 	["category"] = "Movies/TV",
 	["emote"] = "gasp",
 	["file"] = dir.."comeondown.mp3",
+	["duration"] = 6,
 };
 
 soundboard_data["beaman"] = {
@@ -2493,6 +2756,7 @@ soundboard_data["beaman"] = {
 	["msg"] = "must be swift as the coursing river!",
 	["category"] = "Movies/TV",
 	["file"] = dir.."illmakeamanoutofyou.mp3",
+	["duration"] = 23,
 };
 
 soundboard_data["iwantcandy"] = {
@@ -2500,6 +2764,7 @@ soundboard_data["iwantcandy"] = {
 	["emote"] = "hungry",
 	["category"] = "Music",
 	["file"] = dir.."iwantcandy.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["koolaid"] = {
@@ -2507,6 +2772,7 @@ soundboard_data["koolaid"] = {
 	["emote"] = "thirsty",
 	["category"] = "Movies/TV",
 	["file"] = dir.."koolaid.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["lfl"] = {
@@ -2515,6 +2781,7 @@ soundboard_data["lfl"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."letsfightinglove.mp3",
+	["duration"] = 60,
 };
 
 soundboard_data["mmmbop"] = {
@@ -2522,6 +2789,7 @@ soundboard_data["mmmbop"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."mmmbop.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["peterlol"] = {
@@ -2529,6 +2797,7 @@ soundboard_data["peterlol"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."peterlol.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["peterlol2"] = {
@@ -2536,6 +2805,7 @@ soundboard_data["peterlol2"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."peterlol2.mp3",
+	["duration"] = 5,
 };
 
 soundboard_data["peterlol3"] = {
@@ -2543,6 +2813,7 @@ soundboard_data["peterlol3"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."peterlol3.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["rainingmen"] = {
@@ -2550,6 +2821,7 @@ soundboard_data["rainingmen"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."rainingmen.mp3",
+	["duration"] = 37,
 };
 
 soundboard_data["rockandroll"] = {
@@ -2557,6 +2829,7 @@ soundboard_data["rockandroll"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."rockandrollallnite.mp3",
+	["duration"] = 19,
 };
 
 soundboard_data["shun"] = {
@@ -2564,12 +2837,14 @@ soundboard_data["shun"] = {
 	["emote"] = "glare",
 	["category"] = "Internet",
 	["file"] = dir.."shun.mp3",
+	["duration"] = 9,
 };
 
 soundboard_data["suf"] = {
 	["text"] = "* Shut up, fool! *",
 	["category"] = "Internet",
 	["file"] = dir.."shutupfool.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["finalcountdown"] = {
@@ -2578,6 +2853,7 @@ soundboard_data["finalcountdown"] = {
 	["category"] = "Music",
 	["subcategory"] = "Europe",
 	["file"] = dir.."thefinalcountdown.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["uhohhotdog"] = {
@@ -2585,6 +2861,7 @@ soundboard_data["uhohhotdog"] = {
 	["emote"] = "gasp",
 	["category"] = "Movies/TV",
 	["file"] = dir.."uhohhotdog.mp3",
+	["duration"] = 3,
 };
 
 soundboard_data["wwbbd"] = {
@@ -2593,6 +2870,7 @@ soundboard_data["wwbbd"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "South Park",
 	["file"] = dir.."whatwouldbrianboitanodo.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["mrt"] = {
@@ -2600,35 +2878,40 @@ soundboard_data["mrt"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_mr_t.mp3",
-}
+	["duration"] = 4,
+};
 
 soundboard_data["shatner"] = {
 	["text"] = "* Hello, I'm William Shatner. *",
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_shatner.mp3",
-}
+	["duration"] = 5,
+};
 
 soundboard_data["vandamme"] = {
 	["text"] = "* Mon nom c'est Jean Claude Van Damme, et je suis un mage. *",
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_van_damme.mp3",
-}
+	["duration"] = 6,
+};
 
 soundboard_data["verne"] = {
 	["text"] = "* Hello, I'm Verne Troyer. *",
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_verne.mp3",
-}
+	["duration"] = 6,
+};
 
 soundboard_data["toledo"] = {
 	["text"] = "* Hola, mi nomre es Willy Toledo. Y soy un paladin. *",
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Celebrity Commercials",
 	["file"] = dir.."wow_willy_toledo.mp3",
-}
+	["duration"] = 6,
+};
 
 soundboard_data["vilewoman"] = {
 	["text"] = "* Damn you, vile woman! *",
@@ -2636,14 +2919,16 @@ soundboard_data["vilewoman"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."damnyou.mp3",
-}
+	["duration"] = 6,
+};
 
 soundboard_data["hummer"] = {
 	["text"] = "* Dude, this car KICKS ASS. *",
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."familyguyhummer.mp3",
-}
+	["duration"] = 25,
+};
 
 soundboard_data["petersoap"] = {
 	["text"] = "* All the rumors about dropping the soap are true *",
@@ -2651,15 +2936,16 @@ soundboard_data["petersoap"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."petersoap.mp3",
-}
+	["duration"] = 16,
+};
 
 soundboard_data["chocolates"] = {
 	["text"] = "* You know mother, life is like a box of chocolates. *",
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."stewiechocolates.mp3",
-}
-
+	["duration"] = 11,
+};
 
 soundboard_data["banana1"] = {
 	["text"] = 		"* Put a banana in your ear! *",
@@ -2668,6 +2954,7 @@ soundboard_data["banana1"] = {
 	["msg"] = "puts a banana in their ear.",
 	["category"] = "Internet",
 	["file"] = dir.."banana1.mp3",
+	["duration"] = 47,
 };
 
 soundboard_data["banana2"] = {
@@ -2677,6 +2964,7 @@ soundboard_data["banana2"] = {
 	["msg"] = "puts a second banana in their ear.",
 	["category"] = "Internet",
 	["file"] = dir.."banana2.mp3",
+	["duration"] = 32,
 };
 
 soundboard_data["boomdiada"] = {
@@ -2686,6 +2974,7 @@ soundboard_data["boomdiada"] = {
 	["msg"] = "jumps off a cliff.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."Boomdiada.mp3",
+	["duration"] = 51,
 };
 
 soundboard_data["candy"] = {
@@ -2695,6 +2984,7 @@ soundboard_data["candy"] = {
 	["msg"] = "steps into the candy mountain candy cave.",
 	["category"] = "Internet",
 	["file"] = dir.."candy.mp3",
+	["duration"] = 42,
 };
 
 soundboard_data["famguy"] = {
@@ -2704,9 +2994,8 @@ soundboard_data["famguy"] = {
 	["msg"] = "falls down the stairs",
 	["category"] = "Movies/TV",
 	["file"] = dir.."famguy.mp3",
+	["duration"] = 32,
 };
-
-
 
 soundboard_data["hardware"] = {
 	["text"] = 		"* I can't wait! *",
@@ -2715,6 +3004,7 @@ soundboard_data["hardware"] = {
 	["msg"] = "is going yes they're going too the...",
 	["category"] = "Internet",
 	["file"] = dir.."hardware.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["lionsleeps"] = {
@@ -2724,6 +3014,7 @@ soundboard_data["lionsleeps"] = {
 	["msg"] = "goes into cat form.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."lionsleeps.mp3",
+	["duration"] = 25,
 };
 
 soundboard_data["ml"] = {
@@ -2732,6 +3023,7 @@ soundboard_data["ml"] = {
 	["msg"] = "stands in disbelief.",
 	["category"] = "Internet",
 	["file"] = dir.."ml.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["numa2"] = {
@@ -2741,6 +3033,7 @@ soundboard_data["numa2"] = {
 	["msg"] = "is an english internet phenomenon.",
 	["category"] = "Internet",
 	["file"] = dir.."numa2.mp3",
+	["duration"] = 31,
 };
 
 soundboard_data["numalong2"] = {
@@ -2750,6 +3043,7 @@ soundboard_data["numalong2"] = {
 	["msg"] = "is an english internet phenomenon.",
 	["category"] = "Internet",
 	["file"] = dir.."numalong2.mp3",
+	["duration"] = 92,
 };
 
 soundboard_data["z"] = {
@@ -2759,6 +3053,7 @@ soundboard_data["z"] = {
 	["msg"] = "speaks spanish.",
 	["category"] = "Internet",
 	["file"] = dir.."zzz.mp3",
+	["duration"] = 10,
 };
 
 soundboard_data["youplay"] = {
@@ -2769,6 +3064,7 @@ soundboard_data["youplay"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Oxhorn",
 	["file"] = dir.."youplay.mp3",
+	["duration"] = 43,
 };
 
 soundboard_data["waffles"] = {
@@ -2778,6 +3074,7 @@ soundboard_data["waffles"] = {
 	["msg"] = "opens up a Mrs.Buttersworth.",
 	["category"] = "Internet",
 	["file"] = dir.."waffles.mp3",
+	["duration"] = 35,
 };
 
 soundboard_data["tffm2"] = {
@@ -2787,6 +3084,7 @@ soundboard_data["tffm2"] = {
 	["msg"] = "doesn't want her.",
 	["category"] = "Internet",
 	["file"] = dir.."tffm2.mp3",
+	["duration"] = 36,
 };
 
 soundboard_data["tffm"] = {
@@ -2796,6 +3094,7 @@ soundboard_data["tffm"] = {
 	["msg"] = "doesn't want her.",
 	["category"] = "Internet",
 	["file"] = dir.."tffm.mp3",
+	["duration"] = 62,
 };
 
 soundboard_data["snickers"] = {
@@ -2805,6 +3104,7 @@ soundboard_data["snickers"] = {
 	["msg"] = "walks up to you and sings.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."snickers.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["roflmao"] = {
@@ -2815,6 +3115,7 @@ soundboard_data["roflmao"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Oxhorn",
 	["file"] = dir.."roflmao.mp3",
+	["duration"] = 50,
 };
 
 soundboard_data["oompa"] = {
@@ -2824,6 +3125,7 @@ soundboard_data["oompa"] = {
 	["msg"] = "shrinks in size.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."oompa.mp3",
+	["duration"] = 49,
 };
 
 soundboard_data["moonlight"] = {
@@ -2832,6 +3134,7 @@ soundboard_data["moonlight"] = {
 	["cmd1"] = "moonlight",
 	["category"] = "Music",
 	["file"] = dir.."moonlight.mp3",
+	["duration"] = 23,
 };
 
 soundboard_data["lolguild"] = {
@@ -2840,6 +3143,7 @@ soundboard_data["lolguild"] = {
 	["cmd1"] = "lolguild",
 	["category"] = "Movies/TV",
 	["file"] = dir.."lolguild.mp3",
+	["duration"] = 17,
 };
 
 soundboard_data["halloween"] = {
@@ -2849,6 +3153,7 @@ soundboard_data["halloween"] = {
 	["msg"] = "wishes it were halloween.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."halloween.mp3",
+	["duration"] = 26,
 };
 
 soundboard_data["gg"] = {
@@ -2858,6 +3163,7 @@ soundboard_data["gg"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Oxhorn",
 	["file"] = dir.."gg.mp3",
+	["duration"] = 34,
 };
 
 soundboard_data["business"] = {
@@ -2867,6 +3173,7 @@ soundboard_data["business"] = {
 	["msg"] = "fails at war.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."business.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["bigbutts"] = {
@@ -2876,6 +3183,7 @@ soundboard_data["bigbutts"] = {
 	["msg"] = "likes big butts.",
 	["category"] = "Music",
 	["file"] = dir.."bigbutts.mp3",
+	["duration"] = 25,
 };
 
 soundboard_data["belly"] = {
@@ -2885,6 +3193,7 @@ soundboard_data["belly"] = {
 	["msg"] = "is hungry.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."belly.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["bbd"] = {
@@ -2894,6 +3203,7 @@ soundboard_data["bbd"] = {
 	["msg"] = "casts slow fall.",
 	["category"] = "Internet",
 	["file"] = dir.."bbd.mp3",
+	["duration"] = 50,
 };
 
 soundboard_data["hustle"] = {
@@ -2903,6 +3213,7 @@ soundboard_data["hustle"] = {
 	["msg"] = "does the hustle.",
 	["category"] = "Music",
 	["file"] = dir.."hustle.mp3",
+	["duration"] = 53,
 };
 
 soundboard_data["mario"] = {
@@ -2912,6 +3223,7 @@ soundboard_data["mario"] = {
 	["msg"] = "swings their arms from side to side.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."mario.mp3",
+	["duration"] = 41,
 };
 
 soundboard_data["mt1"] = {
@@ -2920,6 +3232,7 @@ soundboard_data["mt1"] = {
 	["cmd1"] = "mt1",
 	["category"] = "Internet",
 	["file"] = dir.."mt1.mp3",
+	["duration"] = 53,
 };
 
 soundboard_data["mt2"] = {
@@ -2928,6 +3241,7 @@ soundboard_data["mt2"] = {
 	["cmd1"] = "mt2",
 	["category"] = "Internet",
 	["file"] = dir.."mt2.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["mt3"] = {
@@ -2936,6 +3250,7 @@ soundboard_data["mt3"] = {
 	["cmd1"] = "mt3",
 	["category"] = "Internet",
 	["file"] = dir.."mt3.mp3",
+	["duration"] = 62,
 };
 
 soundboard_data["wacky"] = {
@@ -2946,6 +3261,7 @@ soundboard_data["wacky"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."wacky.mp3",
+	["duration"] = 8,
 };
 
 soundboard_data["survive"] = {
@@ -2956,6 +3272,7 @@ soundboard_data["survive"] = {
 	["category"] = "Music",
 	["subcategory"] = "Gloria Gaynor",
 	["file"] = dir.."willsurvive.mp3",
+	["duration"] = 55,
 };
 
 soundboard_data["survive2"] = {
@@ -2966,6 +3283,7 @@ soundboard_data["survive2"] = {
 	["category"] = "Music",
 	["subcategory"] = "Gloria Gaynor",
 	["file"] = dir.."willsurvive2.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["bkb"] = {
@@ -2975,6 +3293,7 @@ soundboard_data["bkb"] = {
 	["msg"] = "plays his air guitar.",
 	["category"] = "Music",
 	["file"] = dir.."bkb.mp3",
+	["duration"] = 44,
 };
 
 soundboard_data["zombienation"] = {
@@ -2984,6 +3303,7 @@ soundboard_data["zombienation"] = {
 	["msg"] = "feels like he's at a soccer game.",
 	["category"] = "Music",
 	["file"] = dir.."zombienation.mp3",
+	["duration"] = 28,
 };
 
 soundboard_data["blue"] = {
@@ -2993,6 +3313,7 @@ soundboard_data["blue"] = {
 	["msg"] = "is turning blue.",
 	["category"] = "Music",
 	["file"] = dir.."blue.mp3",
+	["duration"] = 32,
 };
 
 soundboard_data["afterlife"] = {
@@ -3002,6 +3323,7 @@ soundboard_data["afterlife"] = {
 	["msg"] = "plays his guitar.",
 	["category"] = "Music",
 	["file"] = dir.."afterlife.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["jeopardy1"] = {
@@ -3011,6 +3333,7 @@ soundboard_data["jeopardy1"] = {
 	["msg"] = "is waiting impatiently.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."jeopardy1.mp3",
+	["duration"] = 23,
 };
 
 soundboard_data["jeopardy2"] = {
@@ -3020,6 +3343,7 @@ soundboard_data["jeopardy2"] = {
 	["msg"] = "is waiting very impatiently.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."jeopardy2.mp3",
+	["duration"] = 31,
 };
 
 soundboard_data["jeopardy3"] = {
@@ -3029,6 +3353,7 @@ soundboard_data["jeopardy3"] = {
 	["msg"] = "is waiting extremely impatiently.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."jeopardy3.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["jeopardy4"] = {
@@ -3038,6 +3363,7 @@ soundboard_data["jeopardy4"] = {
 	["msg"] = "is waiting like an impatient fool.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."jeopardy4.mp3",
+	["duration"] = 32,
 };
 
 soundboard_data["safetydance"] = {
@@ -3047,6 +3373,7 @@ soundboard_data["safetydance"] = {
 	["msg"] = "wants to dance.",
 	["category"] = "Music",
 	["file"] = dir.."safetydance.mp3",
+	["duration"] = 39,
 };
 
 soundboard_data["safetydance2"] = {
@@ -3056,6 +3383,7 @@ soundboard_data["safetydance2"] = {
 	["msg"] = "really wants to dance.",
 	["category"] = "Music",
 	["file"] = dir.."safetydance2.mp3",
+	["duration"] = 45,
 };
 
 soundboard_data["bf"] = {
@@ -3066,6 +3394,7 @@ soundboard_data["bf"] = {
 	["category"] = "Music",
 	["subcategory"] = "Toybox",
 	["file"] = dir.."bf.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["bf2"] = {
@@ -3076,6 +3405,7 @@ soundboard_data["bf2"] = {
 	["category"] = "Music",
 	["subcategory"] = "Toybox",
 	["file"] = dir.."bf2.mp3",
+	["duration"] = 31,
 };
 
 soundboard_data["canonrock"] = {
@@ -3085,6 +3415,7 @@ soundboard_data["canonrock"] = {
 	["msg"] = "plays his guitar.",
 	["category"] = "Music",
 	["file"] = dir.."canonrock.mp3",
+	["duration"] = 46,
 };
 
 soundboard_data["canonrock2"] = {
@@ -3094,6 +3425,7 @@ soundboard_data["canonrock2"] = {
 	["msg"] = "plays his guitar.",
 	["category"] = "Music",
 	["file"] = dir.."canonrock2.mp3",
+	["duration"] = 59,
 };
 
 soundboard_data["canonrock3"] = {
@@ -3103,6 +3435,7 @@ soundboard_data["canonrock3"] = {
 	["msg"] = "plays his guitar.",
 	["category"] = "Music",
 	["file"] = dir.."canonrock3.mp3",
+	["duration"] = 23,
 };
 
 soundboard_data["horoscope"] = {
@@ -3112,6 +3445,7 @@ soundboard_data["horoscope"] = {
 	["msg"] = "believes the stars are telling him something!",
 	["category"] = "Music",
 	["file"] = dir.."horoscope.mp3",
+	["duration"] = 42,
 };
 
 soundboard_data["landdownunder"] = {
@@ -3121,6 +3455,7 @@ soundboard_data["landdownunder"] = {
 	["msg"] = "is moving to Australia.",
 	["category"] = "Music",
 	["file"] = dir.."landdownunder.mp3",
+	["duration"] = 28,
 };
 
 soundboard_data["nannerpuss"] = {
@@ -3130,6 +3465,7 @@ soundboard_data["nannerpuss"] = {
 	["msg"] = "wants a Denny's Grand Slam.",
 	["category"] = "Movies/TV",
 	["file"] = dir.."nannerpuss.mp3",
+	["duration"] = 7,
 };
 
 soundboard_data["ocanada"] = {
@@ -3139,6 +3475,7 @@ soundboard_data["ocanada"] = {
 	["msg"] = "loves Canada.",
 	["category"] = "Music",
 	["file"] = dir.."ocanada.mp3",
+	["duration"] = 21,
 };
 
 soundboard_data["sailor"] = {
@@ -3148,6 +3485,7 @@ soundboard_data["sailor"] = {
 	["msg"] = "jumps on the Titanic.",
 	["category"] = "Music",
 	["file"] = dir.."sailor.mp3",
+	["duration"] = 43,
 };
 
 soundboard_data["tarzanandjane"] = {
@@ -3158,6 +3496,7 @@ soundboard_data["tarzanandjane"] = {
 	["category"] = "Music",
 	["subcategory"] = "Toybox",
 	["file"] = dir.."tarzanandjane.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["wantme"] = {
@@ -3167,6 +3506,7 @@ soundboard_data["wantme"] = {
 	["msg"] = "needs some love.",
 	["category"] = "Music",
 	["file"] = dir.."wantme.mp3",
+	["duration"] = 42,
 };
 
 soundboard_data["fgfart"] = {
@@ -3177,6 +3517,7 @@ soundboard_data["fgfart"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."fgfart.mp3",
+	["duration"] = 40,
 };
 
 soundboard_data["rockboat"] = {
@@ -3186,6 +3527,7 @@ soundboard_data["rockboat"] = {
 	["msg"] = "fails at life.",
 	["category"] = "Music",
 	["file"] = dir.."rockboat.mp3",
+	["duration"] = 33,
 };
 
 soundboard_data["hard3"] = {
@@ -3196,6 +3538,7 @@ soundboard_data["hard3"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "General",
 	["file"] = dir.."hard3.mp3",
+	["duration"] = 16,
 };
 
 soundboard_data["tuba"] = {
@@ -3205,6 +3548,7 @@ soundboard_data["tuba"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."tuba.mp3",
+	["duration"] = 16,
 };
 
 soundboard_data["beautiful"] = {
@@ -3213,6 +3557,7 @@ soundboard_data["beautiful"] = {
 	["emote"] = "cheer",
 	["category"] = "Movies/TV",
 	["file"] = dir.."beautiful.mp3",
+	["duration"] = 4,
 };
 
 soundboard_data["boat"] = {
@@ -3221,6 +3566,7 @@ soundboard_data["boat"] = {
 	["emote"] = "sing",
 	["category"] = "Music",
 	["file"] = dir.."boat.mp3",
+	["duration"] = 27,
 };
 
 soundboard_data["champions"] = {
@@ -3230,6 +3576,7 @@ soundboard_data["champions"] = {
 	["category"] = "Music",
 	["subcategory"] = "Queen",
 	["file"] = dir.."champions.mp3",
+	["duration"] = 40,
 };
 
 soundboard_data["cheeseburger"] = {
@@ -3238,6 +3585,7 @@ soundboard_data["cheeseburger"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."cheeseburger.mp3",
+	["duration"] = 47,
 };
 
 soundboard_data["ctm"] = {
@@ -3247,6 +3595,7 @@ soundboard_data["ctm"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."ctm.mp3",
+	["duration"] = 26,
 };
 
 soundboard_data["diabetus"] = {
@@ -3255,6 +3604,7 @@ soundboard_data["diabetus"] = {
 	["emote"] = "cry",
 	["category"] = "Movies/TV",
 	["file"] = dir.."diabetus.mp3",
+	["duration"] = 29,
 };
 
 soundboard_data["druid"] = {
@@ -3264,6 +3614,7 @@ soundboard_data["druid"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."druid.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["ellinia"] = {
@@ -3272,6 +3623,7 @@ soundboard_data["ellinia"] = {
 	["emote"] = "cheer",
 	["category"] = "Video Games",
 	["file"] = dir.."ellinia.mp3",
+	["duration"] = 34,
 };
 
 soundboard_data["escape"] = {
@@ -3280,6 +3632,7 @@ soundboard_data["escape"] = {
 	["emote"] = "flee",
 	["category"] = "Music",
 	["file"] = dir.."escape.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["escape2"] = {
@@ -3288,6 +3641,7 @@ soundboard_data["escape2"] = {
 	["emote"] = "flee",
 	["category"] = "Music",
 	["file"] = dir.."escape2.mp3",
+	["duration"] = 40,
 };
 
 soundboard_data["fish"] = {
@@ -3296,6 +3650,7 @@ soundboard_data["fish"] = {
 	["emote"] = "hungry",
 	["category"] = "Movies/TV",
 	["file"] = dir.."fish.mp3",
+	["duration"] = 20,
 };
 
 soundboard_data["fries"] = {
@@ -3305,6 +3660,7 @@ soundboard_data["fries"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."fries.mp3",
+	["duration"] = 18,
 };
 
 soundboard_data["hunter"] = {
@@ -3314,6 +3670,7 @@ soundboard_data["hunter"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."hunter.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["jumponit"] = {
@@ -3322,6 +3679,7 @@ soundboard_data["jumponit"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."jumponit.mp3",
+	["duration"] = 51,
 };
 
 soundboard_data["lean"] = {
@@ -3330,6 +3688,7 @@ soundboard_data["lean"] = {
 	["emote"] = "kneel",
 	["category"] = "Music",
 	["file"] = dir.."lean.mp3",
+	["duration"] = 47,
 };
 
 soundboard_data["lean2"] = {
@@ -3338,6 +3697,7 @@ soundboard_data["lean2"] = {
 	["emote"] = "kneel",
 	["category"] = "Music",
 	["file"] = dir.."lean2.mp3",
+	["duration"] = 46,
 };
 
 soundboard_data["mage"] = {
@@ -3347,6 +3707,7 @@ soundboard_data["mage"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."mage.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["monster"] = {
@@ -3356,6 +3717,7 @@ soundboard_data["monster"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "300",
 	["file"] = dir.."monster.mp3",
+	["duration"] = 26,
 };
 
 soundboard_data["narnia"] = {
@@ -3364,6 +3726,7 @@ soundboard_data["narnia"] = {
 	["emote"] = "ready",
 	["category"] = "Movies/TV",
 	["file"] = dir.."narnia.mp3",
+	["duration"] = 40,
 };
 
 soundboard_data["needajew"] = {
@@ -3373,6 +3736,7 @@ soundboard_data["needajew"] = {
 	["category"] = "Movies/TV",
 	["subcategory"] = "Family Guy",
 	["file"] = dir.."needajew.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["paladin"] = {
@@ -3382,6 +3746,7 @@ soundboard_data["paladin"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."paladin.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["priest"] = {
@@ -3391,6 +3756,7 @@ soundboard_data["priest"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."priest.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["prince"] = {
@@ -3399,8 +3765,8 @@ soundboard_data["prince"] = {
 	["emote"] = "dance",
 	["category"] = "Movies/TV",
 	["file"] = dir.."prince.mp3",
+	["duration"] = 30,
 };
-
 
 soundboard_data["rockyou"] = {
 	["text"] = 		"* We will, We will Rock you! *",
@@ -3409,6 +3775,7 @@ soundboard_data["rockyou"] = {
 	["category"] = "Music",
 	["subcategory"] = "Queen",
 	["file"] = dir.."rockyou.mp3",
+	["duration"] = 49,
 };
 
 soundboard_data["rogue"] = {
@@ -3417,6 +3784,7 @@ soundboard_data["rogue"] = {
 	["emote"] = "flex",
 	["category"] = "Internet",
 	["file"] = dir.."rogue.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["rumble"] = {
@@ -3425,6 +3793,7 @@ soundboard_data["rumble"] = {
 	["emote"] = "roar",
 	["category"] = "Movies/TV",
 	["file"] = dir.."rumble.mp3",
+	["duration"] = 11,
 };
 
 soundboard_data["shaman"] = {
@@ -3434,6 +3803,7 @@ soundboard_data["shaman"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."shaman.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["shoes"] = {
@@ -3442,6 +3812,7 @@ soundboard_data["shoes"] = {
 	["emote"] = "flex",
 	["category"] = "Internet",
 	["file"] = dir.."shoes.mp3",
+	["duration"] = 26,
 };
 
 soundboard_data["standbyme"] = {
@@ -3450,6 +3821,7 @@ soundboard_data["standbyme"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."standbyme.mp3",
+	["duration"] = 50,
 };
 
 soundboard_data["toml"] = {
@@ -3458,6 +3830,7 @@ soundboard_data["toml"] = {
 	["emote"] = "cheer",
 	["category"] = "Music",
 	["file"] = dir.."toml.mp3",
+	["duration"] = 22,
 };
 
 soundboard_data["warlock"] = {
@@ -3467,6 +3840,7 @@ soundboard_data["warlock"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."warlock.mp3",
+	["duration"] = 13,
 };
 
 soundboard_data["warrior"] = {
@@ -3476,6 +3850,7 @@ soundboard_data["warrior"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Classes",
 	["file"] = dir.."warrior.mp3",
+	["duration"] = 12,
 };
 
 soundboard_data["wish"] = {
@@ -3484,6 +3859,7 @@ soundboard_data["wish"] = {
 	["emote"] = "kneel",
 	["category"] = "Movies/TV",
 	["file"] = dir.."wish.mp3",
+	["duration"] = 42,
 };
 
 soundboard_data["yourebeautiful"] = {
@@ -3492,6 +3868,7 @@ soundboard_data["yourebeautiful"] = {
 	["emote"] = "happy",
 	["category"] = "Music",
 	["file"] = dir.."yourebeautiful.mp3",
+	["duration"] = 54,
 };
 
 soundboard_data["army"] = {
@@ -3500,6 +3877,7 @@ soundboard_data["army"] = {
 	["emote"] = "flex",
 	["category"] = "Movies/TV",
 	["file"] = dir.."army.mp3",
+	["duration"] = 31,
 };
 
 soundboard_data["bailamos"] = {
@@ -3508,6 +3886,7 @@ soundboard_data["bailamos"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."bailamos.mp3",
+	["duration"] = 53,
 };
 
 soundboard_data["caramell2"] = {
@@ -3516,6 +3895,7 @@ soundboard_data["caramell2"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."caramell2.mp3",
+	["duration"] = 37,
 };
 
 soundboard_data["change"] = {
@@ -3524,6 +3904,7 @@ soundboard_data["change"] = {
 	["emote"] = "sing",
 	["category"] = "Music",
 	["file"] = dir.."change.mp3",
+	["duration"] = 24,
 };
 
 soundboard_data["hotncold"] = {
@@ -3532,6 +3913,7 @@ soundboard_data["hotncold"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."hotncold.mp3",
+	["duration"] = 31,
 };
 
 soundboard_data["justdance"] = {
@@ -3540,6 +3922,7 @@ soundboard_data["justdance"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."justdance.mp3",
+	["duration"] = 20,
 };
 
 soundboard_data["life"] = {
@@ -3548,6 +3931,7 @@ soundboard_data["life"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."life.mp3",
+	["duration"] = 55,
 };
 
 soundboard_data["loca"] = {
@@ -3556,6 +3940,7 @@ soundboard_data["loca"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."loca.mp3",
+	["duration"] = 36,
 };
 
 soundboard_data["macho"] = {
@@ -3564,6 +3949,7 @@ soundboard_data["macho"] = {
 	["emote"] = "flex",
 	["category"] = "Music",
 	["file"] = dir.."macho.mp3",
+	["duration"] = 26,
 };
 
 soundboard_data["portal2"] = {
@@ -3572,6 +3958,7 @@ soundboard_data["portal2"] = {
 	["emote"] = "dance",
 	["category"] = "Video Games",
 	["file"] = dir.."portal2.mp3",
+	["duration"] = 28,
 };
 
 soundboard_data["remember"] = {
@@ -3579,6 +3966,7 @@ soundboard_data["remember"] = {
 	["msg"] = "remembers the name.",
 	["category"] = "Music",
 	["file"] = dir.."remember.mp3",
+	["duration"] = 25,
 };
 
 soundboard_data["runaway"] = {
@@ -3587,6 +3975,7 @@ soundboard_data["runaway"] = {
 	["emote"] = "flee",
 	["category"] = "Movies/TV",
 	["file"] = dir.."runaway.mp3",
+	["duration"] = 38,
 };
 
 soundboard_data["sandman"] = {
@@ -3594,6 +3983,7 @@ soundboard_data["sandman"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."sandman.mp3",
+	["duration"] = 45,
 };
 
 soundboard_data["willtell"] = {
@@ -3601,6 +3991,7 @@ soundboard_data["willtell"] = {
 	["emote"] = "ready",
 	["category"] = "Music",
 	["file"] = dir.."willtell.mp3",
+	["duration"] = 51,
 };
 
 soundboard_data["world"] = {
@@ -3609,6 +4000,7 @@ soundboard_data["world"] = {
 	["emote"] = "sing",
 	["category"] = "Music",
 	["file"] = dir.."world.mp3",
+	["duration"] = 34,
 };
 
 soundboard_data["margarita"] = {
@@ -3617,6 +4009,7 @@ soundboard_data["margarita"] = {
 	["emote"] = "dance",
 	["category"] = "Music",
 	["file"] = dir.."margarita.mp3",
+	["duration"] = 78,
 };
 
 -- Added by Potdisc
@@ -3628,6 +4021,7 @@ soundboard_data["madness"] = {
 	["subcategory"] = "300",
 	["file"] = dir.."ThisisMadness.mp3",
 	["emote"] = "angry",
+	["duration"] = 5,
 };
 
 soundboard_data["shuffeling"] = {
@@ -3637,6 +4031,7 @@ soundboard_data["shuffeling"] = {
 	["category"] = "Music",
 	["file"] = dir.."Shuffeling.mp3",
 	["emote"] = "Dance",
+	["duration"] = 19,
 };
 
 soundboard_data["pi1"] = {
@@ -3646,6 +4041,7 @@ soundboard_data["pi1"] = {
 	["category"] = "Music",
 	["file"] = dir.."PiSong.mp3",
 	["emote"] = "Dance",
+	["duration"] = 38,
 };
 
 soundboard_data["sparta"] = {
@@ -3656,7 +4052,8 @@ soundboard_data["sparta"] = {
 	["subcategory"] = "300",
 	["file"] = dir.."ThisisSparta.mp3",
 	["emote"] = "roar",
-}
+	["duration"] = 4,
+};
 
 soundboard_data["blade1"] = {
 	["text"] = 		"* Enters the Thrall Techno Club *",
@@ -3665,6 +4062,7 @@ soundboard_data["blade1"] = {
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Characters",
 	["file"] = dir.."BladeRemix.mp3",
+	["duration"] = 89,
 };
 
 soundboard_data["ttlo"] = {
@@ -3674,6 +4072,7 @@ soundboard_data["ttlo"] = {
 	["category"] = "Music",
 	["file"] = dir.."ttlo.mp3",
 	["emote"] = "point",
+	["duration"] = 34,
 };
 
 soundboard_data["h3f"] = {
@@ -3683,12 +4082,8 @@ soundboard_data["h3f"] = {
 	["category"] = "Music",
 	["file"] = dir.."h3f.mp3",
 	["emote"] = "smile",
+	["duration"] = 27,
 };
-
-
-
-
-
 
 soundboard_data["mo"] = {
  ["text"] = 		"* Okay, moving on... *",
@@ -3698,6 +4093,7 @@ soundboard_data["mo"] = {
  ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."mo.mp3",
 ["emote"] = "",
+	["duration"] = 3,
 };
 
 soundboard_data["nl"] = {
@@ -3708,8 +4104,8 @@ soundboard_data["nl"] = {
  ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."nl.mp3",
 ["emote"] = "",
+	["duration"] = 15,
 };
-
 
 soundboard_data["silence"] = {
  ["text"] = 		"* SILENCE! *",
@@ -3719,6 +4115,7 @@ soundboard_data["silence"] = {
  ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."silence.mp3",
 ["emote"] = "",
+	["duration"] = 2,
 };
 
 soundboard_data["stm"] = {
@@ -3729,6 +4126,7 @@ soundboard_data["stm"] = {
  ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."stm.mp3",
 ["emote"] = "",
+	["duration"] = 3,
 };
 
 soundboard_data["pissing"] = {
@@ -3739,6 +4137,7 @@ soundboard_data["pissing"] = {
  ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."pissing.mp3",
 ["emote"] = "laugh",
+	["duration"] = 4,
 };
 
 soundboard_data["quick"] = {
@@ -3749,8 +4148,8 @@ soundboard_data["quick"] = {
  ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."quick.mp3",
 ["emote"] = "",
+	["duration"] = 4,
 };
-
 
 soundboard_data["santa"] = {
  ["text"] = 		"* How do Santa get to the kids in apartments? *",
@@ -3760,12 +4159,8 @@ soundboard_data["santa"] = {
  ["subcategory"] = "Jeff Dunham",
  ["file"] = dir.."santa.mp3",
 ["emote"] = "",
+	["duration"] = 17,
 };
-
-
-
-
-
 
 soundboard_data["pokemon"] = {
 	["text"] = 		"* Gotta catch em all! *",
@@ -3773,6 +4168,7 @@ soundboard_data["pokemon"] = {
 	["category"] = "Video Games",
 	["subcategory"] = "Pokemon",
 	["file"] = dir.."pokemondk.mp3",
+	["duration"] = 65,
 };
 
 soundboard_data["twinkle"] = {
@@ -3782,6 +4178,7 @@ soundboard_data["twinkle"] = {
  ["category"] = "Music",
  ["file"] = dir.."twinkle.mp3",
 ["emote"] = "sleep",
+	["duration"] = 35,
 };
 
 soundboard_data["caught"] = {
@@ -3792,6 +4189,7 @@ soundboard_data["caught"] = {
  ["subcategory"] = "Pirates of the Caribbean",
  ["file"] = dir.."caught.mp3",
 ["emote"] = "wave",
+	["duration"] = 10,
 };
 
 soundboard_data["cheat"] = {
@@ -3802,6 +4200,7 @@ soundboard_data["cheat"] = {
 	["subcategory"] = "Pirates of the Caribbean",
 	["file"] = dir.."cheat.mp3",
 	["emote"] = "laugh",
+	["duration"] = 4,
 };
 
 soundboard_data["dirt"] = {
@@ -3812,8 +4211,8 @@ soundboard_data["dirt"] = {
 	["subcategory"] = "Pirates of the Caribbean",
 	["file"] = dir.."dirt.mp3",
 	["emote"] = "laugh",
+	["duration"] = 19,
 };
-
 
 soundboard_data["piratelong"] = {
 	["text"] = 		"* I\\'m a pirat! *",
@@ -3823,6 +4222,7 @@ soundboard_data["piratelong"] = {
 	["subcategory"] = "Pirates of the Caribbean",
 	["file"] = dir.."piratelong.mp3",
 	["emote"] = "dance",
+	["duration"] = 76,
 };
 
 soundboard_data["pirateshort"] = {
@@ -3833,6 +4233,7 @@ soundboard_data["pirateshort"] = {
 	["subcategory"] = "Pirates of the Caribbean",
 	["file"] = dir.."pirateshort.mp3",
 	["emote"] = "dance",
+	["duration"] = 46,
 };
 
 soundboard_data["singapore"] = {
@@ -3843,6 +4244,7 @@ soundboard_data["singapore"] = {
 	["subcategory"] = "Pirates of the Caribbean",
 	["file"] = dir.."singapore.mp3",
 	["emote"] = "point",
+	["duration"] = 3,
 };
 
 soundboard_data["Gladiator"] = {
@@ -3853,6 +4255,7 @@ soundboard_data["Gladiator"] = {
 	["subcategory"] = "Gladiator",
 	["file"] = dir.."AreYouNotEntertained.mp3",
 	["emote"] = "Roar",
+	["duration"] = 12,
 };
 
 soundboard_data["ponpon"] = {
@@ -3861,6 +4264,7 @@ soundboard_data["ponpon"] = {
 	["msg"] = "sings the PonPon song!",
 	["category"] = "Music",
 	["file"] = dir.."ponpon.mp3",
+	["duration"] = 47,
 };
 
 soundboard_data["ponponLong"] = {
@@ -3869,6 +4273,7 @@ soundboard_data["ponponLong"] = {
 	["msg"] = "sings the PonPon song!",
 	["category"] = "Music",
 	["file"] = dir.."ponponlong.mp3",
+	["duration"] = 243,
 };
 
 soundboard_data["allDay"] = {
@@ -3879,4 +4284,5 @@ soundboard_data["allDay"] = {
 	["subcategory"] = "New Girl",
 	["file"] = dir.."Icandothisallday.mp3",
 	["emote"] = "Flex",
+	["duration"] = 21,
 };

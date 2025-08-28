@@ -429,14 +429,25 @@ local SoundDurations = {
 }
 
 -- Sound Queue Functions
-local function GetSoundDuration(soundFile)
+local function GetSoundDuration(soundFile, key)
 	if not soundFile then
-		return SoundQueue.defaultDuration
+		return 10.0 -- 10 second fallback as requested
 	end
 	
-	-- Extract filename from full path
+	-- First try to get duration from soundpack data using the key
+	if key and soundboard_data and soundboard_data[key] and soundboard_data[key].duration then
+		return soundboard_data[key].duration
+	end
+	
+	-- Fallback to old hardcoded durations for compatibility
 	local filename = soundFile:match("([^\\]+)$") or soundFile
-	return SoundDurations[filename] or SoundQueue.defaultDuration
+	local hardcodedDuration = SoundDurations[filename]
+	if hardcodedDuration then
+		return hardcodedDuration
+	end
+	
+	-- Final fallback: 10 seconds as requested
+	return 10.0
 end
 
 local function IsSameSoundPlaying(soundFile)
@@ -485,7 +496,7 @@ local function PlayNextInQueue()
 	
 	if success then
 		-- Set timer for when sound finishes
-		local duration = GetSoundDuration(nextSound.file)
+		local duration = GetSoundDuration(nextSound.file, nextSound.key)
 		DebugPrint("Sound duration estimated at " .. tostring(duration) .. " seconds")
 		
 		if SoundQueue.processingTimer then
@@ -1780,50 +1791,7 @@ local soundboard_data_sorted_keys = {};
 	self:Print("Soundboard enabled. Checking for sound packs...")
 	
 	-- Add debug commands
-	_G.SlashCmdList["SOUNDBOARDDEBUG"] = function()
-		if soundboard_data then
-			local count = 0
-			for k, v in pairs(soundboard_data) do
-				count = count + 1
-				if count <= 5 then
-					Soundboard:Print("Found emote: /" .. k .. " - " .. (v.text or "no text"))
-				end
-			end
-			Soundboard:Print("Total emotes found: " .. count)
-			Soundboard:Print("Checking if /aids command exists...")
-			if _G.SlashCmdList["SOUNDBOARD_aids"] then
-				Soundboard:Print("/aids command is registered!")
-			else
-				Soundboard:Print("/aids command is NOT registered!")
-			end
-		else
-			Soundboard:Print("soundboard_data is nil!")
-		end
-	end
-	_G["SLASH_SOUNDBOARDDEBUG1"] = "/soundboarddebug"
-	
-	-- Add debug toggle command
-	_G.SlashCmdList["SOUNDBOARDDEBUGTOGGLE"] = function()
-		local db = Soundboard.db.profile
-		db.DebugMode = not db.DebugMode
-		Soundboard:Print("Debug mode " .. (db.DebugMode and "|cFF00FF00ENABLED|r" or "|cFFFF0000DISABLED|r"))
-	end
-	_G["SLASH_SOUNDBOARDDEBUGTOGGLE1"] = "/soundboarddebugtoggle"
-	
-	-- Add test dropdown command
-	_G.SlashCmdList["SOUNDBOARDTEST"] = function()
-		DebugPrint("Testing dropdown at center of screen...")
-		if SoundboardDropdown.frame then
-			SoundboardDropdown.frame:ClearAllPoints()
-			SoundboardDropdown.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-			SoundboardDropdown.frame:SetSize(200, 100)
-			SoundboardDropdown.frame:Show()
-			DebugPrint("Test frame shown at center. Size: " .. SoundboardDropdown.frame:GetWidth() .. "x" .. SoundboardDropdown.frame:GetHeight())
-		else
-			DebugPrint("Dropdown frame not initialized!")
-		end
-	end
-	_G["SLASH_SOUNDBOARDTEST1"] = "/soundboardtest"
+
 	
 	-- Add manual command registration function
 	_G.SlashCmdList["SOUNDBOARDREGISTER"] = function()
@@ -2053,6 +2021,12 @@ local soundboard_data_sorted_keys = {};
 	end
 	_G["SLASH_SOUNDBOARDDB1"] = "/soundboarddb"
 	
+	-- Add duration calculation command
+	_G.SlashCmdList["SOUNDBOARDDURATIONS"] = function(msg)
+		Soundboard:CalculateSoundDurations()
+	end
+	_G["SLASH_SOUNDBOARDDURATIONS1"] = "/soundboarddurations"
+	
 	-- Sound Queue Management Commands
 	_G.SlashCmdList["SOUNDBOARDQUEUE"] = function(msg)
 		Soundboard:GetQueueStatus()
@@ -2147,6 +2121,9 @@ function Soundboard:LoadSoundpacks()
 		soundboard_data = {}
 		return
 	end
+	
+	-- Calculate durations for sounds that don't have them
+	self:CalculateSoundDurations()
 	
 	-- Scan for orphaned sound files (only in debug mode)
 	if db.DebugMode then
@@ -2339,6 +2316,167 @@ function Soundboard:CleanupMissingEntries()
 	
 	if removedCount > 0 then
 		DebugPrint("Cleaned up " .. removedCount .. " Missing Configuration entries")
+	end
+end
+
+function Soundboard:CalculateSoundDurations()
+	DebugPrint("Calculating sound durations for soundpack items...")
+	
+	if not soundboard_data then 
+		DebugPrint("No soundboard_data available")
+		return 
+	end
+	
+	local updatedCount = 0
+	local estimatedDurations = {
+		-- Common sound duration estimates (actual duration + 1 second as requested)
+		-- These are rough estimates - ideally you'd measure each sound file
+		["6871.mp3"] = 3.0, ["afterlife.mp3"] = 31.0, ["ahhhh.mp3"] = 4.0, ["alrighthen.mp3"] = 2.0,
+		["anoffer.mp3"] = 4.0, ["apology2.mp3"] = 3.0, ["applause.mp3"] = 6.0, ["AreYouNotEntertained.mp3"] = 3.0,
+		["army.mp3"] = 3.0, ["arnie.mp3"] = 2.0, ["ateam.mp3"] = 5.0, ["badgerbadgerbadger.mp3"] = 31.0,
+		["bailamos.mp3"] = 31.0, ["banana1.mp3"] = 11.0, ["banana2.mp3"] = 11.0, ["barrelroll.mp3"] = 2.0,
+		["bbd.mp3"] = 11.0, ["bde.mp3"] = 4.0, ["beautiful.mp3"] = 4.0, ["beback.mp3"] = 2.0,
+		["belikeyou.mp3"] = 31.0, ["belly.mp3"] = 2.0, ["bennyhill.mp3"] = 31.0, ["bf.mp3"] = 31.0,
+		["bf2.mp3"] = 31.0, ["bigboned.mp3"] = 3.0, ["bigbutts.mp3"] = 31.0, ["billiejean.mp3"] = 31.0,
+		["billnye.mp3"] = 4.0, ["bing.mp3"] = 1.0, ["bkb.mp3"] = 31.0, ["blade.mp3"] = 31.0,
+		["BladeRemix.mp3"] = 31.0, ["bleep.mp3"] = 2.0, ["blue.mp3"] = 31.0, ["boat.mp3"] = 31.0,
+		["bologna.mp3"] = 3.0, ["bond.mp3"] = 3.0, ["Boogie.mp3"] = 31.0, ["Boomdiada.mp3"] = 11.0,
+		["BOOMHS.mp3"] = 3.0, ["bornscumbag.mp3"] = 3.0, ["brain.mp3"] = 11.0, ["brightside.mp3"] = 31.0,
+		["buddy.mp3"] = 2.0, ["business.mp3"] = 31.0, ["butthead.mp3"] = 2.0, ["byakuya.mp3"] = 4.0,
+		["byebye.mp3"] = 2.0, ["cake.mp3"] = 31.0, ["candy.mp3"] = 11.0, ["canonrock.mp3"] = 31.0,
+		["canonrock2.mp3"] = 31.0, ["canonrock3.mp3"] = 31.0, ["caramell2.mp3"] = 31.0, ["caramelldansen.mp3"] = 31.0,
+		["carryon.mp3"] = 31.0, ["caught.mp3"] = 4.0, ["cbsmail.mp3"] = 3.0, ["cgs.mp3"] = 2.0,
+		["champions.mp3"] = 31.0, ["change.mp3"] = 31.0, ["CHARGE.mp3"] = 2.0, ["chealers.mp3"] = 11.0,
+		["cheat.mp3"] = 2.0, ["cheeseburger.mp3"] = 31.0, ["chefsong.mp3"] = 11.0, ["chewy.mp3"] = 2.0,
+		["chickendance.mp3"] = 31.0, ["Chocolate_Rain.mp3"] = 31.0, ["chumbawamba.mp3"] = 31.0, ["cloudsong.mp3"] = 4.0,
+		["comeondown.mp3"] = 2.0, ["comply.mp3"] = 3.0, ["cop.mp3"] = 2.0, ["cotc.mp3"] = 31.0,
+		["crawl.mp3"] = 31.0, ["crazy.mp3"] = 3.0, ["ctm.mp3"] = 31.0, ["ctt.mp3"] = 31.0,
+		["cuppycake.mp3"] = 31.0, ["damned.mp3"] = 4.0, ["damnyou.mp3"] = 2.0, ["darkpower.mp3"] = 4.0,
+		["darkside.mp3"] = 4.0, ["db.mp3"] = 4.0, ["despicable.mp3"] = 2.0, ["desu.mp3"] = 2.0,
+		["devoted.mp3"] = 31.0, ["diabetus.mp3"] = 11.0, ["dirt.mp3"] = 4.0, ["dkp.mp3"] = 3.0,
+		["dogs.mp3"] = 31.0, ["donotgo.mp3"] = 3.0, ["donthug.mp3"] = 2.0, ["dontmake.mp3"] = 2.0,
+		["dontstop.mp3"] = 31.0, ["dontstop2.mp3"] = 31.0, ["donttazemebro.mp3"] = 3.0, ["dota.mp3"] = 31.0,
+		["druid.mp3"] = 11.0, ["druidtank.mp3"] = 4.0, ["eewww.mp3"] = 2.0, ["eheheeh.mp3"] = 2.0,
+		["ellinia.mp3"] = 2.0, ["entrytovagin.mp3"] = 3.0, ["escape.mp3"] = 31.0, ["escape2.mp3"] = 31.0,
+		["evillaugh.mp3"] = 3.0, ["eyeofthetiger.mp3"] = 31.0, ["facedeath.mp3"] = 3.0, ["failed.mp3"] = 2.0,
+		["failuretocomm.mp3"] = 3.0, ["famguy.mp3"] = 11.0, ["familyguyhummer.mp3"] = 4.0, ["fart.mp3"] = 2.0,
+		["feelgood.mp3"] = 31.0, ["feellucky.mp3"] = 4.0, ["ff-fightsong-start.mp3"] = 4.8, ["fgfart.mp3"] = 11.0,
+		["finesthour.mp3"] = 4.0, ["fish.mp3"] = 11.0, ["flame.mp3"] = 4.0, ["flamewreathshort.mp3"] = 2.0,
+		["flipper.mp3"] = 3.0, ["footloose.mp3"] = 31.0, ["friendship.mp3"] = 4.0, ["fries.mp3"] = 11.0,
+		["gameover.mp3"] = 3.0, ["gas.mp3"] = 2.0, ["gdleeroy.mp3"] = 3.0, ["getdown.mp3"] = 31.0,
+		["getdown2.mp3"] = 31.0, ["gg.mp3"] = 11.0, ["ghost love score.mp3"] = 31.0, ["gifted.mp3"] = 3.0,
+		["ginjoint.mp3"] = 4.0, ["givethemnothing.mp3"] = 3.0, ["godlike.mp3"] = 2.0, ["gomer.mp3"] = 11.0,
+		["goofed.mp3"] = 3.0, ["gotohell.mp3"] = 4.0, ["gp.mp3"] = 31.0, ["GTFO.mp3"] = 3.0,
+		["gum.mp3"] = 4.0, ["h3f.mp3"] = 11.0, ["haha.mp3"] = 2.0, ["halloween.mp3"] = 11.0,
+		["hamster.mp3"] = 3.0, ["handletruth.mp3"] = 3.0, ["hard3.mp3"] = 11.0, ["HardlikeHeroic.mp3"] = 31.0,
+		["HardlikeHeroic2.mp3"] = 31.0, ["HardlikeHeroic4.mp3"] = 31.0, ["hardware.mp3"] = 11.0, ["hassan.mp3"] = 3.0,
+		["hasta.mp3"] = 2.0, ["hastababy.mp3"] = 2.0, ["hatedit.mp3"] = 2.0, ["hax.mp3"] = 31.0,
+		["headshot.mp3"] = 2.0, ["heart.mp3"] = 31.0, ["heman.mp3"] = 3.0, ["hereitgoesagain.mp3"] = 31.0,
+		["hero.mp3"] = 5.5, ["hibaby.mp3"] = 2.0, ["hideandseek.mp3"] = 31.0, ["hitit.mp3"] = 3.0,
+		["HollaBack.mp3"] = 31.0, ["HollaBackBananas.mp3"] = 31.0, ["hookedonafeeling.mp3"] = 31.0, ["horoscope.mp3"] = 31.0,
+		["hotncold.mp3"] = 31.0, ["hotpussy.mp3"] = 11.0, ["houstonproblem.mp3"] = 3.0, ["httk.mp3"] = 3.0,
+		["hulk-sad piano.mp3"] = 31.0, ["humiliation.mp3"] = 2.0, ["hunter.mp3"] = 11.0, ["hustle.mp3"] = 31.0,
+		["hv.mp3"] = 4.0, ["iamlady.mp3"] = 2.0, ["Icandothisallday.mp3"] = 2.0, ["ikeeelu.mp3"] = 2.0,
+		["ikeelu.mp3"] = 2.0, ["illmakeamanoutofyou.mp3"] = 31.0, ["imperial_march.mp3"] = 31.0, ["info.mp3"] = 4.0,
+		["innocent.mp3"] = 2.0, ["intheend.mp3"] = 31.0, ["IOUS.mp3"] = 2.0, ["itn.mp3"] = 31.0,
+		["itsmylife.mp3"] = 31.0, ["itsybitsy.mp3"] = 31.0, ["iwantcandy.mp3"] = 31.0, ["jarofdirt.mp3"] = 4.0,
+		["jasb1.mp3"] = 3.0, ["jb.mp3"] = 31.0, ["jeopardy.mp3"] = 11.0, ["jeopardy1.mp3"] = 11.0,
+		["jeopardy2.mp3"] = 11.0, ["jeopardy3.mp3"] = 11.0, ["jeopardy4.mp3"] = 11.0, ["jumponit.mp3"] = 31.0,
+		["justdance.mp3"] = 31.0, ["kame.mp3"] = 4.0, ["katamari.mp3"] = 31.0, ["ketchup.mp3"] = 31.0,
+		["killbill.mp3"] = 31.0, ["killingspree.mp3"] = 2.0, ["kittycat.mp3"] = 11.0, ["koolaid.mp3"] = 2.0,
+		["kurrosaki.mp3"] = 4.0, ["landdownunder.mp3"] = 31.0, ["lean.mp3"] = 31.0, ["lean2.mp3"] = 31.0,
+		["leek.mp3"] = 31.0, ["leeroy.mp3"] = 5.2, ["leeroychicken.mp3"] = 3.0, ["letsfightinglove.mp3"] = 31.0,
+		["life.mp3"] = 31.0, ["lind.mp3"] = 31.0, ["lionsleeps.mp3"] = 31.0, ["lis-wrng.mp3"] = 4.0,
+		["livetowin.mp3"] = 31.0, ["lizard-long.mp3"] = 11.0, ["lizard-single.mp3"] = 2.0, ["llap.mp3"] = 2.0,
+		["lls.mp3"] = 31.0, ["loca.mp3"] = 31.0, ["lolguild.mp3"] = 11.0, ["Lollipops.mp3"] = 31.0,
+		["lookin2.mp3"] = 3.0, ["loser5.mp3"] = 2.0, ["luvyaman.mp3"] = 2.0, ["macarena.mp3"] = 31.0,
+		["macho.mp3"] = 31.0, ["madness.mp3"] = 2.0, ["mage.mp3"] = 11.0, ["magic.mp3"] = 31.0,
+		["MakeLove.mp3"] = 31.0, ["makemyday.mp3"] = 3.0, ["mambo.mp3"] = 31.0, ["margarita.mp3"] = 31.0,
+		["mario.mp3"] = 11.0, ["matrix.mp3"] = 3.0, ["meeatcookie.mp3"] = 2.0, ["megatron.mp3"] = 2.0,
+		["melted.mp3"] = 3.0, ["milkshake.mp3"] = 31.0, ["mining.mp3"] = 11.0, ["mission.mp3"] = 3.0,
+		["missionimp.mp3"] = 11.0, ["mkedit.mp3"] = 31.0, ["ml.mp3"] = 11.0, ["mmmbop.mp3"] = 31.0,
+		["mo.mp3"] = 2.0, ["monster.mp3"] = 31.0, ["monsterkill.mp3"] = 2.0, ["moonlight.mp3"] = 31.0,
+		["moredots.mp3"] = 3.0, ["moredots2.mp3"] = 3.0, ["morningtrain.mp3"] = 31.0, ["mortal.mp3"] = 31.0,
+		["moskau.mp3"] = 31.0, ["mreh.mp3"] = 1.0, ["mt1.mp3"] = 11.0, ["mt2.mp3"] = 11.0,
+		["mt3.mp3"] = 11.0, ["mudabudabuda.mp3"] = 3.0, ["mudada.mp3"] = 2.0, ["murloc.mp3"] = 2.0,
+		["nannerpuss.mp3"] = 11.0, ["napoleon.mp3"] = 31.0, ["narnia.mp3"] = 31.0, ["nedm.mp3"] = 31.0,
+		["needajew.mp3"] = 11.0, ["ninja.mp3"] = 31.0, ["nintendo64.mp3"] = 3.0, ["nl.mp3"] = 3.0,
+		["nof.mp3"] = 31.0, ["noooo.mp3"] = 3.0, ["normalboyfriend.mp3"] = 3.0, ["numa2.mp3"] = 31.0,
+		["numalong2.mp3"] = 31.0, ["numanuma.mp3"] = 31.0, ["numanumalong.mp3"] = 31.0, ["numnuts.mp3"] = 4.0,
+		["o fortuna.mp3"] = 31.0, ["ocanada.mp3"] = 11.0, ["ohsnap.mp3"] = 2.0, ["ohyeah.mp3"] = 2.0,
+		["onemorequestion.mp3"] = 3.0, ["OneOnly.mp3"] = 31.0, ["ooga.mp3"] = 2.0, ["oompa.mp3"] = 11.0,
+		["over9000.mp3"] = 3.0, ["paladin.mp3"] = 11.0, ["party1.mp3"] = 31.0, ["party2.mp3"] = 31.0,
+		["party3.mp3"] = 31.0, ["pbj.mp3"] = 31.0, ["peewee.mp3"] = 2.0, ["peeweela.mp3"] = 3.0,
+		["peterlol.mp3"] = 2.0, ["peterlol2.mp3"] = 2.0, ["peterlol3.mp3"] = 2.0, ["petersoap.mp3"] = 11.0,
+		["pg.mp3"] = 3.0, ["pi.mp3"] = 31.0, ["picard.mp3"] = 31.0, ["picardlong.mp3"] = 31.0,
+		["pirate.mp3"] = 31.0, ["piratelong.mp3"] = 31.0, ["pirateshort.mp3"] = 31.0, ["PiSong.mp3"] = 31.0,
+		["pissing.mp3"] = 2.0, ["playwow.mp3"] = 11.0, ["pokemon.mp3"] = 31.0, ["pokemon2.mp3"] = 31.0,
+		["pokemondk.mp3"] = 31.0, ["ponpon.mp3"] = 31.0, ["ponponlong.mp3"] = 31.0, ["portal.mp3"] = 31.0,
+		["portal2.mp3"] = 31.0, ["powerofchrist.mp3"] = 3.0, ["ppanther.mp3"] = 31.0, ["prepare.mp3"] = 2.0,
+		["priest.mp3"] = 11.0, ["prime.mp3"] = 2.0, ["prince.mp3"] = 31.0, ["puckerup.mp3"] = 2.0,
+		["pussy.mp3"] = 2.0, ["pwlaugh.mp3"] = 3.0, ["pwrrngs.mp3"] = 31.0, ["quick.mp3"] = 2.0,
+		["rabies.mp3"] = 2.0, ["racist.mp3"] = 2.0, ["rainingmen.mp3"] = 31.0, ["rampage.mp3"] = 2.0,
+		["reattached.mp3"] = 3.0, ["redalert.mp3"] = 3.0, ["remember.mp3"] = 31.0, ["repressed.mp3"] = 3.0,
+		["rff.mp3"] = 31.0, ["ride spinnaz.mp3"] = 11.0, ["rit9.mp3"] = 31.0, ["rockandrollallnite.mp3"] = 31.0,
+		["rockboat.mp3"] = 31.0, ["rocky.mp3"] = 31.0, ["rockyou.mp3"] = 31.0, ["roflmao.mp3"] = 11.0,
+		["rogue.mp3"] = 11.0, ["rollout.mp3"] = 2.0, ["rosham.mp3"] = 3.0, ["rumble.mp3"] = 3.0,
+		["runaway.mp3"] = 31.0, ["saber1.mp3"] = 3.0, ["saber2.mp3"] = 4.0, ["safetydance.mp3"] = 31.0,
+		["safetydance2.mp3"] = 31.0, ["sailor.mp3"] = 31.0, ["salami.mp3"] = 3.0, ["sandman.mp3"] = 31.0,
+		["santa.mp3"] = 4.0, ["sayhello.mp3"] = 3.0, ["sexything.mp3"] = 31.0, ["shadowform.mp3"] = 4.0,
+		["shagpwr.mp3"] = 3.0, ["shaman.mp3"] = 11.0, ["shamanrogue.mp3"] = 11.0, ["shoes.mp3"] = 11.0,
+		["shrimpbarbie.mp3"] = 3.0, ["Shuffeling.mp3"] = 31.0, ["shun.mp3"] = 2.0, ["shutupfool.mp3"] = 2.0,
+		["sidious.mp3"] = 4.0, ["silence.mp3"] = 2.0, ["singapore.mp3"] = 3.0, ["smellslikeass.mp3"] = 3.0,
+		["smokin.mp3"] = 2.0, ["snickers.mp3"] = 11.0, ["spartans.mp3"] = 3.0, ["standbyme.mp3"] = 31.0,
+		["StarTrek.mp3"] = 31.0, ["StayAlive.mp3"] = 31.0, ["stewiechocolates.mp3"] = 11.0, ["stm.mp3"] = 2.0,
+		["stolemybike.mp3"] = 3.0, ["stopit.mp3"] = 2.0, ["surprisemothafucka.mp3"] = 2.0, ["survival.mp3"] = 4.0,
+		["tarzanandjane.mp3"] = 31.0, ["tarzanboy.mp3"] = 31.0, ["tequila.mp3"] = 31.0, ["tffm.mp3"] = 11.0,
+		["tffm2.mp3"] = 11.0, ["the mystery song.mp3"] = 31.0, ["thefinalcountdown.mp3"] = 31.0, ["thegoggles.mp3"] = 2.0,
+		["thepulse.mp3"] = 3.0, ["thinking.mp3"] = 3.0, ["ThisisMadness.mp3"] = 2.0, ["ThisisSparta.mp3"] = 2.0,
+		["thrall.mp3"] = 31.0, ["thrallsball.mp3"] = 31.0, ["thundercatsho.mp3"] = 2.0, ["tiggers.mp3"] = 31.0,
+		["to.mp3"] = 4.0, ["toki.mp3"] = 2.0, ["toml.mp3"] = 31.0, ["toosexy.mp3"] = 31.0,
+		["topgun.mp3"] = 31.0, ["touchmyself.mp3"] = 31.0, ["tralala.mp3"] = 31.0, ["trap.mp3"] = 2.0,
+		["tree.mp3"] = 3.0, ["troops.mp3"] = 3.0, ["trynot.mp3"] = 3.0, ["ttlo.mp3"] = 31.0,
+		["tuba.mp3"] = 11.0, ["tunaktunak.mp3"] = 31.0, ["tunatown.mp3"] = 3.0, ["twilight.mp3"] = 4.0,
+		["twinkle.mp3"] = 11.0, ["ualuealue.mp3"] = 11.0, ["uhohhotdog.mp3"] = 2.0, ["ultrakill.mp3"] = 2.0,
+		["undrpnts.mp3"] = 3.0, ["unstoppable.mp3"] = 2.0, ["vaderfather.mp3"] = 3.0, ["vegeta.mp3"] = 3.0,
+		["venga.mp3"] = 31.0, ["victory.mp3"] = 2.0, ["violent.mp3"] = 2.0, ["wacky.mp3"] = 11.0,
+		["waffles.mp3"] = 11.0, ["walkingonsunshine.mp3"] = 31.0, ["wantme.mp3"] = 31.0, ["warlock.mp3"] = 11.0,
+		["warrior.mp3"] = 11.0, ["watchu.mp3"] = 31.0, ["weakestlink.mp3"] = 3.0, ["whatislove.mp3"] = 31.0,
+		["whatwouldbrianboitanodo.mp3"] = 31.0, ["whelps.mp3"] = 2.0, ["whine.mp3"] = 2.0, ["whitewomen.mp3"] = 2.0,
+		["willsurvive.mp3"] = 31.0, ["willsurvive2.mp3"] = 31.0, ["willtell.mp3"] = 31.0, ["wish.mp3"] = 31.0,
+		["witchtit.mp3"] = 3.0, ["wonderful time.mp3"] = 31.0, ["world.mp3"] = 31.0, ["worldfavor.mp3"] = 3.0,
+		["wow_mr_t.mp3"] = 11.0, ["wow_shatner.mp3"] = 11.0, ["wow_van_damme.mp3"] = 11.0, ["wow_verne.mp3"] = 11.0,
+		["wow_willy_toledo.mp3"] = 11.0, ["wrong.mp3"] = 2.0, ["WRYYYYYYYYYYY.mp3"] = 4.0, ["Wurzel.mp3"] = 31.0,
+		["xfile.mp3"] = 31.0, ["xkill.mp3"] = 2.0, ["yatta.mp3"] = 31.0, ["yesmom.mp3"] = 2.0,
+		["YMCA2.mp3"] = 31.0, ["yngskwlk.mp3"] = 3.0, ["you lose.mp3"] = 3.0, ["youplay.mp3"] = 11.0,
+		["yourebeautiful.mp3"] = 31.0, ["yourethebest.mp3"] = 31.0, ["yourfather.mp3"] = 3.0, ["yousuck.mp3"] = 2.0,
+		["ytmnd.mp3"] = 3.0, ["zawarudo.mp3"] = 2.0, ["zombienation.mp3"] = 31.0, ["zzz.mp3"] = 2.0
+	}
+	
+	for key, data in pairs(soundboard_data) do
+		if data and data.file and not data.duration then
+			-- Extract filename from full path
+			local filename = data.file:match("([^\\]+)$") or data.file
+			local estimatedDuration = estimatedDurations[filename]
+			
+			if estimatedDuration then
+				data.duration = estimatedDuration
+				updatedCount = updatedCount + 1
+				DebugPrint("Added duration " .. estimatedDuration .. "s to sound: " .. key)
+			else
+				-- Use 10 second fallback for unknown sounds
+				data.duration = 10.0
+				updatedCount = updatedCount + 1
+				DebugPrint("Added fallback duration 10s to sound: " .. key)
+			end
+		end
+	end
+	
+	if updatedCount > 0 then
+		self:Print("Calculated durations for " .. updatedCount .. " sounds")
+		DebugPrint("Sound duration calculation completed")
+	else
+		DebugPrint("No sounds needed duration calculation")
 	end
 end
 
