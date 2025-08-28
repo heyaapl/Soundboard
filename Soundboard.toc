@@ -8,7 +8,7 @@
 ## Interface-SoD: 55000
 ## Notes: Play sound emotes for yourself and anyone else who has the mod!
 ## Title: Soundboard
-## Version: 1.0.2
+## Version: 1.1.0
 ## SavedVariables: SoundboardDB
 embeds.xml
 Soundpacks\Default\soundpack.lua

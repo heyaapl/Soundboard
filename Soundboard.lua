@@ -415,20 +415,34 @@ local SoundQueue = {
 	currentSound = nil,            -- Currently playing sound info
 	isPlaying = false,            -- Is a sound currently playing
 	processingTimer = nil,        -- Timer for processing queue
-	defaultDuration = 3.0,        -- Default sound duration (seconds)
+	defaultDuration = 4.0,        -- Default sound duration (seconds) - slightly longer for safety
+	currentSoundStartTime = nil,   -- When the current sound started playing (for accurate remaining time)
 }
 
--- Sound duration estimates (in seconds) for better queue timing
-local SoundDurations = {
-	-- Add common sound durations here
-	-- ["soundfile.mp3"] = duration_in_seconds
-	["hero.mp3"] = 4.5,
-	["leeroy.mp3"] = 4.2,
-	["ff-fightsong-start.mp3"] = 3.8,
-	-- Add more as needed
+-- Dynamic Sound Duration Learning System
+local SoundDurationLearning = {
+	-- Start with basic categories/estimates, then learn actual durations
+	estimatesByPattern = {
+		-- File name patterns to initial estimates
+		[".*long.*%.mp3"] = 8.0,    -- Files with "long" in name
+		[".*short.*%.mp3"] = 2.0,   -- Files with "short" in name  
+		[".*song.*%.mp3"] = 12.0,   -- Music files
+		[".*theme.*%.mp3"] = 10.0,  -- Theme songs
+		[".*laugh.*%.mp3"] = 3.0,   -- Laugh sounds
+		[".*scream.*%.mp3"] = 2.5,  -- Scream sounds
+	},
+	
+	-- Default estimates by probable duration
+	defaultShort = 2.0,     -- Most voice clips/effects
+	defaultMedium = 4.0,    -- Medium clips 
+	defaultLong = 8.0,      -- Longer speeches/music
+	defaultVeryLong = 15.0, -- Full songs
 }
 
--- Sound Queue Functions
+-- Learned durations storage (saved per-character or account-wide)
+local LearnedDurations = {}
+
+-- Dynamic Sound Duration Functions
 local function GetSoundDuration(soundFile)
 	if not soundFile then
 		return SoundQueue.defaultDuration
@@ -436,7 +450,78 @@ local function GetSoundDuration(soundFile)
 	
 	-- Extract filename from full path
 	local filename = soundFile:match("([^\\]+)$") or soundFile
-	return SoundDurations[filename] or SoundQueue.defaultDuration
+	
+	-- First check learned durations (most accurate)
+	if LearnedDurations[filename] then
+		DebugPrint("Using learned duration for " .. filename .. ": " .. LearnedDurations[filename] .. "s")
+		return LearnedDurations[filename]
+	end
+	
+	-- Try pattern-based estimates
+	for pattern, estimate in pairs(SoundDurationLearning.estimatesByPattern) do
+		if filename:match(pattern) then
+			DebugPrint("Using pattern estimate for " .. filename .. ": " .. estimate .. "s")
+			return estimate
+		end
+	end
+	
+	-- Intelligent fallback based on filename characteristics
+	local lowerName = filename:lower()
+	if lowerName:match("song") or lowerName:match("music") or lowerName:match("theme") then
+		DebugPrint("Music file detected, using long estimate: " .. SoundDurationLearning.defaultLong .. "s")
+		return SoundDurationLearning.defaultLong
+	elseif lowerName:match("march") or lowerName:match("anthem") then
+		DebugPrint("Anthem detected, using very long estimate: " .. SoundDurationLearning.defaultVeryLong .. "s")
+		return SoundDurationLearning.defaultVeryLong
+	elseif lowerName:match("laugh") or lowerName:match("scream") or lowerName:match("yell") then
+		DebugPrint("Voice effect detected, using medium estimate: " .. SoundDurationLearning.defaultMedium .. "s")
+		return SoundDurationLearning.defaultMedium
+	elseif lowerName:match("shot") or lowerName:match("hit") or lowerName:match("boom") then
+		DebugPrint("Sound effect detected, using short estimate: " .. SoundDurationLearning.defaultShort .. "s")
+		return SoundDurationLearning.defaultShort
+	end
+	
+	-- Final fallback
+	DebugPrint("Using default duration for unknown file " .. filename .. ": " .. SoundQueue.defaultDuration .. "s")
+	return SoundQueue.defaultDuration
+end
+
+-- Learn actual duration when sound finishes
+local function LearnSoundDuration(soundFile, actualDuration)
+	if not soundFile or not actualDuration then
+		return
+	end
+	
+	local filename = soundFile:match("([^\\]+)$") or soundFile
+	local previousDuration = LearnedDurations[filename]
+	
+	if previousDuration then
+		-- Average with previous learned duration for better accuracy
+		LearnedDurations[filename] = (previousDuration + actualDuration) / 2
+		DebugPrint("Updated learned duration for " .. filename .. ": " .. LearnedDurations[filename] .. "s (was " .. previousDuration .. "s)")
+	else
+		-- First time learning this sound
+		LearnedDurations[filename] = actualDuration
+		DebugPrint("Learned new duration for " .. filename .. ": " .. actualDuration .. "s")
+	end
+	
+	-- Save to persistent storage
+	if Soundboard.db and Soundboard.db.profile then
+		if not Soundboard.db.profile.LearnedSoundDurations then
+			Soundboard.db.profile.LearnedSoundDurations = {}
+		end
+		Soundboard.db.profile.LearnedSoundDurations[filename] = LearnedDurations[filename]
+	end
+end
+
+-- Load learned durations from saved data
+local function LoadLearnedDurations()
+	if Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.LearnedSoundDurations then
+		LearnedDurations = Soundboard.db.profile.LearnedSoundDurations
+		local count = 0
+		for _ in pairs(LearnedDurations) do count = count + 1 end
+		DebugPrint("Loaded " .. count .. " learned sound durations from saved data")
+	end
 end
 
 local function IsSameSoundPlaying(soundFile)
@@ -450,7 +535,17 @@ local function AddSoundToQueue(soundFile, volume, key)
 	-- Check if same sound is already playing - ignore if so
 	if IsSameSoundPlaying(soundFile) then
 		DebugPrint("Ignoring duplicate sound request: " .. tostring(soundFile))
-		return false
+		Soundboard:Print("That sound is already playing - wait until it finishes before playing it again")
+		return false, "playing"
+	end
+	
+	-- Check if same sound is already in queue
+	for i, queuedSound in ipairs(SoundQueue.queue) do
+		if queuedSound.file == soundFile then
+			DebugPrint("Sound already in queue: " .. tostring(soundFile))
+			Soundboard:Print("That sound is already queued - wait until it finishes before playing it again")
+			return false, "queued"
+		end
 	end
 	
 	-- Add to queue
@@ -462,14 +557,28 @@ local function AddSoundToQueue(soundFile, volume, key)
 	})
 	
 	DebugPrint("Added sound to queue: " .. tostring(soundFile) .. " (Queue size: " .. #SoundQueue.queue .. ")")
-	return true
+	return true, "queued"
 end
 
 local function PlayNextInQueue()
+	-- Cancel any existing timer first to prevent overlaps
+	if SoundQueue.processingTimer then
+		SoundQueue.processingTimer:Cancel()
+		SoundQueue.processingTimer = nil
+		DebugPrint("Cancelled previous timer")
+	end
+	
 	if #SoundQueue.queue == 0 then
 		SoundQueue.isPlaying = false
 		SoundQueue.currentSound = nil
+		SoundQueue.currentSoundStartTime = nil
 		DebugPrint("Sound queue is empty")
+		return
+	end
+	
+	-- Ensure we're not already playing (prevent overlaps)
+	if SoundQueue.isPlaying and SoundQueue.currentSound then
+		DebugPrint("WARNING: Already playing a sound, ignoring PlayNextInQueue")
 		return
 	end
 	
@@ -477,8 +586,9 @@ local function PlayNextInQueue()
 	local nextSound = table.remove(SoundQueue.queue, 1)
 	SoundQueue.currentSound = nextSound
 	SoundQueue.isPlaying = true
+	SoundQueue.currentSoundStartTime = time()  -- Track when sound started
 	
-	DebugPrint("Playing next sound from queue: " .. tostring(nextSound.file))
+	DebugPrint("Playing next sound from queue: " .. tostring(nextSound.file) .. " at time: " .. SoundQueue.currentSoundStartTime)
 	
 	-- Play the sound using our volume-controlled method
 	local success = Soundboard:PlaySoundDirect(nextSound.file, nextSound.volume)
@@ -488,12 +598,18 @@ local function PlayNextInQueue()
 		local duration = GetSoundDuration(nextSound.file)
 		DebugPrint("Sound duration estimated at " .. tostring(duration) .. " seconds")
 		
-		if SoundQueue.processingTimer then
-			SoundQueue.processingTimer:Cancel()
-		end
-		
 		SoundQueue.processingTimer = C_Timer.NewTimer(duration, function()
 			DebugPrint("Sound finished, processing next in queue")
+			
+			-- Learn the actual duration if we have timing data
+			if SoundQueue.currentSound and SoundQueue.currentSoundStartTime then
+				local actualDuration = time() - SoundQueue.currentSoundStartTime
+				LearnSoundDuration(SoundQueue.currentSound.file, actualDuration)
+			end
+			
+			SoundQueue.isPlaying = false
+			SoundQueue.currentSound = nil
+			SoundQueue.currentSoundStartTime = nil
 			PlayNextInQueue()
 		end)
 	else
@@ -501,8 +617,37 @@ local function PlayNextInQueue()
 		-- Try next sound immediately if this one failed
 		SoundQueue.isPlaying = false
 		SoundQueue.currentSound = nil
+		SoundQueue.currentSoundStartTime = nil
 		PlayNextInQueue()
 	end
+end
+
+local function CalculateQueueTime()
+	local totalTime = 0
+	
+	-- Add remaining time for currently playing sound
+	if SoundQueue.isPlaying and SoundQueue.currentSound and SoundQueue.currentSoundStartTime then
+		local currentDuration = GetSoundDuration(SoundQueue.currentSound.file)
+		local elapsed = time() - SoundQueue.currentSoundStartTime
+		local remaining = math.max(0, currentDuration - elapsed)
+		totalTime = totalTime + remaining
+		DebugPrint("Current sound remaining time: " .. remaining .. " seconds")
+	elseif SoundQueue.isPlaying and SoundQueue.currentSound then
+		-- Fallback if we don't have start time
+		local currentDuration = GetSoundDuration(SoundQueue.currentSound.file)
+		totalTime = totalTime + currentDuration
+		DebugPrint("Current sound estimated remaining (no start time): " .. currentDuration .. " seconds")
+	end
+	
+	-- Add time for all queued sounds
+	for _, queuedSound in ipairs(SoundQueue.queue) do
+		local soundDuration = GetSoundDuration(queuedSound.file)
+		totalTime = totalTime + soundDuration
+		DebugPrint("Queued sound (" .. (queuedSound.key or "unknown") .. ") duration: " .. soundDuration .. " seconds")
+	end
+	
+	DebugPrint("Total calculated queue time: " .. totalTime .. " seconds")
+	return totalTime
 end
 
 local function QueueSound(soundFile, volume, key)
@@ -513,18 +658,44 @@ local function QueueSound(soundFile, volume, key)
 	
 	-- If nothing is playing, play immediately
 	if not SoundQueue.isPlaying then
-		SoundQueue.queue = {{
+		-- Set up the first item and mark as playing before starting
+		local queueItem = {
 			file = soundFile,
 			volume = volume or 1.0,
 			key = key,
 			timestamp = time()
-		}}
+		}
+		SoundQueue.queue = {queueItem}
+		SoundQueue.isPlaying = true  -- Mark as playing immediately to prevent race conditions
+		
 		PlayNextInQueue()
+		
+		-- Provide user feedback for immediate play
+		local soundName = key and ("/" .. key) or "Sound"
+		Soundboard:Print(soundName .. " is now playing!")
 		return true
 	end
 	
-	-- Otherwise add to queue
-	return AddSoundToQueue(soundFile, volume, key)
+	-- Calculate position and time before adding to queue
+	local queuePosition = #SoundQueue.queue + 1  -- Position if added
+	local estimatedWaitTime = CalculateQueueTime()
+	
+	-- Try to add to queue
+	local success, status = AddSoundToQueue(soundFile, volume, key)
+	
+	if success then
+		-- Provide user feedback with queue position and estimated time
+		local soundName = key and ("/" .. key) or "Sound"
+		local soundsAhead = queuePosition - 1  -- Sounds ahead in queue (not counting currently playing)
+		
+		if soundsAhead == 0 then
+			Soundboard:Print(soundName .. " will play next in " .. math.ceil(estimatedWaitTime) .. " seconds")
+		else
+			Soundboard:Print(soundName .. " will play in " .. math.ceil(estimatedWaitTime) .. " seconds, and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or ""))
+		end
+	end
+	
+	return success
 end
 
 local LE_PARTY_CATEGORY_HOME = LE_PARTY_CATEGORY_HOME
@@ -771,6 +942,502 @@ function SoundboardDropdown:UpdateButtonWidths()
 	DebugPrint("Updated " .. #buttons .. " buttons to width " .. buttonWidth .. " (fixed width to allow full border rendering)")
 end
 
+-- ==================== FAVORITES SYSTEM ====================
+
+-- Toggle favorite status for a sound
+function SoundboardDropdown:ToggleFavorite(soundKey)
+	if not Soundboard.db or not Soundboard.db.profile then
+		DebugPrint("ERROR: Cannot toggle favorite - database not available")
+		return false
+	end
+	
+	local favorites = Soundboard.db.profile.Favorites
+	local wasFavorited = favorites[soundKey] == true
+	
+	if wasFavorited then
+		favorites[soundKey] = nil
+		DebugPrint("Removed favorite: " .. tostring(soundKey))
+	else
+		favorites[soundKey] = true
+		DebugPrint("Added favorite: " .. tostring(soundKey))
+	end
+	
+	return not wasFavorited -- Return new favorite status
+end
+
+-- Check if a sound is favorited
+function SoundboardDropdown:IsFavorite(soundKey)
+	if not Soundboard.db or not Soundboard.db.profile then
+		return false
+	end
+	return Soundboard.db.profile.Favorites[soundKey] == true
+end
+
+-- Get all favorited sounds
+function SoundboardDropdown:GetFavorites()
+	if not Soundboard.db or not Soundboard.db.profile then
+		return {}
+	end
+	
+	local favorites = {}
+	for soundKey, _ in pairs(Soundboard.db.profile.Favorites) do
+		if soundboard_data[soundKey] then
+			favorites[soundKey] = soundboard_data[soundKey]
+		end
+	end
+	
+	return favorites
+end
+
+-- Check if any favorites exist
+function SoundboardDropdown:HasFavorites()
+	if not Soundboard.db or not Soundboard.db.profile then
+		return false
+	end
+	
+	for soundKey, _ in pairs(Soundboard.db.profile.Favorites) do
+		if soundboard_data[soundKey] then
+			return true
+		end
+	end
+	
+	return false
+end
+
+-- ==================== SEARCH SYSTEM ====================
+
+-- Initialize search state
+SoundboardDropdown.searchText = ""
+SoundboardDropdown.searchActive = false
+
+-- Update search text and refresh display
+function SoundboardDropdown:UpdateSearch(searchText)
+	self.searchText = searchText or ""
+	self.searchActive = self.searchText ~= ""
+	DebugPrint("Search updated: '" .. self.searchText .. "' (active: " .. tostring(self.searchActive) .. ")")
+	
+	-- Refresh the display
+	if self.searchActive then
+		self:ShowSearchResults()
+	else
+		self:ShowMainMenu()
+	end
+end
+
+-- Search through categories, subcategories, and sounds
+function SoundboardDropdown:SearchSounds(query)
+	if not query or query == "" then
+		return {categories = {}, subcategories = {}, sounds = {}}
+	end
+	
+	query = string.lower(query)
+	local results = {categories = {}, subcategories = {}, sounds = {}}
+	
+	-- Search through all sounds
+	for soundKey, soundData in pairs(soundboard_data) do
+		local category = soundData.category or "Uncategorized"
+		local subcategory = soundData.subcategory
+		local text = soundData.text or ""
+		local cmd1 = soundData.cmd1 or ""
+		
+		-- Check if sound matches
+		local soundMatches = string.find(string.lower(text), query) or 
+		                    string.find(string.lower(cmd1), query) or
+		                    string.find(string.lower(soundKey), query)
+		
+		-- Check if category matches
+		local categoryMatches = string.find(string.lower(category), query)
+		
+		-- Check if subcategory matches
+		local subcategoryMatches = subcategory and string.find(string.lower(subcategory), query)
+		
+		if soundMatches then
+			if not results.sounds[category] then
+				results.sounds[category] = {}
+			end
+			if subcategory then
+				if not results.sounds[category][subcategory] then
+					results.sounds[category][subcategory] = {}
+				end
+				results.sounds[category][subcategory][soundKey] = soundData
+			else
+				results.sounds[category][soundKey] = soundData
+			end
+		end
+		
+		if categoryMatches then
+			results.categories[category] = true
+		end
+		
+		if subcategoryMatches then
+			if not results.subcategories[category] then
+				results.subcategories[category] = {}
+			end
+			results.subcategories[category][subcategory] = true
+		end
+	end
+	
+	return results
+end
+
+-- Show search results
+function SoundboardDropdown:ShowSearchResults()
+	DebugPrint("ShowSearchResults called with query: '" .. self.searchText .. "'")
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Search bar (always visible)
+	self:CreateSearchBar(yOffset)
+	yOffset = yOffset - 30  -- Search bar height
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Menu", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self.searchText = ""
+		self.searchActive = false
+		self:ShowMainMenu()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	local results = self:SearchSounds(self.searchText)
+	local hasResults = false
+	
+	-- Show matching categories
+	local categoryNames = {}
+	for category, _ in pairs(results.categories) do
+		table.insert(categoryNames, category)
+	end
+	table.sort(categoryNames)
+	
+	if #categoryNames > 0 then
+		local categoryHeader = self:CreateButton("Categories", yOffset, false, true)
+		yOffset = yOffset - buttonHeight
+		hasResults = true
+		
+		for _, category in ipairs(categoryNames) do
+			local catBtn = self:CreateButton(category .. " (Category)", yOffset)
+			catBtn:SetScript("OnClick", function()
+				self:ShowCategory(category)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+		yOffset = yOffset - 5  -- Extra spacing
+	end
+	
+	-- Show matching subcategories  
+	local subcategoryList = {}
+	for category, subcats in pairs(results.subcategories) do
+		for subcategory, _ in pairs(subcats) do
+			table.insert(subcategoryList, {category = category, subcategory = subcategory})
+		end
+	end
+	table.sort(subcategoryList, function(a, b) 
+		if a.category == b.category then
+			return a.subcategory < b.subcategory
+		end
+		return a.category < b.category
+	end)
+	
+	if #subcategoryList > 0 then
+		local subcategoryHeader = self:CreateButton("Sub-Categories", yOffset, false, true)
+		yOffset = yOffset - buttonHeight
+		hasResults = true
+		
+		for _, item in ipairs(subcategoryList) do
+			local subcatBtn = self:CreateButton(item.category .. " > " .. item.subcategory, yOffset)
+			subcatBtn:SetScript("OnClick", function()
+				self:ShowSubcategory(item.category, item.subcategory)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+		yOffset = yOffset - 5  -- Extra spacing
+	end
+	
+	-- Show matching sounds
+	local soundsList = {}
+	for category, categoryData in pairs(results.sounds) do
+		for key, soundData in pairs(categoryData) do
+			if type(soundData) == "table" and soundData.text then
+				-- Direct sound in category
+				table.insert(soundsList, {key = key, data = soundData, category = category})
+			elseif type(soundData) == "table" then
+				-- Subcategory containing sounds
+				for soundKey, actualSoundData in pairs(soundData) do
+					if type(actualSoundData) == "table" and actualSoundData.text then
+						table.insert(soundsList, {key = soundKey, data = actualSoundData, category = category, subcategory = key})
+					end
+				end
+			end
+		end
+	end
+	
+	if #soundsList > 0 then
+		local soundsHeader = self:CreateButton("Sounds", yOffset, false, true)
+		yOffset = yOffset - buttonHeight
+		hasResults = true
+		
+		table.sort(soundsList, function(a, b) return a.data.text < b.data.text end)
+		
+		for _, soundItem in ipairs(soundsList) do
+			local soundBtn = self:CreateSoundButtonWithStar(soundItem.key, soundItem.data, yOffset)
+			yOffset = yOffset - buttonHeight
+		end
+	end
+	
+	-- Show "No results" message if nothing found
+	if not hasResults then
+		local noResultsBtn = self:CreateButton("No results found for '" .. self.searchText .. "'", yOffset)
+		noResultsBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+-- ==================== UI CREATION FUNCTIONS ====================
+
+-- Create search bar EditBox
+function SoundboardDropdown:CreateSearchBar(yOffset)
+	-- Always recreate the search box to avoid stale references after ClearContent()
+	if self.searchBox then
+		self.searchBox:Hide()
+		self.searchBox = nil
+	end
+	
+	-- Create search box frame
+	local searchBox = CreateFrame("EditBox", nil, self.content)
+	searchBox:SetSize(240, 20)
+	searchBox:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	searchBox:SetAutoFocus(false)
+	searchBox:SetFontObject("GameFontNormal")
+	searchBox:SetText(self.searchText or "")
+	searchBox:SetMaxLetters(50)
+	DebugPrint("Search box created with text: '" .. (self.searchText or "") .. "'")
+	
+	-- Style the search box with ElvUI-style backdrop
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.CreateBackdrop(searchBox, selectedTemplate)
+	
+	-- Set text insets for padding
+	searchBox:SetTextInsets(4, 4, 0, 0)
+	
+	-- Search functionality - only search on Enter key press
+	searchBox:SetScript("OnTextChanged", function(self, userInput)
+		-- Don't search on every character - wait for Enter key
+	end)
+	
+	searchBox:SetScript("OnEnterPressed", function(self)
+		local text = self:GetText()
+		if text == "Search sounds... (Press Enter)" then text = "" end  -- Clear placeholder
+		SoundboardDropdown:UpdateSearch(text)
+		self:ClearFocus()
+	end)
+	
+	searchBox:SetScript("OnEscapePressed", function(self)
+		self:SetText("")
+		self:ClearFocus()
+		-- Clear search and return to main menu
+		SoundboardDropdown:UpdateSearch("")
+	end)
+	
+	-- Get template colors for search box
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	
+	-- Placeholder text when empty - updated to indicate Enter key requirement
+	searchBox:SetScript("OnEditFocusLost", function(self)
+		if self:GetText() == "" then
+			self:SetTextColor(0.5, 0.5, 0.5, 1)  -- Gray placeholder
+			self:SetText("Search sounds... (Press Enter)")
+		end
+	end)
+	
+	searchBox:SetScript("OnEditFocusGained", function(self)
+		if self:GetText() == "Search sounds... (Press Enter)" then
+			self:SetText("")
+		end
+		-- Use template text color when focused
+		self:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+	
+	-- Initialize placeholder if empty
+	if self.searchText == "" or self.searchText == nil then
+		searchBox:SetTextColor(0.5, 0.5, 0.5, 1)  -- Gray placeholder
+		searchBox:SetText("Search sounds... (Press Enter)")
+	else
+		-- Use template text color for actual search text
+		searchBox:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end
+	
+	self.searchBox = searchBox
+	return searchBox
+end
+
+-- Create sound button with star icon
+function SoundboardDropdown:CreateSoundButtonWithStar(soundKey, soundData, yOffset)
+	local buttonWidth = 250
+	local button = CreateFrame("Button", nil, self.content)
+	button:SetSize(buttonWidth, 20)
+	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	
+	-- Apply ElvUI-style button styling
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.StyleButton(button, selectedTemplate)
+	
+	-- Create star button (left side)
+	local starButton = CreateFrame("Button", nil, button)
+	starButton:SetSize(16, 16)
+	starButton:SetPoint("LEFT", 2, 0)
+	
+	-- Star texture
+	local starTexture = starButton:CreateTexture(nil, "ARTWORK")
+	starTexture:SetAllPoints()
+	
+	-- Update star appearance based on favorite status
+	local function updateStar()
+		local isFavorited = self:IsFavorite(soundKey)
+		if isFavorited then
+			starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+			starTexture:SetVertexColor(1, 0.8, 0, 1)  -- Gold
+		else
+			starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+			starTexture:SetVertexColor(0.3, 0.3, 0.3, 1)  -- Dark gray
+		end
+	end
+	
+	-- Star click handler
+	starButton:SetScript("OnClick", function()
+		local newStatus = self:ToggleFavorite(soundKey)
+		updateStar()
+		Soundboard:Print((newStatus and "Added" or "Removed") .. " favorite: " .. (soundData.text or soundKey))
+		
+		-- Refresh main menu if we're viewing favorites and removed the last one
+		if not newStatus and not self:HasFavorites() and self.currentView == "favorites" then
+			self:ShowMainMenu()
+		end
+	end)
+	
+	-- Initialize star appearance
+	updateStar()
+	
+	-- Main sound text (offset to make room for star) - show command and description
+	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fontString:SetPoint("LEFT", 20, 0)  -- Offset for star
+	fontString:SetPoint("RIGHT", -4, 0)
+	fontString:SetJustifyH("LEFT")
+	
+	-- Format: /command - description (like original)
+	local displayText = "/" .. soundKey
+	if soundData.text and string.len(soundData.text) < 30 then
+		displayText = displayText .. " |cFF888888- " .. soundData.text .. "|r"
+	end
+	fontString:SetText(displayText)
+	
+	-- Apply proper theme colors initially
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	
+	-- Sound play functionality
+	button:SetScript("OnClick", function()
+		DebugPrint("Sound button clicked: " .. tostring(soundKey))
+		
+		if not Soundboard.db or not Soundboard.db.profile then
+			DebugPrint("ERROR: Database not available for sound playback")
+			return
+		end
+		
+		if Soundboard.db.profile.IsEnabled then
+			-- Use SayGagKey to ensure proper queue handling
+			Soundboard:SayGagKey(soundKey)
+			self.frame:Hide()
+			self.isOpen = false
+		else
+			Soundboard:Print("Soundboard is disabled. Enable it first.")
+		end
+	end)
+	
+	-- Hover effects
+	button:SetScript("OnEnter", function(self)
+		local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+	end)
+	
+	button:SetScript("OnLeave", function(self)
+		local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		
+		-- Reapply the formatted text with proper coloring
+		local displayText = "/" .. soundKey
+		if soundData.text and string.len(soundData.text) < 30 then
+			displayText = displayText .. " |cFF888888- " .. soundData.text .. "|r"
+		end
+		fontString:SetText(displayText)
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+	
+	return button
+end
+
+-- Show favorites category
+function SoundboardDropdown:ShowFavorites()
+	DebugPrint("ShowFavorites called")
+	self:ClearContent()
+	self.currentView = "favorites"
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Menu", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self.currentView = nil
+		self:ShowMainMenu()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Favorites title with star icon
+	local title = self:CreateButtonWithIcon("Favorites", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Get all favorited sounds
+	local favorites = self:GetFavorites()
+	local favoritesList = {}
+	
+	for soundKey, soundData in pairs(favorites) do
+		table.insert(favoritesList, {key = soundKey, data = soundData})
+	end
+	
+	-- Sort favorites alphabetically by text
+	table.sort(favoritesList, function(a, b) 
+		return (a.data.text or "") < (b.data.text or "") 
+	end)
+	
+	-- Show favorite sounds with stars
+	if #favoritesList > 0 then
+		for _, favorite in ipairs(favoritesList) do
+			local soundBtn = self:CreateSoundButtonWithStar(favorite.key, favorite.data, yOffset)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		-- This shouldn't happen since HasFavorites() checked first, but just in case
+		local noFavoritesBtn = self:CreateButton("No favorites found", yOffset)
+		noFavoritesBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
 function SoundboardDropdown:CountCategories()
 	local count = 0
 	if self.categories then
@@ -934,6 +1601,21 @@ function SoundboardDropdown:ShowMainMenu()
 	categoriesHeader:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight
 	
+	-- Search bar below Categories header (always recreate to ensure visibility)
+	DebugPrint("Creating search bar at yOffset: " .. yOffset)
+	self:CreateSearchBar(yOffset)
+	yOffset = yOffset - 25  -- Search bar height + spacing
+	DebugPrint("Search bar created, new yOffset: " .. yOffset)
+	
+	-- Favorites category (only show if favorites exist)
+	if self:HasFavorites() then
+		local favoritesBtn = self:CreateButtonWithIcon("Favorites", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1")
+		favoritesBtn:SetScript("OnClick", function()
+			self:ShowFavorites()
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+	
 	-- Categories with simple styling
 	local categoryNames = {}
 	for category, _ in pairs(self.categories) do
@@ -1073,22 +1755,7 @@ function SoundboardDropdown:ShowCategory(categoryName)
 		end
 		
 		for _, sound in ipairs(categoryData.sounds) do
-			local displayText = "/" .. sound.key
-			-- Add description if available and not too long
-			if sound.data.text and string.len(sound.data.text) < 30 then
-				displayText = displayText .. " |cFF888888- " .. sound.data.text .. "|r"
-			end
-			
-			-- Apply red text formatting for Missing Configuration category
-			if categoryName == "Missing Configuration" then
-				displayText = "|cFFFF0000" .. displayText .. "|r"
-			end
-			
-			local soundBtn = self:CreateButton(displayText, yOffset)
-			soundBtn:SetScript("OnClick", function()
-				Soundboard:SayGagKey(sound.key)
-				self.frame:Hide()
-			end)
+			local soundBtn = self:CreateSoundButtonWithStar(sound.key, sound.data, yOffset)
 			yOffset = yOffset - buttonHeight
 		end
 	end
@@ -1126,20 +1793,10 @@ function SoundboardDropdown:ShowSubcategory(categoryName, subcategoryName)
 		return
 	end
 	
-	-- Show sounds in subcategory
+	-- Show sounds in subcategory with stars
 	local sounds = categoryData.subcategories[subcategoryName]
 	for _, sound in ipairs(sounds) do
-		local displayText = "/" .. sound.key
-		-- Add description if available and not too long
-		if sound.data.text and string.len(sound.data.text) < 30 then
-			displayText = displayText .. " |cFF888888- " .. sound.data.text .. "|r"
-		end
-		
-		local soundBtn = self:CreateButton(displayText, yOffset)
-		soundBtn:SetScript("OnClick", function()
-			Soundboard:SayGagKey(sound.key)
-			self.frame:Hide()
-		end)
+		local soundBtn = self:CreateSoundButtonWithStar(sound.key, sound.data, yOffset)
 		yOffset = yOffset - buttonHeight
 	end
 	
@@ -1181,24 +1838,28 @@ function SoundboardDropdown:CreateButton(text, yOffset, isTitle, isSecondaryHead
 	fontString:SetJustifyH("LEFT")
 	fontString:SetText(text)
 	
+	-- Get current template colors directly (more reliable than SoundboardUI.colors)
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	
 	-- Template-specific font styling  
 	if isTitle then
 		fontString:SetJustifyH("CENTER")
 		fontString:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")  -- Main title: 14pt, centered
-		-- Use template text color for titles too
-		fontString:SetTextColor(unpack(SoundboardUI.colors.text))
+		-- Use template text color for titles
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
 		fontString:SetPoint("LEFT", 0, 0)
 		fontString:SetPoint("RIGHT", 0, 0)
-		DebugPrint("Title styling applied with template colors")
+		DebugPrint("Title styling applied with template colors: " .. selectedTemplate)
 	elseif isSecondaryHeader then
 		fontString:SetJustifyH("LEFT")  -- Secondary headers: left-aligned
 		fontString:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")  -- Secondary header: 12pt, left-aligned
 		-- Use template text color for secondary headers
-		fontString:SetTextColor(unpack(SoundboardUI.colors.text))
-		DebugPrint("Secondary header styling applied - left-aligned and smaller")
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		DebugPrint("Secondary header styling applied with template colors: " .. selectedTemplate)
 	else
-		-- Use template-specific text colors
-		fontString:SetTextColor(unpack(SoundboardUI.colors.text))
+		-- Use template-specific text colors for regular buttons
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
 		
 		-- Template-specific hover effects
 		local originalEnter = button:GetScript("OnEnter")
@@ -1206,19 +1867,93 @@ function SoundboardDropdown:CreateButton(text, yOffset, isTitle, isSecondaryHead
 		
 		button:SetScript("OnEnter", function(btn)
 			if originalEnter then originalEnter(btn) end
-			fontString:SetTextColor(unpack(SoundboardUI.colors.textHover))
+			fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
 		end)
 		
 		button:SetScript("OnLeave", function(btn)
 			if originalLeave then originalLeave(btn) end
-			fontString:SetTextColor(unpack(SoundboardUI.colors.text))
+			fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
 		end)
 		
-		DebugPrint("Regular button styling applied with template-specific colors")
+		DebugPrint("Regular button styling applied with template-specific colors: " .. selectedTemplate)
 	end
 	
 	button.text = fontString -- Store reference for easy access
 	DebugPrint("Button creation completed successfully with ElvUI styling")
+	return button
+end
+
+-- Create button with icon (for favorites category)
+function SoundboardDropdown:CreateButtonWithIcon(text, yOffset, iconTexture, isTitle)
+	DebugPrint("CreateButtonWithIcon called: '" .. tostring(text) .. "' with icon: " .. tostring(iconTexture))
+	
+	if not self.content then
+		DebugPrint("ERROR: self.content is nil!")
+		return nil
+	end
+	
+	local button = CreateFrame("Button", nil, self.content)
+	DebugPrint("Button frame created")
+	
+	-- Fixed button width to allow full border rendering
+	local buttonWidth = 250
+	button:SetSize(buttonWidth, 20)
+	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	DebugPrint("Button positioned with fixed width")
+	
+	-- Apply ElvUI-style button styling for non-titles
+	if not isTitle then
+		local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+		SoundboardUI.StyleButton(button, selectedTemplate)
+		DebugPrint("ElvUI button styling applied")
+	end
+	
+	-- Create icon on the left
+	local iconFrame = CreateFrame("Frame", nil, button)
+	iconFrame:SetSize(16, 16)
+	iconFrame:SetPoint("LEFT", 4, 0)
+	
+	local iconTextureFrame = iconFrame:CreateTexture(nil, "ARTWORK")
+	iconTextureFrame:SetAllPoints()
+	iconTextureFrame:SetTexture(iconTexture)
+	iconTextureFrame:SetVertexColor(1, 0.8, 0, 1)  -- Gold color like favorites
+	
+	-- Text with proper offset for icon
+	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fontString:SetPoint("LEFT", SoundboardUI.Scale(24), 0)  -- Offset for icon
+	fontString:SetPoint("RIGHT", -SoundboardUI.Scale(4), 0)
+	fontString:SetJustifyH("LEFT")
+	fontString:SetText(text)
+	
+	-- Get current template colors directly
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	
+	-- Template-specific font styling  
+	if isTitle then
+		fontString:SetJustifyH("LEFT")  -- Keep left-aligned for icon
+		fontString:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")  -- Main title: 14pt
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		DebugPrint("Title styling applied with icon and template colors: " .. selectedTemplate)
+	else
+		-- Use template-specific text colors for regular buttons
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		
+		-- Template-specific hover effects
+		button:SetScript("OnEnter", function(btn)
+			fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+		end)
+		
+		button:SetScript("OnLeave", function(btn)
+			fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		end)
+		
+		DebugPrint("Regular button styling applied with icon and template-specific colors: " .. selectedTemplate)
+	end
+	
+	button.text = fontString -- Store reference for easy access
+	button.icon = iconTextureFrame -- Store icon reference
+	DebugPrint("Button with icon creation completed successfully")
 	return button
 end
 
@@ -1238,6 +1973,12 @@ function SoundboardDropdown:ClearContent()
 		DebugPrint("Clearing child " .. i)
 		child:Hide()
 		child:SetParent(nil)
+	end
+	
+	-- Clear search box reference so it gets recreated properly
+	if self.searchBox then
+		DebugPrint("Clearing search box reference")
+		self.searchBox = nil
 	end
 	
 	DebugPrint("Content cleared successfully")
@@ -1630,6 +2371,9 @@ local soundboard_data_sorted_keys = {};
 
  function Soundboard:OnInitialize()
 	DebugPrint("Soundboard:OnInitialize called")
+	
+	-- Load learned durations will be called after database initialization below
+	
 	self:RegisterComm("Soundboard")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE");
 	self:RegisterEvent("ADDON_LOADED");
@@ -1653,6 +2397,10 @@ local soundboard_data_sorted_keys = {};
 			UITemplate = "Default",    -- UI template: "Default", "Transparent", "ClassColor"
 			-- Broadcasting Settings
 			GuildBroadcast = true,     -- true/false
+			-- Favorites System (Account-wide)
+			Favorites = {},            -- Table of favorited sound keys {soundKey = true}
+			-- Dynamic Sound Duration Learning
+			LearnedSoundDurations = {},-- Learned actual durations for sound files
 			-- Advanced Settings
 			DebugMode = false,         -- Enable debug output
 		}
@@ -1660,6 +2408,9 @@ local soundboard_data_sorted_keys = {};
 	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", defaults, true)
 	db = self.db.profile
 	DebugPrint("Database initialized successfully, db exists: " .. tostring(db ~= nil))
+	
+	-- Load learned durations from saved data
+	LoadLearnedDurations()
 	DebugPrint("self.db exists: " .. tostring(self.db ~= nil))
 	DebugPrint("self.db.profile exists: " .. tostring(self.db.profile ~= nil))
 	
@@ -1667,6 +2418,12 @@ local soundboard_data_sorted_keys = {};
 	if db.GuildBroadcast == nil then
 		db.GuildBroadcast = true
 		DebugPrint("Migrated GuildBroadcast to default: true")
+	end
+	
+	-- Handle database migration for favorites system
+	if db.Favorites == nil then
+		db.Favorites = {}
+		DebugPrint("Migrated Favorites to default: empty table")
 	end
 	-- Remove old settings if they exist
 	if db.SayEnabled ~= nil then
@@ -2064,6 +2821,12 @@ local soundboard_data_sorted_keys = {};
 	end
 	_G["SLASH_SOUNDBOARDCLEARQUEUE1"] = "/soundboardclearqueue"
 	
+	-- Show learned sound durations
+	_G.SlashCmdList["SOUNDBOARDLEARNED"] = function(msg)
+		Soundboard:ShowLearnedDurations()
+	end
+	_G["SLASH_SOUNDBOARDLEARNED1"] = "/soundboardlearned"
+
 	
 	if not soundboard_data then
 		self:Print("No soundpacks found! The default soundpack may not have loaded properly.")
@@ -2435,8 +3198,26 @@ function Soundboard:ClearSoundQueue()
 	SoundQueue.queue = {}
 	SoundQueue.currentSound = nil
 	SoundQueue.isPlaying = false
+	SoundQueue.currentSoundStartTime = nil
 	
 	self:Print("Sound queue cleared! Removed " .. queueSize .. " queued sounds.")
+end
+
+function Soundboard:ShowLearnedDurations()
+	local count = 0
+	for filename, duration in pairs(LearnedDurations) do
+		count = count + 1
+	end
+	
+	if count == 0 then
+		self:Print("No learned sound durations yet. Play some sounds to build the learning database!")
+		return
+	end
+	
+	self:Print("Learned sound durations (" .. count .. " files):")
+	for filename, duration in pairs(LearnedDurations) do
+		self:Print("  " .. filename .. ": " .. string.format("%.1f", duration) .. "s")
+	end
 end
 
 function Soundboard:ADDON_LOADED(event, addonName)
