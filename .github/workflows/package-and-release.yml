@@ -1,4 +1,4 @@
-name: Package and Release
+name: Create Release Tags for CurseForge Webhook
 
 on:
   push:
@@ -6,20 +6,11 @@ on:
       - main
       - master
       - '*'
-    tags:
-      - '*'
-  release:
-    types:
-      - published
 
 jobs:
-  package:
+  release:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'heyaapl'
-
-    env:
-      CF_API_KEY: ${{ secrets.CURSE_API_KEY }}
-      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout addon
@@ -34,52 +25,56 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
 
-      - name: Determine release type
-        id: release_type
+      - name: Create Release Tag for Main Branch
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            # Tagged release
-            TAG_NAME="${{ github.ref_name }}"
-            if [[ "$TAG_NAME" == *"alpha"* ]]; then
-              echo "RELEASE_TYPE=alpha" >> $GITHUB_OUTPUT
-              echo "Release type: alpha (tagged with alpha)"
-            elif [[ "$TAG_NAME" == *"beta"* ]]; then
-              echo "RELEASE_TYPE=beta" >> $GITHUB_OUTPUT
-              echo "Release type: beta (tagged with beta)"  
-            else
-              echo "RELEASE_TYPE=release" >> $GITHUB_OUTPUT
-              echo "Release type: release (tagged without alpha/beta)"
-            fi
-          elif [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
-            # Main/master branch push
-            echo "RELEASE_TYPE=release" >> $GITHUB_OUTPUT
-            echo "Release type: release (main/master branch)"
-          else
-            # Non-main branch push -> Beta
-            BRANCH_NAME="${{ github.ref_name }}"
-            echo "RELEASE_TYPE=beta" >> $GITHUB_OUTPUT
-            echo "Release type: beta (branch: $BRANCH_NAME)"
-          fi
-
-      - name: Debug environment
-        run: |
-          echo "CF_API_KEY is set: ${{ env.CF_API_KEY != '' }}"
-          echo "GITHUB_OAUTH is set: ${{ env.GITHUB_OAUTH != '' }}"
-          echo "Release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
-          echo "Current branch: ${{ github.ref_name }}"
-          echo "Repository owner: ${{ github.repository_owner }}"
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          TAG_NAME="v${VERSION}"
           
-      - name: Package addon
-        uses: BigWigsMods/packager@v2
-        env:
-          CF_API_KEY: ${{ env.CF_API_KEY }}
-          GITHUB_OAUTH: ${{ env.GITHUB_OAUTH }}
-        with:
-          args: -p 1335953
+          # Check if tag already exists
+          if git tag -l | grep -q "^${TAG_NAME}$"; then
+            echo "Tag ${TAG_NAME} already exists, creating incremental tag"
+            TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+            TAG_NAME="v${VERSION}-${TIMESTAMP}"
+          fi
+          
+          echo "Creating release tag: ${TAG_NAME}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "${TAG_NAME}" -m "Release ${VERSION} from main branch"
+          git push origin "${TAG_NAME}"
+          
+          echo "✅ Created release tag: ${TAG_NAME}"
+          echo "📦 CurseForge will detect this as: Release"
 
-      - name: Package summary
+      - name: Create Beta Tag for Working Branch
+        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
         run: |
-          echo "✅ Successfully packaged Soundboard v${{ steps.version.outputs.VERSION }}"
-          echo "📦 Release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
-          echo "🌿 Branch/Tag: ${{ github.ref_name }}"
-          echo "🎯 Game version: 5.5.0 (Interface: 55000)"
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          BRANCH_NAME="${{ github.ref_name }}"
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          TAG_NAME="v${VERSION}-beta-${BRANCH_NAME}-${TIMESTAMP}"
+          
+          echo "Creating beta tag: ${TAG_NAME}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "${TAG_NAME}" -m "Beta ${VERSION} from branch ${BRANCH_NAME}"
+          git push origin "${TAG_NAME}"
+          
+          echo "✅ Created beta tag: ${TAG_NAME}"
+          echo "📦 CurseForge will detect this as: Beta"
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "🎯 Main branch commit → Release tag created"
+            echo "📋 Version: ${VERSION}"
+            echo "🌐 CurseForge webhook will package as: Release"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+            echo "🔧 Working branch commit → Beta tag created"
+            echo "📋 Version: ${VERSION}"
+            echo "🌿 Branch: ${BRANCH_NAME}"
+            echo "🌐 CurseForge webhook will package as: Beta"
+          fi
