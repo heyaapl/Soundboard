@@ -35,19 +35,20 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           TAG_NAME="v${VERSION}"
           
-          # Check if tag already exists
+          # Delete existing tag/release if it exists to ensure clean release
           if git tag -l | grep -q "^${TAG_NAME}$"; then
-            echo "Tag ${TAG_NAME} already exists, creating incremental tag"
-            TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-            TAG_NAME="v${VERSION}-${TIMESTAMP}"
+            echo "Deleting existing tag ${TAG_NAME} for clean release"
+            git tag -d "${TAG_NAME}" || true
+            git push origin --delete "${TAG_NAME}" || true
+            gh release delete "${TAG_NAME}" --yes || true
           fi
           
-          echo "Creating GitHub release: ${TAG_NAME}"
+          echo "Creating clean GitHub release: ${TAG_NAME}"
           
           # Create release using GitHub CLI
           gh release create "${TAG_NAME}" \
             --title "Soundboard v${VERSION}" \
-            --notes "Release ${VERSION} from main branch" \
+            --notes "Release ${VERSION} - MoP Classic compatible" \
             --target "${{ github.sha }}"
           
           echo "✅ Created GitHub release: ${TAG_NAME}"
