@@ -45,9 +45,19 @@ ignore:
   - ICON_GUIDE.md
   - ICON_PLACEHOLDER.txt
   - INSTALLATION.md
-  - .github
+  - .github/
   - .gitignore
-  - .git
+  - .git/
+  - .gitattributes
+  - .editorconfig
+  - .vscode/
+  - .idea/
+  - .DS_Store
+  - Thumbs.db
+  - "*.tmp"
+  - "*.log"
+  - .github/**
+  - .git/**
 
 enable-nolib-creation: no
 
