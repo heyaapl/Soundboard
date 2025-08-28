@@ -1,0 +1,14 @@
+## Author: heyaapl
+## Interface: 50400
+## Interface-Classic: 11503
+## Interface-BCC: 20504
+## Interface-Wrath: 30403
+## Interface-Cata: 40400
+## Interface-MoP: 50400
+## Notes: Play sound emotes for yourself and anyone else who has the mod!
+## Title: Soundboard
+## Version: 1.0.1
+## SavedVariables: SoundboardDB
+embeds.xml
+Soundpacks\Default\soundpack.lua
+Soundboard.lua
