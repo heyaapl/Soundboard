@@ -61,6 +61,14 @@ jobs:
             echo "Release type: beta (branch: $BRANCH_NAME)"
           fi
 
+      - name: Debug environment
+        run: |
+          echo "CF_API_KEY is set: ${{ env.CF_API_KEY != '' }}"
+          echo "GITHUB_OAUTH is set: ${{ env.GITHUB_OAUTH != '' }}"
+          echo "Release type: ${{ steps.release_type.outputs.RELEASE_TYPE }}"
+          echo "Current branch: ${{ github.ref_name }}"
+          echo "Repository owner: ${{ github.repository_owner }}"
+          
       - name: Package addon
         uses: BigWigsMods/packager@v2
         env:
