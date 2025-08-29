@@ -74,20 +74,12 @@ jobs:
           echo "📦  Version: ${VERSION}"
           echo "🏷️  Is Tagged: ${IS_TAGGED}"
           
-      - name: Create beta tag for feature branches
+      - name: Update TOC version for beta builds
         if: steps.release-type.outputs.RELEASE_TYPE == 'beta' && steps.release-type.outputs.IS_TAGGED == 'false'
         run: |
           # Update version in TOC file for beta builds
           sed -i "s/## Version: .*/## Version: ${{ steps.release-type.outputs.VERSION }}/" Soundboard.toc
           echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
-          
-          # Create a temporary beta tag so the packager recognizes it as beta
-          BETA_TAG="v${{ steps.release-type.outputs.VERSION }}"
-          echo "Creating temporary beta tag: ${BETA_TAG}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${BETA_TAG}" -m "Beta release for branch ${{ github.ref_name }}"
-          echo "Created beta tag: ${BETA_TAG}"
           
       - name: Package addon
         uses: BigWigsMods/packager@v2
