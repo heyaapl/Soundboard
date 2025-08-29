@@ -730,6 +730,26 @@ local HAS_PARTY_CATEGORIES = type(LE_PARTY_CATEGORY_HOME) == "number" and type(L
 -- Simple dropdown replacement (LibUIDropDownMenu is broken in modern clients)
 local SoundboardDropdown = {}
 
+-- Events System
+local SoundboardEvents = {
+	-- Event types and their human-readable names
+	eventTypes = {
+		"PLAYER_LOGIN", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_MOUNT", "PLAYER_DISMOUNT",
+		"SHAPESHIFT_ENTER", "SHAPESHIFT_EXIT", "HEROISM_BUFF", "TRANSPORT_BOARD"
+	},
+	eventNames = {
+		["PLAYER_LOGIN"] = "Player Login",
+		["PLAYER_DEAD"] = "Player Dies", 
+		["PLAYER_ALIVE"] = "Player Revives",
+		["PLAYER_MOUNT"] = "Player Mounts",
+		["PLAYER_DISMOUNT"] = "Player Dismounts", 
+		["SHAPESHIFT_ENTER"] = "Enter Shapeshift Form",
+		["SHAPESHIFT_EXIT"] = "Exit Shapeshift Form",
+		["HEROISM_BUFF"] = "Heroism/Bloodlust/Time Warp Applied",
+		["TRANSPORT_BOARD"] = "Boards Transport (Boats, Zeppelins, etc.)"
+	}
+}
+
 function SoundboardDropdown:Initialize()
 	DebugPrint("Initializing dropdown system with ElvUI styling...")
 	
@@ -1461,6 +1481,109 @@ function SoundboardDropdown:ShowFavorites()
 	self:UpdateButtonWidths()
 end
 
+-- Show events category
+function SoundboardDropdown:ShowEvents()
+	DebugPrint("ShowEvents called")
+	self:ClearContent()
+	self.currentView = "events"
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Menu", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self.currentView = nil
+		self:ShowMainMenu()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Events title with icon
+	local title = self:CreateButtonWithIcon("Events", yOffset, "Interface\\CURSOR\\LootRoll", true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Events system status
+	local eventsEnabled = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.EventsEnabled) or false
+	local statusBtn = self:CreateButton(
+		"Status: " .. (eventsEnabled and "|cFF00FF00Enabled|r" or "|cFFFF0000Disabled|r"),
+		yOffset
+	)
+	statusBtn:SetScript("OnClick", function()
+		if Soundboard.db and Soundboard.db.profile then
+			Soundboard.db.profile.EventsEnabled = not Soundboard.db.profile.EventsEnabled
+			if Soundboard.db.profile.EventsEnabled then
+				Soundboard:Print("Events system |cFF00FF00enabled|r")
+			else
+				Soundboard:Print("Events system |cFFFF0000disabled|r")
+			end
+			self:ShowEvents()
+		end
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Get configured events
+	local events = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.Events) or {}
+	local eventsList = {}
+	
+	for eventId, eventData in pairs(events) do
+		table.insert(eventsList, {id = eventId, data = eventData})
+	end
+	
+	-- Sort events by event type
+	table.sort(eventsList, function(a, b) 
+		local aName = SoundboardEvents.eventNames[a.data.eventType] or a.data.eventType
+		local bName = SoundboardEvents.eventNames[b.data.eventType] or b.data.eventType
+		return aName < bName
+	end)
+	
+	-- Add New Event button
+	local addBtn = self:CreateButton("+ Add New Event", yOffset)
+	addBtn:SetScript("OnClick", function()
+		self:ShowAddEventDialog()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Show configured events
+	if #eventsList > 0 then
+		local eventsHeader = self:CreateButton("Configured Events", yOffset, false, true)
+		eventsHeader:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+		
+		for _, event in ipairs(eventsList) do
+			local eventName = SoundboardEvents.eventNames[event.data.eventType] or event.data.eventType
+			local soundKey = event.data.soundKey or "None"
+			local playerOnly = event.data.playerOnly and " (Player Only)" or " (Broadcast)"
+			
+			local eventBtn = self:CreateButton(eventName .. " → /" .. soundKey .. playerOnly, yOffset)
+			eventBtn:SetScript("OnClick", function()
+				-- TODO: Show edit dialog
+				Soundboard:Print("Edit functionality coming soon for: " .. eventName)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		local noEventsBtn = self:CreateButton("No events configured", yOffset)
+		noEventsBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowAddEventDialog()
+	-- Simple placeholder for now
+	Soundboard:Print("Add Event dialog - functionality coming soon!")
+	Soundboard:Print("Available event types:")
+	for _, eventType in ipairs(SoundboardEvents.eventTypes) do
+		local name = SoundboardEvents.eventNames[eventType] or eventType
+		Soundboard:Print("  " .. name .. " (" .. eventType .. ")")
+	end
+end
+
 function SoundboardDropdown:CountCategories()
 	local count = 0
 	if self.categories then
@@ -1619,6 +1742,32 @@ function SoundboardDropdown:ShowMainMenu()
 	end)
 	yOffset = yOffset - buttonHeight
 	
+	-- Events toggle option
+	local eventsEnabled = (addonDB and addonDB.EventsEnabled) or false
+	local eventsBtn = self:CreateButton(
+		eventsEnabled and "Events: |cFF00FF00ON|r" or "Events: |cFFFF0000OFF|r",
+		yOffset
+	)
+	eventsBtn:SetScript("OnClick", function()
+		local currentDB = Soundboard.db and Soundboard.db.profile
+		DebugPrint("Events button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
+		if currentDB then
+			local oldValue = currentDB.EventsEnabled
+			currentDB.EventsEnabled = not currentDB.EventsEnabled
+			DebugPrint("EventsEnabled changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.EventsEnabled))
+			if currentDB.EventsEnabled then
+				Soundboard:Print("Events system |cFF00FF00enabled|r")
+			else
+				Soundboard:Print("Events system |cFFFF0000disabled|r")
+			end
+			self:ShowMainMenu()
+		else
+			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking events button!")
+			Soundboard:Print("Error: Database not available")
+		end
+	end)
+	yOffset = yOffset - buttonHeight
+	
 	-- Categories Header
 	local categoriesHeader = self:CreateButton("Categories", yOffset, false, true) -- Secondary header: not title, but is secondary header
 	categoriesHeader:SetScript("OnClick", nil)
@@ -1638,6 +1787,13 @@ function SoundboardDropdown:ShowMainMenu()
 		end)
 		yOffset = yOffset - buttonHeight
 	end
+	
+	-- Events category (always show)
+	local eventsBtn = self:CreateButtonWithIcon("Events", yOffset, "Interface\\CURSOR\\LootRoll")
+	eventsBtn:SetScript("OnClick", function()
+		self:ShowEvents()
+	end)
+	yOffset = yOffset - buttonHeight
 	
 	-- Categories with simple styling
 	local categoryNames = {}
@@ -2400,6 +2556,11 @@ local soundboard_data_sorted_keys = {};
 	self:RegisterComm("Soundboard")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE");
 	self:RegisterEvent("ADDON_LOADED");
+	
+	-- Register Events System events
+	self:RegisterEvent("PLAYER_DEAD");
+	self:RegisterEvent("PLAYER_ALIVE");
+	DebugPrint("Basic events registered: PLAYER_DEAD, PLAYER_ALIVE")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
 	-- Register with Interface Options
@@ -2424,8 +2585,11 @@ local soundboard_data_sorted_keys = {};
 			Favorites = {},            -- Table of favorited sound keys {soundKey = true}
 			-- Dynamic Sound Duration Learning
 			LearnedSoundDurations = {},-- Learned actual durations for sound files
-			-- Advanced Settings
-			DebugMode = false,         -- Enable debug output
+					-- Advanced Settings
+		DebugMode = false,         -- Enable debug output
+		-- Events System
+		EventsEnabled = true,      -- Global toggle for events system
+		Events = {},               -- Table of configured events {eventId = {eventType, soundKey, playerOnly}}
 		}
 	 }
 	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", defaults, true)
@@ -2447,6 +2611,16 @@ local soundboard_data_sorted_keys = {};
 	if db.Favorites == nil then
 		db.Favorites = {}
 		DebugPrint("Migrated Favorites to default: empty table")
+	end
+	
+	-- Handle database migration for events system
+	if db.EventsEnabled == nil then
+		db.EventsEnabled = true
+		DebugPrint("Migrated EventsEnabled to default: true")
+	end
+	if db.Events == nil then
+		db.Events = {}
+		DebugPrint("Migrated Events to default: empty table")
 	end
 	-- Remove old settings if they exist
 	if db.SayEnabled ~= nil then
@@ -2812,6 +2986,57 @@ local soundboard_data_sorted_keys = {};
 		Soundboard:ShowLearnedDurations()
 	end
 	_G["SLASH_SOUNDBOARDLEARNED1"] = "/soundboardlearned"
+	
+	-- Events system commands
+	_G.SlashCmdList["SOUNDBOARDEVENTS"] = function(msg)
+		local args = {strsplit(" ", msg)}
+		local command = args[1]
+		
+		if command == "test" then
+			local eventType = args[2] or "PLAYER_DEAD"
+			Soundboard:Print("Testing event trigger: " .. eventType)
+			Soundboard:HandleEventTrigger(eventType)
+		elseif command == "add" then
+			local eventType = args[2]
+			local soundKey = args[3]
+			local playerOnly = args[4] == "true"
+			
+			if eventType and soundKey then
+				local eventId = "event_" .. eventType .. "_" .. soundKey
+				Soundboard.db.profile.Events[eventId] = {
+					eventType = eventType,
+					soundKey = soundKey,
+					playerOnly = playerOnly or true
+				}
+				Soundboard:Print("Added event: " .. eventType .. " -> /" .. soundKey .. (playerOnly and " (Player Only)" or " (Broadcast)"))
+			else
+				Soundboard:Print("Usage: /soundboardevents add <eventType> <soundKey> [true/false for playerOnly]")
+				Soundboard:Print("Example: /soundboardevents add PLAYER_DEAD hero true")
+			end
+		elseif command == "clear" then
+			Soundboard.db.profile.Events = {}
+			Soundboard:Print("Cleared all configured events")
+		elseif command == "list" then
+			local events = Soundboard.db.profile.Events
+			if next(events) then
+				Soundboard:Print("Configured events:")
+				for eventId, eventData in pairs(events) do
+					local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+					Soundboard:Print("  " .. eventName .. " -> /" .. eventData.soundKey .. (eventData.playerOnly and " (Player Only)" or " (Broadcast)"))
+				end
+			else
+				Soundboard:Print("No events configured")
+			end
+		else
+			Soundboard:Print("Events system commands:")
+			Soundboard:Print("  /soundboardevents test [eventType] - Test event trigger")
+			Soundboard:Print("  /soundboardevents add <eventType> <soundKey> [playerOnly] - Add event")
+			Soundboard:Print("  /soundboardevents list - List configured events")
+			Soundboard:Print("  /soundboardevents clear - Clear all events")
+			Soundboard:Print("Available event types: PLAYER_DEAD, PLAYER_ALIVE")
+		end
+	end
+	_G["SLASH_SOUNDBOARDEVENTS1"] = "/soundboardevents"
 
 	
 	if not soundboard_data then
@@ -3693,6 +3918,77 @@ function Soundboard:ShowPingResults()
 			end
 		end
 	end
+end
+
+-- Events System Functions
+function Soundboard:HandleEventTrigger(eventType)
+	-- Check if Events system is enabled
+	if not self.db or not self.db.profile or not self.db.profile.EventsEnabled then
+		DebugPrint("Events system disabled, ignoring event: " .. tostring(eventType))
+		return
+	end
+	
+	DebugPrint("HandleEventTrigger called for: " .. tostring(eventType))
+	
+	-- Get configured events
+	local events = self.db.profile.Events
+	if not events then
+		DebugPrint("No events configured")
+		return
+	end
+	
+	-- Find events matching this trigger
+	for eventId, eventData in pairs(events) do
+		if eventData.eventType == eventType then
+			DebugPrint("Found matching event: " .. eventId .. " -> " .. (eventData.soundKey or "None"))
+			
+			-- Get the sound data
+			local soundKey = eventData.soundKey
+			if soundKey and soundboard_data and soundboard_data[soundKey] then
+				local soundData = soundboard_data[soundKey]
+				
+				if eventData.playerOnly then
+					-- Play only for the player
+					self:PlaySoundForPlayer(soundData.file, soundKey)
+				else
+					-- Broadcast to others (use existing emote system)
+					self:SayGagKey(soundKey)
+				end
+			else
+				DebugPrint("Sound not found: " .. tostring(soundKey))
+			end
+		end
+	end
+end
+
+function Soundboard:PlaySoundForPlayer(soundFile, soundKey)
+	if not soundFile then
+		DebugPrint("No sound file provided for player-only playback")
+		return
+	end
+	
+	DebugPrint("Playing sound for player only: " .. tostring(soundFile))
+	
+	-- Get volume setting
+	local volume = (self.db and self.db.profile and self.db.profile.MasterVolume) or 1.0
+	
+	-- Play using the sound queue system
+	self:PlaySoundWithVolume(soundFile, volume, soundKey, nil)
+	
+	-- Provide feedback
+	local soundName = soundKey and ("/" .. soundKey) or "Sound"
+	self:Print(soundName .. " triggered by event (player only)")
+end
+
+-- Event Handlers
+function Soundboard:PLAYER_DEAD(event, ...)
+	DebugPrint("PLAYER_DEAD event triggered")
+	self:HandleEventTrigger("PLAYER_DEAD")
+end
+
+function Soundboard:PLAYER_ALIVE(event, ...)
+	DebugPrint("PLAYER_ALIVE event triggered")
+	self:HandleEventTrigger("PLAYER_ALIVE")
 end
 
 -- Old dropdown function removed - replaced with simple dropdown system

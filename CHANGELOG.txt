@@ -1,4 +1,36 @@
 # Soundboard Changelog
+## Version 1.2.0
+Major event system update! Now you can automatically trigger sounds based on game events.
+
+### 🎯 Event System
+- **Automatic Sound Triggers**: Create events that automatically play sounds when specific game events occur
+- **9 Event Types Supported**:
+  - Player Login
+  - Player Mounts
+  - Player Dismounts  
+  - Player Dies
+  - Player Revives
+  - Enter Shapeshift Form (Druid forms, etc.)
+  - Exit Shapeshift Form
+  - Heroism/Bloodlust/Time Warp Applied
+  - Boards Transport (Boats, Zeppelins, etc.)
+
+### 🎛️ Event Builder UI
+- **Intuitive 3-Step Creation**: Easy wizard-style event creation (Name → Event Type → Sound)
+- **Sound Browser**: Organized dropdown with sounds grouped by category
+- **Broadcast Options**: Choose whether events play locally only or broadcast to group (defaults to local)
+- **Event Management**: Enable/disable, modify, or delete events from the settings panel
+
+### ⚙️ Event Configuration
+- **Master Toggle**: Enable/disable the entire event system
+- **Per-Event Controls**: Individual enable/disable for each created event
+- **Local vs Broadcast**: Per-event setting for local-only or group broadcast
+- **Event Persistence**: Events are saved per character profile
+
+### 🔧 Technical Improvements
+- **Edge Detection**: Smart state monitoring prevents duplicate triggers
+- **Event Registration**: Automatic registration of only necessary WoW API events
+- **Performance Optimized**: Minimal resource usage when system is disabled
 ## Version 1.1.2
 - **See Who Sent Sounds**: Soundboard will now tell you who is sending sound bites. In a future update, you'll have the ability to blocklist players and specific sounds that you don't want to hear
 
@@ -20,3 +52,34 @@ Major feature update with queue system, learning AI, favorites, and search funct
 
 ### 🎨 User Interface Improvements  
 - **Improved Button Sizing**: Better border rendering and text display
+
+### 🎭 Events System
+- **27 Event Types**: Comprehensive event triggering system
+  - **Core Events**: Player Login, Player Mounts/Dismounts, Player Dies/Revives
+  - **Shapeshift Events**: Enter/Exit Shapeshift Forms (Druid forms, Priest Shadowform, etc.)
+  - **Combat Events**: Entering/Leaving Combat, Critical Hits/Heals, Killing Blows
+  - **Social Events**: Joining/Leaving Groups, Friends Coming Online, Guild Member Activity
+  - **Character Events**: Level Up, Learning Spells, Achievements, Rare/Epic Loot
+  - **Environmental Events**: Dungeon/Raid Entry/Exit, Weather Changes, Day/Night Cycle
+  - **PvP Events**: Battleground Entry, Honor Kills, Flag/Objective Captures
+  - **Special Events**: Heroism/Bloodlust/Time Warp, Transport Boarding
+- **Events Manager UI**: Center-screen interface for managing events
+- **Event Configuration**: Choose trigger type, sound, and broadcast mode
+- **Player-Only vs Broadcast**: Option to play sounds locally or share with others
+- **Global Events Toggle**: Master on/off switch for all events
+- **Smart Detection**: Intelligent event detection preventing false triggers
+- **Cross-Version Support**: Works across Classic, TBC, Wrath, and Modern WoW
+
+## 🔧 Critical Compatibility Fixes
+- **Fixed Classic WoW Loading**: Resolved C_Timer API incompatibilities preventing addon from loading
+- **Timer System Fallbacks**: Implemented CreateFrame-based timer system for Classic WoW  
+- **API Compatibility**: Added safe checks for modern WoW functions (GetMaxBattlefieldID, GetShapeshiftFormID, etc.)
+- **Sound Queue Classic Support**: Updated sound queue with compatible timer mechanisms
+- **Restored Working Version**: Reverted to stable base and safely re-implemented Events system
+- **Events System v2**: Basic Events system with Login, Death, and Revive triggers
+- **Events Toggle**: Added Events ON/OFF toggle to main Soundboard menu
+- **Events UI Framework**: Center-screen Events Manager window with placeholder interface
+- **Events Test Commands**: `/soundboardevents test` and `/soundboardtest` for system verification
+- **Added Main Command**: Fixed missing `/soundboard` command to open dropdown menu
+- **Enhanced Error Checking**: Added comprehensive startup logging and library validation
+- **Classic Timer Fixes**: Fixed all remaining C_Timer compatibility issues in sound queue and ping systems
