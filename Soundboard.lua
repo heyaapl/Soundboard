@@ -750,6 +750,13 @@ local SoundboardEvents = {
 	}
 }
 
+-- Player state tracking for Events system
+Soundboard.playerStates = {
+	mounted = false,
+	shapeshifted = false,
+	hasHeroismBuff = false,
+}
+
 function SoundboardDropdown:Initialize()
 	DebugPrint("Initializing dropdown system with ElvUI styling...")
 	
@@ -1557,8 +1564,7 @@ function SoundboardDropdown:ShowEvents()
 			
 			local eventBtn = self:CreateButton(eventName .. " → /" .. soundKey .. playerOnly, yOffset)
 			eventBtn:SetScript("OnClick", function()
-				-- TODO: Show edit dialog
-				Soundboard:Print("Edit functionality coming soon for: " .. eventName)
+				self:ShowEditEventDialog(event.id, event.data)
 			end)
 			yOffset = yOffset - buttonHeight
 		end
@@ -1575,13 +1581,1056 @@ function SoundboardDropdown:ShowEvents()
 end
 
 function SoundboardDropdown:ShowAddEventDialog()
-	-- Simple placeholder for now
-	Soundboard:Print("Add Event dialog - functionality coming soon!")
-	Soundboard:Print("Available event types:")
+	DebugPrint("ShowAddEventDialog called")
+	self:ClearContent()
+	self.currentView = "add_event_step1"
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Events", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowEvents()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Title
+	local title = self:CreateButton("Add New Event - Choose Event Type", yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Show event types as clickable buttons
 	for _, eventType in ipairs(SoundboardEvents.eventTypes) do
-		local name = SoundboardEvents.eventNames[eventType] or eventType
-		Soundboard:Print("  " .. name .. " (" .. eventType .. ")")
+		local eventName = SoundboardEvents.eventNames[eventType] or eventType
+		local eventBtn = self:CreateButton(eventName, yOffset)
+		eventBtn:SetScript("OnClick", function()
+			self:ShowAddEventStep2(eventType)
+		end)
+		yOffset = yOffset - buttonHeight
 	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowAddEventStep2(eventType)
+	DebugPrint("ShowAddEventStep2 called with eventType: " .. tostring(eventType))
+	self:ClearContent()
+	self.currentView = "add_event_step2"
+	self.selectedEventType = eventType
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Event Types", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowAddEventDialog()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Title
+	local eventName = SoundboardEvents.eventNames[eventType] or eventType
+	local title = self:CreateButton("Add Event: " .. eventName .. " - Choose Sound", yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Search bar for sound selection
+	self:CreateSoundSearchBar(eventType, yOffset)
+	yOffset = yOffset - 25  -- Search bar height + spacing
+	
+	-- Show favorites if they exist
+	if self:HasFavorites() then
+		local favoritesBtn = self:CreateButtonWithIcon("Favorites", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1")
+		favoritesBtn:SetScript("OnClick", function()
+			self:ShowSoundSelectionCategory(eventType, "Favorites")
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Show all categories for sound selection
+	if not soundboard_data then
+		local noSoundsBtn = self:CreateButton("No sounds available", yOffset)
+		noSoundsBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	else
+		-- Build categories if not done yet
+		if not self.categoriesBuilt then
+			self:BuildCategories()
+		end
+		
+		-- Get category names
+		local categoryNames = {}
+		for category, _ in pairs(self.categories) do
+			tinsert(categoryNames, category)
+		end
+		
+		-- Sort categories (same logic as main menu)
+		local function isMiscCategory(categoryName)
+			local lowerName = strlower(categoryName)
+			return lowerName == "misc" or lowerName == "miscellaneous" or
+			       lowerName == "etc" or lowerName == "other" or
+			       lowerName == "uncategorized"
+		end
+		
+		local function isMissingCategory(categoryName)
+			return categoryName == "Missing Configuration"
+		end
+		
+		tsort(categoryNames, function(a, b)
+			local aIsMisc = isMiscCategory(a)
+			local bIsMisc = isMiscCategory(b)
+			local aIsMissing = isMissingCategory(a)
+			local bIsMissing = isMissingCategory(b)
+			
+			-- Missing Configuration always goes last
+			if aIsMissing ~= bIsMissing then
+				return not aIsMissing
+			end
+			
+			-- If both are misc or both are not misc, sort alphabetically
+			if aIsMisc == bIsMisc then
+				return a < b
+			end
+			
+			-- Otherwise, non-misc categories come first
+			return not aIsMisc
+		end)
+		
+		-- Show category buttons for sound selection
+		for _, category in ipairs(categoryNames) do
+			-- Skip Missing Configuration category if debug mode is off
+			if not (category == "Missing Configuration" and not Soundboard.db.profile.DebugMode) then
+				local categoryData = self.categories[category]
+				local count = #categoryData.sounds
+				-- Add sounds from subcategories
+				for _, sounds in pairs(categoryData.subcategories) do
+					count = count + #sounds
+				end
+				
+				-- Apply red text formatting for Missing Configuration category
+				local displayText
+				if category == "Missing Configuration" then
+					displayText = "|cFFFF0000" .. category .. " |cFF888888(" .. count .. ")|r"
+				else
+					displayText = category .. " |cFF888888(" .. count .. ")|r"
+				end
+				
+				local catBtn = self:CreateButton(displayText, yOffset)
+				catBtn:SetScript("OnClick", function()
+					self:ShowSoundSelectionCategory(eventType, category)
+				end)
+				yOffset = yOffset - buttonHeight
+			end
+		end
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowAddEventStep3(eventType, soundKey)
+	DebugPrint("ShowAddEventStep3 called with eventType: " .. tostring(eventType) .. ", soundKey: " .. tostring(soundKey))
+	self:ClearContent()
+	self.currentView = "add_event_step3"
+	self.selectedEventType = eventType
+	self.selectedSoundKey = soundKey
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Sound Selection", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowAddEventStep2(eventType)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Title
+	local eventName = SoundboardEvents.eventNames[eventType] or eventType
+	local title = self:CreateButton("Add Event: " .. eventName .. " → /" .. soundKey, yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Play Mode Selection
+	local modeHeader = self:CreateButton("Choose Play Mode:", yOffset, false, true)
+	modeHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight
+	
+	-- Player Only option
+	local playerOnlyBtn = self:CreateButton("Player Only - Only you hear the sound", yOffset)
+	playerOnlyBtn:SetScript("OnClick", function()
+		self:SaveNewEvent(eventType, soundKey, true)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Broadcast option
+	local broadcastBtn = self:CreateButton("Broadcast - Others with Soundboard hear it too", yOffset)
+	broadcastBtn:SetScript("OnClick", function()
+		self:SaveNewEvent(eventType, soundKey, false)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:SaveNewEvent(eventType, soundKey, playerOnly)
+	DebugPrint("SaveNewEvent called: " .. tostring(eventType) .. " -> " .. tostring(soundKey) .. " (playerOnly: " .. tostring(playerOnly) .. ")")
+	
+	if not Soundboard.db or not Soundboard.db.profile then
+		Soundboard:Print("Error: Database not available")
+		return
+	end
+	
+	-- Create unique event ID
+	local eventId = "event_" .. eventType .. "_" .. soundKey .. "_" .. (playerOnly and "player" or "broadcast")
+	
+	-- Check if this exact event already exists
+	local events = Soundboard.db.profile.Events
+	for existingId, existingData in pairs(events) do
+		if existingData.eventType == eventType and existingData.soundKey == soundKey and existingData.playerOnly == playerOnly then
+			Soundboard:Print("This exact event configuration already exists!")
+			return
+		end
+	end
+	
+	-- Save the new event
+	events[eventId] = {
+		eventType = eventType,
+		soundKey = soundKey,
+		playerOnly = playerOnly
+	}
+	
+	-- Provide feedback
+	local eventName = SoundboardEvents.eventNames[eventType] or eventType
+	local modeText = playerOnly and "(Player Only)" or "(Broadcast)"
+	Soundboard:Print("✓ Event added: " .. eventName .. " → /" .. soundKey .. " " .. modeText)
+	
+	-- Return to Events list
+	self:ShowEvents()
+end
+
+function SoundboardDropdown:ShowEditEventDialog(eventId, eventData)
+	DebugPrint("ShowEditEventDialog called for eventId: " .. tostring(eventId))
+	self:ClearContent()
+	self.currentView = "edit_event"
+	self.editingEventId = eventId
+	self.editingEventData = eventData
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Events", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowEvents()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Title
+	local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+	local title = self:CreateButton("Edit Event: " .. eventName, yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Current configuration
+	local configHeader = self:CreateButton("Current Configuration:", yOffset, false, true)
+	configHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight
+	
+	local soundName = "/" .. (eventData.soundKey or "None")
+	local modeText = eventData.playerOnly and " (Player Only)" or " (Broadcast)"
+	local currentBtn = self:CreateButton("Sound: " .. soundName .. modeText, yOffset)
+	currentBtn:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Edit options
+	local editHeader = self:CreateButton("Edit Options:", yOffset, false, true)
+	editHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight
+	
+	-- Change sound
+	local changeSoundBtn = self:CreateButton("Change Sound", yOffset)
+	changeSoundBtn:SetScript("OnClick", function()
+		self:ShowEditEventStep2(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Toggle player-only vs broadcast
+	local currentMode = eventData.playerOnly and "Player Only" or "Broadcast"
+	local newMode = eventData.playerOnly and "Broadcast" or "Player Only"
+	local toggleModeBtn = self:CreateButton("Switch to " .. newMode, yOffset)
+	toggleModeBtn:SetScript("OnClick", function()
+		eventData.playerOnly = not eventData.playerOnly
+		Soundboard.db.profile.Events[eventId] = eventData
+		local newModeText = eventData.playerOnly and "Player Only" or "Broadcast"
+		Soundboard:Print("✓ Event mode changed to: " .. newModeText)
+		self:ShowEditEventDialog(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Delete event
+	local deleteBtn = self:CreateButton("|cFFFF0000Delete Event|r", yOffset)
+	deleteBtn:SetScript("OnClick", function()
+		Soundboard.db.profile.Events[eventId] = nil
+		Soundboard:Print("✓ Event deleted: " .. eventName)
+		self:ShowEvents()
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowEditEventStep2(eventId, eventData)
+	DebugPrint("ShowEditEventStep2 called for eventId: " .. tostring(eventId))
+	-- Reuse the sound selection UI but for editing
+	self:ClearContent()
+	self.currentView = "edit_event_step2"
+	self.editingEventId = eventId
+	self.editingEventData = eventData
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Edit Event", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowEditEventDialog(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Title
+	local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+	local title = self:CreateButton("Change Sound for: " .. eventName, yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Search bar for sound selection
+	self:CreateEditSoundSearchBar(eventId, eventData, yOffset)
+	yOffset = yOffset - 25  -- Search bar height + spacing
+	
+	-- Show favorites if they exist
+	if self:HasFavorites() then
+		local favoritesBtn = self:CreateButtonWithIcon("Favorites", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1")
+		favoritesBtn:SetScript("OnClick", function()
+			self:ShowEditSoundSelectionCategory(eventId, eventData, "Favorites")
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Show all categories for sound selection
+	if not soundboard_data then
+		local noSoundsBtn = self:CreateButton("No sounds available", yOffset)
+		noSoundsBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	else
+		-- Build categories if not done yet
+		if not self.categoriesBuilt then
+			self:BuildCategories()
+		end
+		
+		-- Get category names (same logic as add event)
+		local categoryNames = {}
+		for category, _ in pairs(self.categories) do
+			tinsert(categoryNames, category)
+		end
+		
+		-- Sort categories
+		local function isMiscCategory(categoryName)
+			local lowerName = strlower(categoryName)
+			return lowerName == "misc" or lowerName == "miscellaneous" or
+			       lowerName == "etc" or lowerName == "other" or
+			       lowerName == "uncategorized"
+		end
+		
+		local function isMissingCategory(categoryName)
+			return categoryName == "Missing Configuration"
+		end
+		
+		tsort(categoryNames, function(a, b)
+			local aIsMisc = isMiscCategory(a)
+			local bIsMisc = isMiscCategory(b)
+			local aIsMissing = isMissingCategory(a)
+			local bIsMissing = isMissingCategory(b)
+			
+			if aIsMissing ~= bIsMissing then
+				return not aIsMissing
+			end
+			
+			if aIsMisc == bIsMisc then
+				return a < b
+			end
+			
+			return not aIsMisc
+		end)
+		
+		-- Show category buttons for sound selection
+		for _, category in ipairs(categoryNames) do
+			if not (category == "Missing Configuration" and not Soundboard.db.profile.DebugMode) then
+				local categoryData = self.categories[category]
+				local count = #categoryData.sounds
+				for _, sounds in pairs(categoryData.subcategories) do
+					count = count + #sounds
+				end
+				
+				local displayText
+				if category == "Missing Configuration" then
+					displayText = "|cFFFF0000" .. category .. " |cFF888888(" .. count .. ")|r"
+				else
+					displayText = category .. " |cFF888888(" .. count .. ")|r"
+				end
+				
+				local catBtn = self:CreateButton(displayText, yOffset)
+				catBtn:SetScript("OnClick", function()
+					self:ShowEditSoundSelectionCategory(eventId, eventData, category)
+				end)
+				yOffset = yOffset - buttonHeight
+			end
+		end
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+-- Sound selection helper functions for Events
+function SoundboardDropdown:CreateSoundSearchBar(eventType, yOffset)
+	-- Create search box frame
+	local searchBox = CreateFrame("EditBox", nil, self.content)
+	searchBox:SetSize(240, 20)
+	searchBox:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	searchBox:SetAutoFocus(false)
+	searchBox:SetFontObject("GameFontNormal")
+	searchBox:SetText("")
+	searchBox:SetMaxLetters(50)
+	DebugPrint("Sound search box created for events")
+	
+	-- Style the search box with ElvUI-style backdrop
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.CreateBackdrop(searchBox, selectedTemplate)
+	
+	-- Set text insets for padding
+	searchBox:SetTextInsets(4, 4, 0, 0)
+	
+	-- Search functionality - search when Enter is pressed
+	searchBox:SetScript("OnEnterPressed", function(self)
+		local searchText = self:GetText()
+		if searchText == "Search for sounds... (Press Enter)" then 
+			searchText = "" 
+		end
+		SoundboardDropdown:ShowSoundSearchResults(eventType, searchText)
+		self:ClearFocus()
+	end)
+	
+	searchBox:SetScript("OnEscapePressed", function(self)
+		self:SetText("")
+		self:ClearFocus()
+		-- Return to sound selection main view
+		SoundboardDropdown:ShowAddEventStep2(eventType)
+	end)
+	
+	-- Placeholder text when empty
+	searchBox:SetScript("OnEditFocusLost", function(self)
+		if self:GetText() == "" then
+			self:SetTextColor(0.5, 0.5, 0.5, 1)  -- Gray placeholder
+			self:SetText("Search for sounds... (Press Enter)")
+		end
+	end)
+	
+	searchBox:SetScript("OnEditFocusGained", function(self)
+		if self:GetText() == "Search for sounds... (Press Enter)" then
+			self:SetText("")
+		end
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		self:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+	
+	-- Initialize placeholder
+	searchBox:SetTextColor(0.5, 0.5, 0.5, 1)
+	searchBox:SetText("Search for sounds... (Press Enter)")
+	
+	self.eventSoundSearchBox = searchBox
+	return searchBox
+end
+
+function SoundboardDropdown:ShowSoundSearchResults(eventType, searchText)
+	DebugPrint("ShowSoundSearchResults called for eventType: " .. tostring(eventType) .. ", searchText: '" .. searchText .. "'")
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Sound Selection", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowAddEventStep2(eventType)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Title
+	local eventName = SoundboardEvents.eventNames[eventType] or eventType
+	local title = self:CreateButton("Search Results for: \"" .. searchText .. "\"", yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Search through sounds
+	local results = {}
+	local query = string.lower(searchText)
+	
+	for soundKey, soundData in pairs(soundboard_data) do
+		local text = soundData.text or ""
+		local matches = string.find(string.lower(text), query) or
+		               string.find(string.lower(soundKey), query)
+		
+		if matches then
+			table.insert(results, {key = soundKey, data = soundData})
+		end
+	end
+	
+	-- Sort results
+	table.sort(results, function(a, b)
+		return (a.data.text or a.key) < (b.data.text or b.key)
+	end)
+	
+	-- Show results
+	if #results > 0 then
+		for _, result in ipairs(results) do
+			local soundBtn = self:CreateSoundSelectionButton(eventType, result.key, result.data, yOffset)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		local noResultsBtn = self:CreateButton("No sounds found for: \"" .. searchText .. "\"", yOffset)
+		noResultsBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowSoundSelectionCategory(eventType, categoryName)
+	DebugPrint("ShowSoundSelectionCategory called for eventType: " .. tostring(eventType) .. ", category: " .. tostring(categoryName))
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 20
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Sound Selection", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowAddEventStep2(eventType)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Special handling for Favorites
+	if categoryName == "Favorites" then
+		local eventName = SoundboardEvents.eventNames[eventType] or eventType
+		local title = self:CreateButtonWithIcon("Choose from Favorites for " .. eventName, yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", true)
+		title:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight - 5
+		
+		-- Show favorite sounds
+		local favorites = self:GetFavorites()
+		local favoritesList = {}
+		
+		for soundKey, soundData in pairs(favorites) do
+			table.insert(favoritesList, {key = soundKey, data = soundData})
+		end
+		
+		-- Sort favorites alphabetically
+		table.sort(favoritesList, function(a, b) 
+			return (a.data.text or "") < (b.data.text or "") 
+		end)
+		
+		if #favoritesList > 0 then
+			for _, favorite in ipairs(favoritesList) do
+				local soundBtn = self:CreateSoundSelectionButton(eventType, favorite.key, favorite.data, yOffset)
+				yOffset = yOffset - buttonHeight
+			end
+		else
+			local noFavBtn = self:CreateButton("No favorites found", yOffset)
+			noFavBtn:SetScript("OnClick", nil)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		-- Normal category handling
+		local eventName = SoundboardEvents.eventNames[eventType] or eventType
+		local titleText = "Choose from " .. categoryName .. " for " .. eventName
+		if categoryName == "Missing Configuration" then
+			titleText = "|cFFFF0000" .. titleText .. "|r"
+		end
+		local title = self:CreateButton(titleText, yOffset, true)
+		title:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight - 5
+		
+		local categoryData = self.categories[categoryName]
+		if not categoryData then
+			local errorBtn = self:CreateButton("Category not found", yOffset)
+			errorBtn:SetScript("OnClick", nil)
+			self.content:SetHeight(math.abs(yOffset) + 10)
+			self:UpdateScrollbar()
+			return
+		end
+		
+		-- Show subcategories first (if any)
+		local subcategoryNames = {}
+		for subcategory, _ in pairs(categoryData.subcategories) do
+			tinsert(subcategoryNames, subcategory)
+		end
+		tsort(subcategoryNames)
+		
+		for _, subcategory in ipairs(subcategoryNames) do
+			local subCategoryCount = #categoryData.subcategories[subcategory]
+			local subcatBtn = self:CreateButton(
+				"» " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
+				yOffset
+			)
+			subcatBtn:SetScript("OnClick", function()
+				self:ShowSoundSelectionSubcategory(eventType, categoryName, subcategory)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+		
+		-- Show direct sounds in category (if any)
+		if #categoryData.sounds > 0 then
+			-- Add separator if there are subcategories
+			if #subcategoryNames > 0 then
+				local separator = self:CreateButton("--- Direct Sounds ---", yOffset)
+				separator:SetScript("OnClick", nil)
+				yOffset = yOffset - buttonHeight - 3
+			end
+			
+			for _, sound in ipairs(categoryData.sounds) do
+				local soundBtn = self:CreateSoundSelectionButton(eventType, sound.key, sound.data, yOffset)
+				yOffset = yOffset - buttonHeight
+			end
+		end
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowSoundSelectionSubcategory(eventType, categoryName, subcategoryName)
+	DebugPrint("ShowSoundSelectionSubcategory called")
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 20
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to " .. categoryName, yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowSoundSelectionCategory(eventType, categoryName)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Subcategory title
+	local eventName = SoundboardEvents.eventNames[eventType] or eventType
+	local title = self:CreateButton("Choose from " .. categoryName .. " > " .. subcategoryName .. " for " .. eventName, yOffset, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	local categoryData = self.categories[categoryName]
+	if not categoryData or not categoryData.subcategories[subcategoryName] then
+		local errorBtn = self:CreateButton("Subcategory not found", yOffset)
+		errorBtn:SetScript("OnClick", nil)
+		self.content:SetHeight(math.abs(yOffset) + 10)
+		self:UpdateScrollbar()
+		return
+	end
+	
+	-- Show sounds in subcategory
+	local sounds = categoryData.subcategories[subcategoryName]
+	for _, sound in ipairs(sounds) do
+		local soundBtn = self:CreateSoundSelectionButton(eventType, sound.key, sound.data, yOffset)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:CreateSoundSelectionButton(eventType, soundKey, soundData, yOffset)
+	local buttonWidth = 250
+	local button = CreateFrame("Button", nil, self.content)
+	button:SetSize(buttonWidth, 20)
+	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	
+	-- Apply ElvUI-style button styling
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.StyleButton(button, selectedTemplate)
+	
+	-- Sound text - show command and description
+	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fontString:SetPoint("LEFT", 4, 0)
+	fontString:SetPoint("RIGHT", -4, 0)
+	fontString:SetJustifyH("LEFT")
+	
+	-- Format: /command - description
+	local displayText = "/" .. soundKey
+	if soundData.text and string.len(soundData.text) < 35 then
+		displayText = displayText .. " |cFF888888- " .. soundData.text .. "|r"
+	end
+	fontString:SetText(displayText)
+	
+	-- Apply proper theme colors initially
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	
+	-- Sound selection functionality (goes to step 3)
+	button:SetScript("OnClick", function()
+		DebugPrint("Sound selection button clicked: " .. tostring(soundKey) .. " for event: " .. tostring(eventType))
+		self:ShowAddEventStep3(eventType, soundKey)
+	end)
+	
+	-- Hover effects
+	button:SetScript("OnEnter", function(self)
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+	end)
+	
+	button:SetScript("OnLeave", function(self)
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+	
+	return button
+end
+
+-- Edit event helper functions
+function SoundboardDropdown:CreateEditSoundSearchBar(eventId, eventData, yOffset)
+	-- Create search box frame
+	local searchBox = CreateFrame("EditBox", nil, self.content)
+	searchBox:SetSize(240, 20)
+	searchBox:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	searchBox:SetAutoFocus(false)
+	searchBox:SetFontObject("GameFontNormal")
+	searchBox:SetText("")
+	searchBox:SetMaxLetters(50)
+	DebugPrint("Edit sound search box created")
+	
+	-- Style the search box with ElvUI-style backdrop
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.CreateBackdrop(searchBox, selectedTemplate)
+	
+	-- Set text insets for padding
+	searchBox:SetTextInsets(4, 4, 0, 0)
+	
+	-- Search functionality
+	searchBox:SetScript("OnEnterPressed", function(self)
+		local searchText = self:GetText()
+		if searchText == "Search for sounds... (Press Enter)" then 
+			searchText = "" 
+		end
+		SoundboardDropdown:ShowEditSoundSearchResults(eventId, eventData, searchText)
+		self:ClearFocus()
+	end)
+	
+	searchBox:SetScript("OnEscapePressed", function(self)
+		self:SetText("")
+		self:ClearFocus()
+		SoundboardDropdown:ShowEditEventStep2(eventId, eventData)
+	end)
+	
+	-- Placeholder text
+	searchBox:SetScript("OnEditFocusLost", function(self)
+		if self:GetText() == "" then
+			self:SetTextColor(0.5, 0.5, 0.5, 1)
+			self:SetText("Search for sounds... (Press Enter)")
+		end
+	end)
+	
+	searchBox:SetScript("OnEditFocusGained", function(self)
+		if self:GetText() == "Search for sounds... (Press Enter)" then
+			self:SetText("")
+		end
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		self:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+	
+	-- Initialize placeholder
+	searchBox:SetTextColor(0.5, 0.5, 0.5, 1)
+	searchBox:SetText("Search for sounds... (Press Enter)")
+	
+	return searchBox
+end
+
+function SoundboardDropdown:ShowEditSoundSearchResults(eventId, eventData, searchText)
+	DebugPrint("ShowEditSoundSearchResults called for searchText: '" .. searchText .. "'")
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Sound Selection", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowEditEventStep2(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Title
+	local title = self:CreateButton("Search Results for: \"" .. searchText .. "\"", yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Search through sounds
+	local results = {}
+	local query = string.lower(searchText)
+	
+	for soundKey, soundData in pairs(soundboard_data) do
+		local text = soundData.text or ""
+		local matches = string.find(string.lower(text), query) or
+		               string.find(string.lower(soundKey), query)
+		
+		if matches then
+			table.insert(results, {key = soundKey, data = soundData})
+		end
+	end
+	
+	-- Sort results
+	table.sort(results, function(a, b)
+		return (a.data.text or a.key) < (b.data.text or b.key)
+	end)
+	
+	-- Show results
+	if #results > 0 then
+		for _, result in ipairs(results) do
+			local soundBtn = self:CreateEditSoundSelectionButton(eventId, eventData, result.key, result.data, yOffset)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		local noResultsBtn = self:CreateButton("No sounds found for: \"" .. searchText .. "\"", yOffset)
+		noResultsBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowEditSoundSelectionCategory(eventId, eventData, categoryName)
+	DebugPrint("ShowEditSoundSelectionCategory called for category: " .. tostring(categoryName))
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 20
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Sound Selection", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowEditEventStep2(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Special handling for Favorites
+	if categoryName == "Favorites" then
+		local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+		local title = self:CreateButtonWithIcon("Choose from Favorites for " .. eventName, yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", true)
+		title:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight - 5
+		
+		-- Show favorite sounds
+		local favorites = self:GetFavorites()
+		local favoritesList = {}
+		
+		for soundKey, soundData in pairs(favorites) do
+			table.insert(favoritesList, {key = soundKey, data = soundData})
+		end
+		
+		-- Sort favorites alphabetically
+		table.sort(favoritesList, function(a, b) 
+			return (a.data.text or "") < (b.data.text or "") 
+		end)
+		
+		if #favoritesList > 0 then
+			for _, favorite in ipairs(favoritesList) do
+				local soundBtn = self:CreateEditSoundSelectionButton(eventId, eventData, favorite.key, favorite.data, yOffset)
+				yOffset = yOffset - buttonHeight
+			end
+		else
+			local noFavBtn = self:CreateButton("No favorites found", yOffset)
+			noFavBtn:SetScript("OnClick", nil)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		-- Normal category handling
+		local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+		local titleText = "Choose from " .. categoryName .. " for " .. eventName
+		if categoryName == "Missing Configuration" then
+			titleText = "|cFFFF0000" .. titleText .. "|r"
+		end
+		local title = self:CreateButton(titleText, yOffset, true)
+		title:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight - 5
+		
+		local categoryData = self.categories[categoryName]
+		if not categoryData then
+			local errorBtn = self:CreateButton("Category not found", yOffset)
+			errorBtn:SetScript("OnClick", nil)
+			self.content:SetHeight(math.abs(yOffset) + 10)
+			self:UpdateScrollbar()
+			return
+		end
+		
+		-- Show subcategories first (if any)
+		local subcategoryNames = {}
+		for subcategory, _ in pairs(categoryData.subcategories) do
+			tinsert(subcategoryNames, subcategory)
+		end
+		tsort(subcategoryNames)
+		
+		for _, subcategory in ipairs(subcategoryNames) do
+			local subCategoryCount = #categoryData.subcategories[subcategory]
+			local subcatBtn = self:CreateButton(
+				"» " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
+				yOffset
+			)
+			subcatBtn:SetScript("OnClick", function()
+				self:ShowEditSoundSelectionSubcategory(eventId, eventData, categoryName, subcategory)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+		
+		-- Show direct sounds in category (if any)
+		if #categoryData.sounds > 0 then
+			-- Add separator if there are subcategories
+			if #subcategoryNames > 0 then
+				local separator = self:CreateButton("--- Direct Sounds ---", yOffset)
+				separator:SetScript("OnClick", nil)
+				yOffset = yOffset - buttonHeight - 3
+			end
+			
+			for _, sound in ipairs(categoryData.sounds) do
+				local soundBtn = self:CreateEditSoundSelectionButton(eventId, eventData, sound.key, sound.data, yOffset)
+				yOffset = yOffset - buttonHeight
+			end
+		end
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:ShowEditSoundSelectionSubcategory(eventId, eventData, categoryName, subcategoryName)
+	DebugPrint("ShowEditSoundSelectionSubcategory called")
+	self:ClearContent()
+	
+	local yOffset = -5
+	local buttonHeight = 20
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to " .. categoryName, yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowEditSoundSelectionCategory(eventId, eventData, categoryName)
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Subcategory title
+	local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+	local title = self:CreateButton("Choose from " .. categoryName .. " > " .. subcategoryName .. " for " .. eventName, yOffset, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	local categoryData = self.categories[categoryName]
+	if not categoryData or not categoryData.subcategories[subcategoryName] then
+		local errorBtn = self:CreateButton("Subcategory not found", yOffset)
+		errorBtn:SetScript("OnClick", nil)
+		self.content:SetHeight(math.abs(yOffset) + 10)
+		self:UpdateScrollbar()
+		return
+	end
+	
+	-- Show sounds in subcategory
+	local sounds = categoryData.subcategories[subcategoryName]
+	for _, sound in ipairs(sounds) do
+		local soundBtn = self:CreateEditSoundSelectionButton(eventId, eventData, sound.key, sound.data, yOffset)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+function SoundboardDropdown:CreateEditSoundSelectionButton(eventId, eventData, soundKey, soundData, yOffset)
+	local buttonWidth = 250
+	local button = CreateFrame("Button", nil, self.content)
+	button:SetSize(buttonWidth, 20)
+	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	
+	-- Apply ElvUI-style button styling
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.StyleButton(button, selectedTemplate)
+	
+	-- Sound text - show command and description
+	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fontString:SetPoint("LEFT", 4, 0)
+	fontString:SetPoint("RIGHT", -4, 0)
+	fontString:SetJustifyH("LEFT")
+	
+	-- Format: /command - description
+	local displayText = "/" .. soundKey
+	if soundData.text and string.len(soundData.text) < 35 then
+		displayText = displayText .. " |cFF888888- " .. soundData.text .. "|r"
+	end
+	fontString:SetText(displayText)
+	
+	-- Apply proper theme colors initially
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	
+	-- Sound selection functionality (saves the edit immediately)
+	button:SetScript("OnClick", function()
+		DebugPrint("Edit sound selection clicked: " .. tostring(soundKey) .. " for eventId: " .. tostring(eventId))
+		
+		-- Update the event data
+		eventData.soundKey = soundKey
+		Soundboard.db.profile.Events[eventId] = eventData
+		
+		-- Provide feedback and return to edit dialog
+		local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+		Soundboard:Print("✓ Event sound changed: " .. eventName .. " → /" .. soundKey)
+		self:ShowEditEventDialog(eventId, eventData)
+	end)
+	
+	-- Hover effects
+	button:SetScript("OnEnter", function(self)
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+	end)
+	
+	button:SetScript("OnLeave", function(self)
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+	
+	return button
 end
 
 function SoundboardDropdown:CountCategories()
@@ -2558,9 +3607,11 @@ local soundboard_data_sorted_keys = {};
 	self:RegisterEvent("ADDON_LOADED");
 	
 	-- Register Events System events
+	self:RegisterEvent("PLAYER_LOGIN");
 	self:RegisterEvent("PLAYER_DEAD");
 	self:RegisterEvent("PLAYER_ALIVE");
-	DebugPrint("Basic events registered: PLAYER_DEAD, PLAYER_ALIVE")
+	self:RegisterEvent("UNIT_AURA"); -- For mount/dismount and buff detection
+	DebugPrint("Events registered: PLAYER_LOGIN, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
 	-- Register with Interface Options
@@ -2727,8 +3778,14 @@ local soundboard_data_sorted_keys = {};
 	DebugPrint("Dropdown initialization completed")
  end
 
- function Soundboard:OnEnable()
+   function Soundboard:OnEnable()
 	db.IsEnabled = true
+	
+	-- Initialize player state to prevent false triggers on login
+	self.playerStates.mounted = IsMounted()
+	self.playerStates.shapeshifted = false
+	self.playerStates.hasHeroismBuff = false
+	DebugPrint("Player states initialized: mounted=" .. tostring(self.playerStates.mounted))
 	
 	-- Debug: Check if soundboard_data exists
 	self:Print("Soundboard enabled. Checking for sound packs...")
@@ -3922,25 +4979,34 @@ end
 
 -- Events System Functions
 function Soundboard:HandleEventTrigger(eventType)
+	self:Print("[Events] HandleEventTrigger called for: " .. tostring(eventType))
+	
 	-- Check if Events system is enabled
 	if not self.db or not self.db.profile or not self.db.profile.EventsEnabled then
-		DebugPrint("Events system disabled, ignoring event: " .. tostring(eventType))
+		self:Print("[Events] System disabled, ignoring event: " .. tostring(eventType))
 		return
 	end
 	
-	DebugPrint("HandleEventTrigger called for: " .. tostring(eventType))
+	self:Print("[Events] System is enabled, checking for configured events...")
 	
 	-- Get configured events
 	local events = self.db.profile.Events
 	if not events then
-		DebugPrint("No events configured")
+		self:Print("[Events] No events table found")
 		return
 	end
 	
+	-- Count and show events
+	local eventCount = 0
+	for _ in pairs(events) do eventCount = eventCount + 1 end
+	self:Print("[Events] Found " .. eventCount .. " total configured events")
+	
 	-- Find events matching this trigger
+	local matchCount = 0
 	for eventId, eventData in pairs(events) do
 		if eventData.eventType == eventType then
-			DebugPrint("Found matching event: " .. eventId .. " -> " .. (eventData.soundKey or "None"))
+			matchCount = matchCount + 1
+			self:Print("[Events] Match #" .. matchCount .. ": " .. eventId .. " -> /" .. (eventData.soundKey or "None"))
 			
 			-- Get the sound data
 			local soundKey = eventData.soundKey
@@ -3949,15 +5015,28 @@ function Soundboard:HandleEventTrigger(eventType)
 				
 				if eventData.playerOnly then
 					-- Play only for the player
+					self:Print("[Events] Playing sound for player only: /" .. soundKey)
 					self:PlaySoundForPlayer(soundData.file, soundKey)
 				else
 					-- Broadcast to others (use existing emote system)
+					self:Print("[Events] Broadcasting sound to others: /" .. soundKey)
 					self:SayGagKey(soundKey)
 				end
 			else
-				DebugPrint("Sound not found: " .. tostring(soundKey))
+				self:Print("[Events] ERROR: Sound not found in soundboard_data: " .. tostring(soundKey))
+				if not soundboard_data then
+					self:Print("[Events] soundboard_data is nil!")
+				elseif not soundboard_data[soundKey] then
+					self:Print("[Events] soundKey '" .. soundKey .. "' not found in soundboard_data")
+				end
 			end
 		end
+	end
+	
+	if matchCount == 0 then
+		self:Print("[Events] No events configured for: " .. tostring(eventType))
+	else
+		self:Print("[Events] Processed " .. matchCount .. " matching event(s)")
 	end
 end
 
@@ -3981,14 +5060,78 @@ function Soundboard:PlaySoundForPlayer(soundFile, soundKey)
 end
 
 -- Event Handlers
+function Soundboard:PLAYER_LOGIN(event, ...)
+	DebugPrint("PLAYER_LOGIN event triggered")
+	-- Add a small delay to ensure addon is fully loaded
+	C_Timer.After(2, function()
+		self:HandleEventTrigger("PLAYER_LOGIN")
+	end)
+end
+
 function Soundboard:PLAYER_DEAD(event, ...)
 	DebugPrint("PLAYER_DEAD event triggered")
+	self:Print("[Events] Player died - checking for configured sounds...")
 	self:HandleEventTrigger("PLAYER_DEAD")
 end
 
 function Soundboard:PLAYER_ALIVE(event, ...)
-	DebugPrint("PLAYER_ALIVE event triggered")
+	DebugPrint("PLAYER_ALIVE event triggered") 
+	self:Print("[Events] Player revived - checking for configured sounds...")
 	self:HandleEventTrigger("PLAYER_ALIVE")
+end
+
+function Soundboard:UNIT_AURA(event, unitTarget)
+	-- Only track player auras
+	if unitTarget ~= "player" then return end
+	
+	-- Check mount status
+	local isMounted = IsMounted()
+	if self.playerStates.mounted ~= isMounted then
+		self.playerStates.mounted = isMounted
+		if isMounted then
+			self:Print("[Events] Player mounted - checking for configured sounds...")
+			self:HandleEventTrigger("PLAYER_MOUNT")
+		else
+			self:Print("[Events] Player dismounted - checking for configured sounds...")
+			self:HandleEventTrigger("PLAYER_DISMOUNT")
+		end
+	end
+	
+	-- Check for Heroism/Bloodlust/Time Warp buffs
+	local hasHeroismBuff = false
+	local heroismSpells = {
+		2825,   -- Bloodlust
+		32182,  -- Heroism  
+		80353,  -- Time Warp
+		90355,  -- Ancient Hysteria (Core Hound)
+		160452, -- Netherwinds (Nether Ray)
+		178207, -- Drums of Fury
+		230935, -- Drums of the Mountain
+		256740, -- Drums of the Maelstrom
+		309658, -- Drums of Deathly Ferocity
+		381301, -- Feral Hide Drums
+	}
+	
+	for i = 1, 40 do
+		local spellId = select(10, UnitBuff("player", i))
+		if spellId then
+			for _, heroismId in ipairs(heroismSpells) do
+				if spellId == heroismId then
+					hasHeroismBuff = true
+					break
+				end
+			end
+		end
+		if hasHeroismBuff then break end
+	end
+	
+	if self.playerStates.hasHeroismBuff ~= hasHeroismBuff then
+		self.playerStates.hasHeroismBuff = hasHeroismBuff
+		if hasHeroismBuff then
+			self:Print("[Events] Heroism/Bloodlust/Time Warp buff detected - checking for configured sounds...")
+			self:HandleEventTrigger("HEROISM_BUFF")
+		end
+	end
 end
 
 -- Old dropdown function removed - replaced with simple dropdown system
