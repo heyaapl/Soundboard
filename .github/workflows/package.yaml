@@ -16,7 +16,7 @@ on:
       - main
 
 env:
-  GAME_VERSIONS: "5.5.0,11.2.5"  # MOP Classic and Retail
+  GAME_VERSIONS: "5.5.0,11.2.5,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic and Retail
 
 jobs:
   package:
