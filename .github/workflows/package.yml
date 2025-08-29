@@ -16,7 +16,7 @@ on:
       - main
 
 env:
-  GAME_VERSIONS: "5.5.0,11.0.5"  # MOP Classic and Retail
+  GAME_VERSIONS: "5.5.0,11.2.5"  # MOP Classic and Retail
 
 jobs:
   package:
@@ -84,10 +84,26 @@ jobs:
       - name: Package addon
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }}
+          args: -g ${{ env.GAME_VERSIONS }} -v
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          CF_PROJECT_ID: "1335953"
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Debug packaging results
+        if: always()
+        run: |
+          echo "📦 Packaging completed"
+          echo "🔑 CF_API_KEY present: ${{ secrets.CF_API_KEY != '' }}"
+          echo "🎯 Game versions: ${{ env.GAME_VERSIONS }}"
+          echo "🆔 CurseForge Project ID: 1335953"
+          echo "📋 Release type: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
+          echo "📝 Version: ${{ steps.release-type.outputs.VERSION }}"
+          echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
+          echo "📁 Working directory contents:"
+          ls -la || dir
+          echo "📁 Looking for .zip files:"
+          find . -name "*.zip" 2>/dev/null || echo "No zip files found"
           
       - name: Create GitHub Release (Tagged releases only)
         if: steps.release-type.outputs.IS_TAGGED == 'true' && steps.release-type.outputs.RELEASE_TYPE == 'release'
@@ -108,10 +124,10 @@ jobs:
             
             ### 🎮 Supported Versions
             - **Mists of Pandaria Classic** (5.5.0) 
-            - **World of Warcraft Retail** (11.0.5+)
+            - **World of Warcraft Retail** (11.2.5+)
             
             ### 📥 Download
-            Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard)
+            Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)
             
             ### 🎯 New Features
             - **9 Event Types** for automatic sound triggers
@@ -137,7 +153,8 @@ jobs:
           echo "**Branch/Tag:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Release Type:** ${{ needs.package.outputs.release-type || '❓ Unknown' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ needs.package.outputs.version || '❓ Unknown' }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Target Versions:** MOP 5.5.0, Retail 11.0.5+" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Versions:** MOP 5.5.0, Retail 11.2.5+" >> $GITHUB_STEP_SUMMARY
+          echo "**CurseForge Project:** 1335953 (soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [[ "${{ needs.package.result }}" == "success" ]]; then
@@ -145,10 +162,10 @@ jobs:
             
             if [[ "${{ github.ref_name }}" == "main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🚀 **Release build** - Available on CurseForge" >> $GITHUB_STEP_SUMMARY
+              echo "🚀 **Release build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
             else
               echo "" >> $GITHUB_STEP_SUMMARY  
-              echo "🧪 **Beta build** - Available on CurseForge for testing" >> $GITHUB_STEP_SUMMARY
+              echo "🧪 **Beta build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow) for testing" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "### ❌ Build Status: Failed" >> $GITHUB_STEP_SUMMARY
