@@ -2391,25 +2391,19 @@ function SoundboardEvents:GetUserEvents()
 end
 
  -- Options table
- local options = {
+local options = {
 	type = 'group',
 	name = 'Soundboard',
 	desc = 'Soundboard addon settings',
+	childGroups = "tab",
 	args = {
-		-- Header
-		header = {
-			order = 1,
-			type = 'header',
-			name = 'Soundboard Settings',
-		},
 		
-		-- General Settings Group
+		-- General Settings Tab
 		general = {
 			order = 10,
 			type = 'group',
 			name = 'General',
 			desc = 'General addon settings',
-			inline = true,
 			args = {
 				enable = {
 					order = 1,
@@ -2510,13 +2504,12 @@ end
 			},
 		},
 		
-		-- Audio Settings Group
+		-- Audio Settings Tab
 		audio = {
 			order = 20,
 			type = 'group',
 			name = 'Audio',
 			desc = 'Audio and sound settings',
-			inline = true,
 			args = {
 				soundEnabled = {
 					order = 1,
@@ -2546,13 +2539,12 @@ end
 			},
 		},
 		
-		-- Emote Settings Group
+		-- Social Tab
 		emotes = {
 			order = 30,
 			type = 'group',
-			name = 'Emotes & Chat',
+			name = 'Social',
 			desc = 'Emote and chat message settings',
-			inline = true,
 			args = {
 				emoteEnabled = {
 					order = 1,
@@ -2577,13 +2569,12 @@ end
 			},
 		},
 		
-		-- Group Settings
+		-- Group Play Tab
 		group = {
 			order = 40,
 			type = 'group',
 			name = 'Group Play',
 			desc = 'Settings for playing sounds to your group',
-			inline = true,
 			args = {
 				groupEnabled = {
 					order = 1,
@@ -2607,13 +2598,12 @@ end
 			},
 		},
 		
-		-- Actions Group
+		-- Actions Tab
 		actions = {
 			order = 50,
 			type = 'group',
 			name = 'Actions',
 			desc = 'Useful actions and commands',
-			inline = true,
 			args = {
 				list = {
 					order = 1,
@@ -2655,13 +2645,12 @@ end
 			},
 		},
 		
-		-- Advanced Settings
+		-- Advanced Tab
 		advanced = {
 			order = 60,
 			type = 'group',
 			name = 'Advanced',
 			desc = 'Advanced settings and debugging',
-			inline = true,
 			args = {
 				debugMode = {
 					order = 1,
@@ -2701,14 +2690,13 @@ end
 				},
 			},
 		},
-		},
-	
-	-- Event System sub-panel
-	events = {
-		type = 'group',
-		name = 'Event System',
-		desc = 'Automatic sound triggers based on game events',
-		childGroups = 'tree',
+		
+		-- Event System Tab
+		events = {
+			order = 70,
+			type = 'group',
+			name = 'Event System',
+			desc = 'Automatic sound triggers based on game events',
 		args = {
 			header = {
 				order = 1,
