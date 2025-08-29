@@ -1,4 +1,36 @@
 # Soundboard Changelog
+## Version 1.2.0
+Major event system update! Now you can automatically trigger sounds based on game events.
+
+### 🎯 Event System
+- **Automatic Sound Triggers**: Create events that automatically play sounds when specific game events occur
+- **9 Event Types Supported**:
+  - Player Login
+  - Player Mounts
+  - Player Dismounts  
+  - Player Dies
+  - Player Revives
+  - Enter Shapeshift Form (Druid forms, etc.)
+  - Exit Shapeshift Form
+  - Heroism/Bloodlust/Time Warp Applied
+  - Boards Transport (Boats, Zeppelins, etc.)
+
+### 🎛️ Event Builder UI
+- **Intuitive 3-Step Creation**: Easy wizard-style event creation (Name → Event Type → Sound)
+- **Sound Browser**: Organized dropdown with sounds grouped by category
+- **Broadcast Options**: Choose whether events play locally only or broadcast to group (defaults to local)
+- **Event Management**: Enable/disable, modify, or delete events from the settings panel
+
+### ⚙️ Event Configuration
+- **Master Toggle**: Enable/disable the entire event system
+- **Per-Event Controls**: Individual enable/disable for each created event
+- **Local vs Broadcast**: Per-event setting for local-only or group broadcast
+- **Event Persistence**: Events are saved per character profile
+
+### 🔧 Technical Improvements
+- **Edge Detection**: Smart state monitoring prevents duplicate triggers
+- **Event Registration**: Automatic registration of only necessary WoW API events
+- **Performance Optimized**: Minimal resource usage when system is disabled
 ## Version 1.1.2
 - **See Who Sent Sounds**: Soundboard will now tell you who is sending sound bites. In a future update, you'll have the ability to blocklist players and specific sounds that you don't want to hear
 

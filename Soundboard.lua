@@ -2080,6 +2080,316 @@ local soundboard_data_sorted_keys = {};
 	end,
 };
 
+--- Event System for triggered sound effects
+local SoundboardEvents = {
+	-- Event type definitions with their corresponding WoW events and detection functions
+	eventTypes = {
+		["MOUNT"] = {
+			name = "Player Mounts",
+			description = "Triggered when the player mounts up",
+			events = {"PLAYER_MOUNT_DISPLAY_CHANGED"},
+			check = function()
+				return IsMounted()
+			end
+		},
+		["DISMOUNT"] = {
+			name = "Player Dismounts", 
+			description = "Triggered when the player dismounts",
+			events = {"PLAYER_MOUNT_DISPLAY_CHANGED"},
+			check = function()
+				return not IsMounted()
+			end
+		},
+		["PLAYER_DEAD"] = {
+			name = "Player Dies",
+			description = "Triggered when the player dies",
+			events = {"PLAYER_DEAD"},
+			check = function()
+				return UnitIsDead("player")
+			end
+		},
+		["PLAYER_ALIVE"] = {
+			name = "Player Revives",
+			description = "Triggered when the player revives from death",
+			events = {"PLAYER_ALIVE", "PLAYER_UNGHOST"},
+			check = function()
+				return not UnitIsDead("player") and not UnitIsGhost("player")
+			end
+		},
+		["SHAPESHIFT_ENTER"] = {
+			name = "Enter Shapeshift Form",
+			description = "Triggered when entering a shapeshift form (druid forms, etc.)",
+			events = {"UPDATE_SHAPESHIFT_FORMS", "UNIT_AURA"},
+			check = function()
+				return GetShapeshiftForm() > 0
+			end
+		},
+		["SHAPESHIFT_EXIT"] = {
+			name = "Exit Shapeshift Form", 
+			description = "Triggered when leaving a shapeshift form",
+			events = {"UPDATE_SHAPESHIFT_FORMS", "UNIT_AURA"},
+			check = function()
+				return GetShapeshiftForm() == 0
+			end
+		},
+		["HEROISM"] = {
+			name = "Heroism/Bloodlust/Time Warp",
+			description = "Triggered when Heroism, Bloodlust, or Time Warp is applied",
+			events = {"UNIT_AURA"},
+			check = function()
+				-- Check for heroism-type buffs
+				local heroismSpells = {
+					[32182] = true, -- Heroism  
+					[2825] = true,  -- Bloodlust
+					[80353] = true, -- Time Warp
+					[90355] = true, -- Ancient Hysteria
+					[178207] = true, -- Drums of Fury
+				}
+				for i = 1, 40 do
+					local name, icon, count, debuffType, duration, expirationTime, source, isStealable, 
+					      nameplateShowPersonal, spellId = UnitAura("player", i, "HELPFUL")
+					if not name then break end
+					if heroismSpells[spellId] then
+						return true
+					end
+				end
+				return false
+			end
+		},
+		["TRANSPORT"] = {
+			name = "Boards Transport",
+			description = "Triggered when boarding a transport (boat, zeppelin, etc.)",
+			events = {"PLAYER_CONTROL_LOST", "UNIT_AURA"},
+			check = function()
+				-- Check for transport/taxi auras
+				for i = 1, 40 do
+					local name, icon, count, debuffType, duration, expirationTime, source, isStealable,
+					      nameplateShowPersonal, spellId = UnitAura("player", i, "HELPFUL")
+					if not name then break end
+					-- Common transport spell IDs
+					if spellId == 32223 or spellId == 32272 or spellId == 42640 then -- Various transport spells
+						return true
+					end
+				end
+				-- Also check if on taxi
+				return UnitOnTaxi("player")
+			end
+		},
+		["PLAYER_LOGIN"] = {
+			name = "Player Login",
+			description = "Triggered when the player logs into the game",
+			events = {"PLAYER_LOGIN"},
+			check = function()
+				-- This event only fires once per session, so we always return true when it fires
+				return true
+			end
+		}
+	},
+	
+	-- Track state for edge detection
+	lastStates = {}
+}
+
+-- Initialize event system
+function SoundboardEvents:Initialize()
+	DebugPrint("Initializing event system...")
+	
+	-- Initialize last states for edge detection
+	for eventType, _ in pairs(self.eventTypes) do
+		self.lastStates[eventType] = false
+	end
+	
+	-- Register all necessary WoW events
+	local eventsToRegister = {}
+	for _, eventData in pairs(self.eventTypes) do
+		for _, event in ipairs(eventData.events) do
+			eventsToRegister[event] = true
+		end
+	end
+	
+	for event, _ in pairs(eventsToRegister) do
+		Soundboard:RegisterEvent(event)
+		DebugPrint("Registered event: " .. event)
+	end
+	
+	DebugPrint("Event system initialized")
+end
+
+-- Handle WoW events and trigger sounds
+function SoundboardEvents:HandleEvent(event, ...)
+	if not Soundboard.db or not Soundboard.db.profile.EventsEnabled then
+		return
+	end
+	
+	DebugPrint("Handling event: " .. event)
+	
+	-- Check each event type that listens for this WoW event
+	for eventType, eventData in pairs(self.eventTypes) do
+		-- Only process if this event type listens for this WoW event
+		for _, eventName in ipairs(eventData.events) do
+			if eventName == event then
+				local currentState = eventData.check()
+				local lastState = self.lastStates[eventType]
+				
+				DebugPrint("Event type: " .. eventType .. ", currentState: " .. tostring(currentState) .. ", lastState: " .. tostring(lastState))
+				
+				-- Detect state changes (edges)
+				local triggered = false
+				if eventType == "MOUNT" and currentState and not lastState then
+					triggered = true
+				elseif eventType == "DISMOUNT" and not currentState and lastState then
+					triggered = true
+				elseif eventType == "PLAYER_DEAD" and currentState and not lastState then
+					triggered = true
+				elseif eventType == "PLAYER_ALIVE" and currentState and not lastState then
+					triggered = true
+				elseif eventType == "SHAPESHIFT_ENTER" and currentState and not lastState then
+					triggered = true
+				elseif eventType == "SHAPESHIFT_EXIT" and not currentState and lastState then
+					triggered = true
+				elseif eventType == "HEROISM" and currentState and not lastState then
+					triggered = true
+				elseif eventType == "TRANSPORT" and currentState and not lastState then
+					triggered = true
+				elseif eventType == "PLAYER_LOGIN" then
+					-- PLAYER_LOGIN only fires once per session, so always trigger it
+					triggered = true
+				end
+				
+				-- Update state
+				self.lastStates[eventType] = currentState
+				
+				if triggered then
+					self:TriggerEvents(eventType)
+				end
+				
+				break -- Only check once per event type
+			end
+		end
+	end
+end
+
+-- Trigger all events of a specific type  
+function SoundboardEvents:TriggerEvents(eventType)
+	if not Soundboard.db or not Soundboard.db.profile.Events then
+		return
+	end
+	
+	DebugPrint("Triggering events for: " .. eventType)
+	
+	local triggeredCount = 0
+	for eventId, eventConfig in pairs(Soundboard.db.profile.Events) do
+		if eventConfig.eventType == eventType and eventConfig.enabled then
+			self:PlayEventSound(eventConfig)
+			triggeredCount = triggeredCount + 1
+		end
+	end
+	
+	if triggeredCount > 0 then
+		DebugPrint("Triggered " .. triggeredCount .. " events for " .. eventType)
+	end
+end
+
+-- Play sound for an event
+function SoundboardEvents:PlayEventSound(eventConfig)
+	if not soundboard_data or not soundboard_data[eventConfig.soundKey] then
+		DebugPrint("Sound not found for event: " .. tostring(eventConfig.soundKey))
+		return
+	end
+	
+	local soundData = soundboard_data[eventConfig.soundKey]
+	local volume = Soundboard.db.profile.MasterVolume
+	
+	DebugPrint("Playing event sound: " .. eventConfig.name .. " -> " .. eventConfig.soundKey)
+	
+	if eventConfig.isLocal then
+		-- Play locally only
+		Soundboard:PlaySoundWithVolume(soundData.file, volume, eventConfig.soundKey, nil)
+	else
+		-- Play and broadcast to group if enabled
+		if Soundboard.db.profile.GroupEnabled then
+			Soundboard:SayGagKey(eventConfig.soundKey)
+		else
+			-- If group is disabled, fall back to local only
+			Soundboard:PlaySoundWithVolume(soundData.file, volume, eventConfig.soundKey, nil)
+		end
+	end
+end
+
+-- Create a new event configuration
+function SoundboardEvents:CreateEvent(name, eventType, soundKey, isLocal)
+	if not Soundboard.db or not Soundboard.db.profile then
+		DebugPrint("Cannot create event - database not available")
+		return nil
+	end
+	
+	-- Generate unique ID
+	local eventId = "event_" .. time() .. "_" .. math.random(1000, 9999)
+	
+	-- Create event configuration
+	local eventConfig = {
+		id = eventId,
+		name = name or "Unnamed Event",
+		eventType = eventType,
+		soundKey = soundKey,
+		isLocal = isLocal ~= false, -- Default to local
+		enabled = true,
+		created = time()
+	}
+	
+	-- Store in database
+	Soundboard.db.profile.Events[eventId] = eventConfig
+	
+	DebugPrint("Created event: " .. eventConfig.name .. " (" .. eventId .. ")")
+	return eventId
+end
+
+-- Delete an event
+function SoundboardEvents:DeleteEvent(eventId)
+	if not Soundboard.db or not Soundboard.db.profile.Events then
+		return false
+	end
+	
+	if Soundboard.db.profile.Events[eventId] then
+		local eventName = Soundboard.db.profile.Events[eventId].name
+		Soundboard.db.profile.Events[eventId] = nil
+		DebugPrint("Deleted event: " .. eventName .. " (" .. eventId .. ")")
+		return true
+	end
+	
+	return false
+end
+
+-- Get list of available event types for UI
+function SoundboardEvents:GetEventTypes()
+	local types = {}
+	for eventType, data in pairs(self.eventTypes) do
+		table.insert(types, {
+			key = eventType,
+			name = data.name,
+			description = data.description
+		})
+	end
+	table.sort(types, function(a, b) return a.name < b.name end)
+	return types
+end
+
+-- Get list of user events for UI
+function SoundboardEvents:GetUserEvents()
+	if not Soundboard.db or not Soundboard.db.profile.Events then
+		return {}
+	end
+	
+	local events = {}
+	for eventId, eventConfig in pairs(Soundboard.db.profile.Events) do
+		table.insert(events, eventConfig)
+	end
+	
+	-- Sort by creation time (newest first)
+	table.sort(events, function(a, b) return (a.created or 0) > (b.created or 0) end)
+	return events
+end
+
  -- Options table
  local options = {
 	type = 'group',
@@ -2343,6 +2653,70 @@ local soundboard_data_sorted_keys = {};
 			},
 		},
 		
+		-- Event System
+		events = {
+			order = 50,
+			type = 'group',
+			name = 'Event System',
+			desc = 'Configure automatic sound triggers based on game events',
+			args = {
+				-- Master toggle
+				eventsEnabled = {
+					order = 1,
+					type = 'toggle',
+					name = 'Enable Event System',
+					desc = 'Enable or disable all event-triggered sounds',
+					get = function() return Soundboard.db.profile.EventsEnabled end,
+					set = function(info, value) 
+						Soundboard.db.profile.EventsEnabled = value 
+						Soundboard:Print("Event system " .. (value and "enabled" or "disabled"))
+					end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
+					width = 'full',
+				},
+				
+				-- Description
+				eventsDescription = {
+					order = 2,
+					type = 'description',
+					name = 'The Event System allows you to automatically play sounds when specific game events occur (mounting, dying, getting buffs, etc.).\n',
+					fontSize = 'medium',
+				},
+				
+				-- Spacer
+				spacer1 = {
+					order = 3,
+					type = 'description',
+					name = '',
+				},
+				
+				-- Create New Event Button
+				createEvent = {
+					order = 10,
+					type = 'execute', 
+					name = 'Create New Event',
+					desc = 'Create a new event trigger',
+					func = function()
+						-- Show event creation dialog
+						StaticPopup_Show("SOUNDBOARD_CREATE_EVENT")
+					end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled or not Soundboard.db.profile.EventsEnabled end,
+				},
+				
+				-- List existing events
+				existingEvents = {
+					order = 20,
+					type = 'group',
+					name = 'Existing Events',
+					desc = 'Manage your existing events',
+					inline = true,
+					args = {
+						-- This will be populated dynamically
+					}
+				}
+			},
+		},
+		
 		-- Advanced Settings
 		advanced = {
 			order = 60,
@@ -2392,6 +2766,320 @@ local soundboard_data_sorted_keys = {};
 	},
  }
 
+-- Event Creation Popup Dialogs
+local function CreateEventPopups()
+	-- Event Creation Dialog
+	StaticPopupDialogs["SOUNDBOARD_CREATE_EVENT"] = {
+		text = "Create New Event",
+		hasEditBox = true,
+		editBoxWidth = 350,
+		maxLetters = 50,
+		button1 = "Next",
+		button2 = "Cancel",
+		OnShow = function(self)
+			self.editBox:SetText("")
+			self.editBox:SetFocus()
+		end,
+		OnAccept = function(self)
+			local eventName = self.editBox:GetText()
+			if eventName and eventName:trim() ~= "" then
+				-- Store name and show event type selection
+				SOUNDBOARD_TEMP_EVENT_NAME = eventName:trim()
+				StaticPopup_Show("SOUNDBOARD_SELECT_EVENT_TYPE")
+			end
+		end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+		preferredIndex = 3,
+	}
+	
+	-- Event Type Selection Dialog  
+	StaticPopupDialogs["SOUNDBOARD_SELECT_EVENT_TYPE"] = {
+		text = "Select Event Type",
+		button1 = "Select",
+		button2 = "Back", 
+		button3 = "Cancel",
+		hasEditBox = false,
+		OnShow = function(self)
+			-- Create dropdown for event types if it doesn't exist
+			if not self.eventTypeDropdown then
+				local dropdown = CreateFrame("Frame", "SoundboardEventTypeDropdown", self, "UIDropDownMenuTemplate")
+				dropdown:SetPoint("CENTER", self, "CENTER", 0, -20)
+				
+				local eventTypes = SoundboardEvents:GetEventTypes()
+				local selectedType = nil
+				
+				local function OnClick(dropdownSelf, arg1, arg2, checked)
+					selectedType = arg1
+					UIDropDownMenu_SetSelectedID(dropdown, dropdownSelf:GetID())
+					UIDropDownMenu_SetText(dropdown, arg2)
+				end
+				
+				local function initialize(dropdownSelf, level)
+					for i, eventType in ipairs(eventTypes) do
+						local info = UIDropDownMenu_CreateInfo()
+						info.text = eventType.name
+						info.value = eventType.key
+						info.arg1 = eventType.key
+						info.arg2 = eventType.name  
+						info.func = OnClick
+						UIDropDownMenu_AddButton(info, level)
+					end
+				end
+				
+				UIDropDownMenu_Initialize(dropdown, initialize)
+				UIDropDownMenu_SetWidth(dropdown, 200)
+				UIDropDownMenu_SetText(dropdown, "Choose Event Type")
+				
+				self.eventTypeDropdown = dropdown
+				self.selectedType = function() return selectedType end
+			end
+		end,
+		OnAccept = function(self)
+			local selectedType = self.selectedType()
+			if selectedType then
+				SOUNDBOARD_TEMP_EVENT_TYPE = selectedType
+				StaticPopup_Show("SOUNDBOARD_SELECT_SOUND")
+			else
+				Soundboard:Print("Please select an event type")
+				return 1 -- Keep dialog open
+			end
+		end,
+		OnAlt = function(self)
+			-- Back button - return to name entry
+			StaticPopup_Show("SOUNDBOARD_CREATE_EVENT")
+		end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+		preferredIndex = 3,
+	}
+	
+	-- Sound Selection Dialog
+	StaticPopupDialogs["SOUNDBOARD_SELECT_SOUND"] = {
+		text = "Select Sound",
+		button1 = "Create",
+		button2 = "Back",
+		button3 = "Cancel", 
+		hasEditBox = false,
+		OnShow = function(self)
+			-- Create sound selection dropdown
+			if not self.soundDropdown then
+				local dropdown = CreateFrame("Frame", "SoundboardSoundDropdown", self, "UIDropDownMenuTemplate")  
+				dropdown:SetPoint("CENTER", self, "CENTER", 0, -20)
+				
+				local selectedSound = nil
+				
+				local function OnClick(dropdownSelf, arg1, arg2, checked)
+					selectedSound = arg1
+					UIDropDownMenu_SetSelectedID(dropdown, dropdownSelf:GetID())
+					UIDropDownMenu_SetText(dropdown, arg2)
+				end
+				
+				local function initialize(dropdownSelf, level)
+					if not soundboard_data then return end
+					
+					-- Sort sounds by category then name
+					local soundList = {}
+					for soundKey, soundData in pairs(soundboard_data) do
+						if soundData.text then
+							table.insert(soundList, {
+								key = soundKey,
+								name = soundData.text,
+								category = soundData.category or "Uncategorized"
+							})
+						end
+					end
+					
+					table.sort(soundList, function(a, b) 
+						if a.category == b.category then
+							return a.name < b.name
+						end
+						return a.category < b.category
+					end)
+					
+					local lastCategory = nil
+					for i, sound in ipairs(soundList) do
+						-- Add category header
+						if lastCategory ~= sound.category then
+							if lastCategory then
+								-- Add separator
+								local separator = UIDropDownMenu_CreateInfo()
+								separator.text = ""
+								separator.isTitle = true
+								separator.notCheckable = true
+								UIDropDownMenu_AddButton(separator, level)
+							end
+							
+							local header = UIDropDownMenu_CreateInfo()
+							header.text = sound.category
+							header.isTitle = true
+							header.notCheckable = true
+							UIDropDownMenu_AddButton(header, level)
+							lastCategory = sound.category
+						end
+						
+						local info = UIDropDownMenu_CreateInfo()
+						info.text = "  " .. sound.name -- Indent under category
+						info.value = sound.key
+						info.arg1 = sound.key
+						info.arg2 = sound.name
+						info.func = OnClick
+						UIDropDownMenu_AddButton(info, level)
+					end
+				end
+				
+				UIDropDownMenu_Initialize(dropdown, initialize)
+				UIDropDownMenu_SetWidth(dropdown, 250)
+				UIDropDownMenu_SetText(dropdown, "Choose Sound")
+				
+				self.soundDropdown = dropdown
+				self.selectedSound = function() return selectedSound end
+			end
+			
+			-- Add broadcast options
+			if not self.broadcastCheck then
+				local checkButton = CreateFrame("CheckButton", "SoundboardBroadcastCheck", self, "ChatConfigCheckButtonTemplate")
+				checkButton:SetPoint("CENTER", self, "CENTER", 0, -60)
+				checkButton.Text:SetText("Play locally only (don't broadcast)")
+				checkButton.Text:SetTextColor(1, 1, 1)
+				checkButton:SetChecked(true) -- Default to local only
+				self.broadcastCheck = checkButton
+			end
+		end,
+		OnAccept = function(self)
+			local selectedSound = self.selectedSound()
+			local isLocal = self.broadcastCheck:GetChecked()
+			
+			if selectedSound and SOUNDBOARD_TEMP_EVENT_NAME and SOUNDBOARD_TEMP_EVENT_TYPE then
+				-- Create the event
+				local eventId = SoundboardEvents:CreateEvent(
+					SOUNDBOARD_TEMP_EVENT_NAME,
+					SOUNDBOARD_TEMP_EVENT_TYPE,
+					selectedSound,
+					isLocal
+				)
+				
+				if eventId then
+					Soundboard:Print("Created event: " .. SOUNDBOARD_TEMP_EVENT_NAME)
+					-- Refresh the options UI if it's open
+					LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
+				else
+					Soundboard:Print("Failed to create event")
+				end
+				
+				-- Clear temp variables
+				SOUNDBOARD_TEMP_EVENT_NAME = nil
+				SOUNDBOARD_TEMP_EVENT_TYPE = nil
+			else
+				Soundboard:Print("Please select a sound")
+				return 1 -- Keep dialog open
+			end
+		end,
+		OnAlt = function(self)
+			-- Back button
+			StaticPopup_Show("SOUNDBOARD_SELECT_EVENT_TYPE")
+		end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+		preferredIndex = 3,
+	}
+end
+
+-- Initialize popup dialogs
+CreateEventPopups()
+
+-- Function to update existing events display in options
+local function UpdateEventsDisplay()
+	local eventsGroup = options.args.events.args.existingEvents.args
+	
+	-- Clear existing event options
+	for key in pairs(eventsGroup) do
+		if key ~= "description" then
+			eventsGroup[key] = nil
+		end
+	end
+	
+	-- Get user events
+	local userEvents = SoundboardEvents:GetUserEvents()
+	
+	if #userEvents == 0 then
+		eventsGroup.noEvents = {
+			order = 1,
+			type = 'description',
+			name = 'No events created yet. Click "Create New Event" above to get started.',
+			fontSize = 'medium',
+		}
+	else
+		for i, event in ipairs(userEvents) do
+			local eventType = SoundboardEvents.eventTypes[event.eventType]
+			local eventTypeName = eventType and eventType.name or event.eventType
+			local soundData = soundboard_data and soundboard_data[event.soundKey]
+			local soundName = soundData and soundData.text or event.soundKey
+			
+			eventsGroup["event_" .. event.id] = {
+				order = i,
+				type = 'group',
+				name = event.name,
+				desc = eventTypeName .. " → " .. soundName,
+				inline = true,
+				args = {
+					enabled = {
+						order = 1,
+						type = 'toggle',
+						name = 'Enabled',
+						desc = 'Enable or disable this event',
+						get = function() return event.enabled end,
+						set = function(info, value) 
+							event.enabled = value
+							LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
+						end,
+						width = 0.5,
+					},
+					isLocal = {
+						order = 2,
+						type = 'toggle',
+						name = 'Local Only',
+						desc = 'If enabled, sound plays only for you. If disabled, sound is broadcast to group.',
+						get = function() return event.isLocal end,
+						set = function(info, value) 
+							event.isLocal = value
+						end,
+						width = 0.5,
+					},
+					delete = {
+						order = 3,
+						type = 'execute',
+						name = 'Delete',
+						desc = 'Delete this event permanently',
+						func = function()
+							SoundboardEvents:DeleteEvent(event.id)
+							Soundboard:Print("Deleted event: " .. event.name)
+							UpdateEventsDisplay()
+							LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
+						end,
+						width = 0.5,
+						confirm = true,
+						confirmText = 'Are you sure you want to delete this event?',
+					},
+					info = {
+						order = 4,
+						type = 'description',
+						name = string.format('Type: %s | Sound: %s | %s', 
+							eventTypeName, soundName, event.isLocal and 'Local Only' or 'Broadcast'),
+						fontSize = 'small',
+					}
+				}
+			}
+		end
+	end
+	
+	-- Update registry to refresh UI
+	LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
+end
+
  function Soundboard:OnInitialize()
 	DebugPrint("Soundboard:OnInitialize called")
 	
@@ -2400,6 +3088,9 @@ local soundboard_data_sorted_keys = {};
 	self:RegisterComm("Soundboard")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE");
 	self:RegisterEvent("ADDON_LOADED");
+	
+	-- Initialize event system
+	SoundboardEvents:Initialize();
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
 	-- Register with Interface Options
@@ -2426,6 +3117,9 @@ local soundboard_data_sorted_keys = {};
 			LearnedSoundDurations = {},-- Learned actual durations for sound files
 			-- Advanced Settings
 			DebugMode = false,         -- Enable debug output
+			-- Event System
+			Events = {},               -- User-created events table
+			EventsEnabled = true,      -- Master toggle for event system
 		}
 	 }
 	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", defaults, true)
@@ -2555,6 +3249,9 @@ local soundboard_data_sorted_keys = {};
 
  function Soundboard:OnEnable()
 	db.IsEnabled = true
+	
+	-- Initialize events display
+	UpdateEventsDisplay()
 	
 	-- Debug: Check if soundboard_data exists
 	self:Print("Soundboard enabled. Checking for sound packs...")
@@ -3383,6 +4080,39 @@ function Soundboard:ADDON_LOADED(event, addonName)
 			self:LoadSoundpacks()
 		end
 	end
+end
+
+-- Event dispatcher for the event system
+function Soundboard:PLAYER_MOUNT_DISPLAY_CHANGED(...)
+	SoundboardEvents:HandleEvent("PLAYER_MOUNT_DISPLAY_CHANGED", ...)
+end
+
+function Soundboard:PLAYER_DEAD(...)
+	SoundboardEvents:HandleEvent("PLAYER_DEAD", ...)
+end
+
+function Soundboard:PLAYER_ALIVE(...)
+	SoundboardEvents:HandleEvent("PLAYER_ALIVE", ...)
+end
+
+function Soundboard:PLAYER_UNGHOST(...)
+	SoundboardEvents:HandleEvent("PLAYER_UNGHOST", ...)
+end
+
+function Soundboard:UPDATE_SHAPESHIFT_FORMS(...)
+	SoundboardEvents:HandleEvent("UPDATE_SHAPESHIFT_FORMS", ...)
+end
+
+function Soundboard:UNIT_AURA(...)
+	SoundboardEvents:HandleEvent("UNIT_AURA", ...)
+end
+
+function Soundboard:PLAYER_CONTROL_LOST(...)
+	SoundboardEvents:HandleEvent("PLAYER_CONTROL_LOST", ...)
+end
+
+function Soundboard:PLAYER_LOGIN(...)
+	SoundboardEvents:HandleEvent("PLAYER_LOGIN", ...)
 end
 
 function Soundboard:ListEmotes()
