@@ -2425,7 +2425,7 @@ function SoundboardEvents:GetUserEvents()
 	return events
 end
 
- -- Options table
+-- Options table
 local options = {
 	type = 'group',
 	name = 'Soundboard',
@@ -4599,9 +4599,9 @@ function Soundboard:ShowPingResults()
 	end
 end
 
--- Addon Initialization and Registration
+-- Essential addon initialization
 function Soundboard:OnInitialize()
-	-- Database defaults
+	-- Set up database with defaults
 	local defaults = {
 		profile = {
 			IsEnabled = true,
@@ -4615,141 +4615,31 @@ function Soundboard:OnInitialize()
 			DebugMode = false,
 			EventsEnabled = false,
 			Events = {},
-			LearnedSoundDurations = {},
 		}
 	}
 	
-	-- Initialize database
 	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", defaults, true)
-	db = self.db.profile -- Set global reference
+	db = self.db.profile
 	
-	-- Initialize class colors
-	InitializeClassColor()
-	
-	-- Load learned sound durations (after database is set up)
-	LoadLearnedDurations()
-	
-	-- Register options with AceConfig
+	-- Register options
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options)
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Soundboard", "Soundboard")
 	
-	-- Register slash commands
+	-- Slash commands
 	self:RegisterChatCommand("soundboard", "SlashCommand")
 	self:RegisterChatCommand("sb", "SlashCommand")
-	
-	-- Initialize minimap button
-	if self.db.profile.ShowMinimapButton then
-		self:CreateMinimapButton()
-	end
-	
-	self:Print("Soundboard initialized! Type /soundboard or /sb for help.")
 end
 
 function Soundboard:OnEnable()
-	-- Register events for the event system
-	if self.db.profile.EventsEnabled then
-		SoundboardEvents:EnableSystem()
-	end
-	
-	-- Register communication events
 	self:RegisterComm("Soundboard")
-	
-	-- Register game events
 	self:RegisterEvent("ADDON_LOADED")
-	
-	DebugPrint("Soundboard enabled")
 end
 
-function Soundboard:OnDisable()
-	-- Disable event system
-	if SoundboardEvents then
-		SoundboardEvents:DisableSystem()
-	end
-	
-	-- Unregister communication
-	self:UnregisterComm("Soundboard")
-	
-	DebugPrint("Soundboard disabled")
-end
-
--- Slash command handler
 function Soundboard:SlashCommand(input)
 	if not input or input:trim() == "" then
-		-- Open options
-		InterfaceOptionsFrame_OpenToCategory("Soundboard")
-		InterfaceOptionsFrame_OpenToCategory("Soundboard") -- Call twice for proper focus
-	elseif input:lower() == "enable" then
-		self.db.profile.IsEnabled = true
-		self:Enable()
-		self:Print("Soundboard enabled!")
-	elseif input:lower() == "disable" then
-		self.db.profile.IsEnabled = false
-		self:Disable()
-		self:Print("Soundboard disabled!")
-	elseif input:lower() == "options" then
 		InterfaceOptionsFrame_OpenToCategory("Soundboard")
 		InterfaceOptionsFrame_OpenToCategory("Soundboard")
 	else
-		-- Try to play a sound with the input as key
 		self:SayGagKey(input:lower())
 	end
-end
-
--- Create minimap button
-function Soundboard:CreateMinimapButton()
-	if self.minimapButton then return end
-	
-	self.minimapButton = CreateFrame("Button", "SoundboardMinimapButton", Minimap)
-	self.minimapButton:SetSize(32, 32)
-	self.minimapButton:SetFrameStrata("MEDIUM")
-	self.minimapButton:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 52, -52)
-	
-	-- Button texture
-	local texture = self.minimapButton:CreateTexture(nil, "BACKGROUND")
-	texture:SetSize(20, 20)
-	texture:SetPoint("CENTER")
-	texture:SetTexture("Interface\\Icons\\Spell_Shadow_Charm")
-	self.minimapButton.texture = texture
-	
-	-- Border
-	local border = self.minimapButton:CreateTexture(nil, "OVERLAY")
-	border:SetSize(52, 52)
-	border:SetPoint("TOPLEFT")
-	border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-	
-	-- Make draggable
-	self.minimapButton:SetMovable(true)
-	self.minimapButton:EnableMouse(true)
-	self.minimapButton:RegisterForDrag("LeftButton")
-	self.minimapButton:SetScript("OnDragStart", function(self)
-		self:StartMoving()
-	end)
-	self.minimapButton:SetScript("OnDragStop", function(self)
-		self:StopMovingOrSizing()
-	end)
-	
-	-- Click handler
-	self.minimapButton:SetScript("OnClick", function(self, button)
-		if button == "LeftButton" then
-			if SoundboardDropdown then
-				SoundboardDropdown:Toggle(self)
-			end
-		elseif button == "RightButton" then
-			InterfaceOptionsFrame_OpenToCategory("Soundboard")
-			InterfaceOptionsFrame_OpenToCategory("Soundboard")
-		end
-	end)
-	
-	-- Tooltip
-	self.minimapButton:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-		GameTooltip:SetText("Soundboard", 1, 1, 1)
-		GameTooltip:AddLine("Left-click: Open sound menu", 0.7, 0.7, 0.7)
-		GameTooltip:AddLine("Right-click: Open options", 0.7, 0.7, 0.7)
-		GameTooltip:Show()
-	end)
-	
-	self.minimapButton:SetScript("OnLeave", function(self)
-		GameTooltip:Hide()
-	end)
 end
