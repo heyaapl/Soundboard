@@ -2061,7 +2061,6 @@ function SoundboardDropdown:Position(anchor)
 end
 
 local defaults;
-local db; -- DB shortening
 local LastEmoteTime = time();
 local soundboard_data_sorted_keys = {};
 
@@ -2216,6 +2215,39 @@ function SoundboardEvents:Initialize()
 	end
 	
 	DebugPrint("Event system initialized")
+end
+
+-- Enable the event system
+function SoundboardEvents:EnableSystem()
+	if not Soundboard.db or not Soundboard.db.profile.EventsEnabled then
+		return
+	end
+	
+	DebugPrint("Enabling event system...")
+	self:Initialize()
+end
+
+-- Disable the event system
+function SoundboardEvents:DisableSystem()
+	DebugPrint("Disabling event system...")
+	
+	-- Unregister all events that were registered for the event system
+	local eventsToUnregister = {}
+	for _, eventData in pairs(self.eventTypes) do
+		for _, event in ipairs(eventData.events) do
+			eventsToUnregister[event] = true
+		end
+	end
+	
+	for event, _ in pairs(eventsToUnregister) do
+		Soundboard:UnregisterEvent(event)
+		DebugPrint("Unregistered event: " .. event)
+	end
+	
+	-- Clear last states
+	self.lastStates = {}
+	
+	DebugPrint("Event system disabled")
 end
 
 -- Handle WoW events and trigger sounds
@@ -2791,7 +2823,7 @@ local options = {
 				},
 			},
 		},
-	},
+	}
 }
 
 -- Legacy popup dialogs (kept for compatibility but no longer used)
@@ -4591,11 +4623,11 @@ function Soundboard:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", defaults, true)
 	db = self.db.profile -- Set global reference
 	
-	-- Load learned sound durations
-	LoadLearnedDurations()
-	
 	-- Initialize class colors
 	InitializeClassColor()
+	
+	-- Load learned sound durations (after database is set up)
+	LoadLearnedDurations()
 	
 	-- Register options with AceConfig
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options)
