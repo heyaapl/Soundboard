@@ -60,9 +60,8 @@ jobs:
           else
             # Feature/develop branches - beta
             RELEASE_TYPE="beta"
-            VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
-            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-            VERSION="${VERSION}-beta-${SHORT_SHA}"
+            BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+            VERSION="${BASE_VERSION}-beta"
             IS_TAGGED="false"
           fi
           
@@ -84,7 +83,7 @@ jobs:
       - name: Package addon
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }} -p 1335953
+          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
