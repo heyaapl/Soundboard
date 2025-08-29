@@ -8,6 +8,7 @@ on:
       - 'feature/**'
       - 'hotfix/**' 
       - 'release/**'
+      - '*'  # Allow any branch to trigger builds
     tags:
       - 'v*'
   pull_request:
@@ -86,8 +87,6 @@ jobs:
           args: -g ${{ env.GAME_VERSIONS }}
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}  
-          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Create GitHub Release (Tagged releases only)
@@ -110,6 +109,9 @@ jobs:
             ### 🎮 Supported Versions
             - **Mists of Pandaria Classic** (5.5.0) 
             - **World of Warcraft Retail** (11.0.5+)
+            
+            ### 📥 Download
+            Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard)
             
             ### 🎯 New Features
             - **9 Event Types** for automatic sound triggers
@@ -143,10 +145,10 @@ jobs:
             
             if [[ "${{ github.ref_name }}" == "main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🚀 **Release build** - Available on CurseForge and other platforms" >> $GITHUB_STEP_SUMMARY
+              echo "🚀 **Release build** - Available on CurseForge" >> $GITHUB_STEP_SUMMARY
             else
               echo "" >> $GITHUB_STEP_SUMMARY  
-              echo "🧪 **Beta build** - Internal testing version" >> $GITHUB_STEP_SUMMARY
+              echo "🧪 **Beta build** - Available on CurseForge for testing" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "### ❌ Build Status: Failed" >> $GITHUB_STEP_SUMMARY
