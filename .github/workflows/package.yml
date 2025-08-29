@@ -73,12 +73,27 @@ jobs:
           echo "📦  Version: ${VERSION}"
           echo "🏷️  Is Tagged: ${IS_TAGGED}"
           
-      - name: Update TOC version for beta builds
+      - name: Prepare beta build
         if: steps.release-type.outputs.RELEASE_TYPE == 'beta' && steps.release-type.outputs.IS_TAGGED == 'false'
         run: |
-          # Update version in TOC file for beta builds
+          # Update version in TOC file for beta builds  
           sed -i "s/## Version: .*/## Version: ${{ steps.release-type.outputs.VERSION }}/" Soundboard.toc
           echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
+          
+          # Create beta tag and checkout to it
+          BETA_TAG="v${{ steps.release-type.outputs.VERSION }}"
+          echo "Creating beta tag: ${BETA_TAG}"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Soundboard.toc
+          git commit -m "Update version for beta release" || echo "No changes to commit"
+          git tag -a "${BETA_TAG}" -m "Beta release from branch ${{ github.ref_name }}"
+          git checkout "${BETA_TAG}"
+          
+          echo "Created and checked out beta tag: ${BETA_TAG}"
+          echo "Current tag:"
+          git describe --tags --exact-match HEAD 2>/dev/null || echo "Not on a tag"
           
       - name: Package addon
         uses: BigWigsMods/packager@v2
