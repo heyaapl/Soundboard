@@ -2506,37 +2506,7 @@ end
 					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 				},
 				
-				-- Event System Controls
-				eventsEnabled = {
-					order = 4,
-					type = 'toggle',
-					name = 'Enable Event System',
-					desc = 'Enable or disable automatic sound triggers based on game events',
-					get = function() return Soundboard.db.profile.EventsEnabled end,
-					set = function(info, value) 
-						Soundboard.db.profile.EventsEnabled = value 
-						Soundboard:Print("Event system " .. (value and "enabled" or "disabled"))
-					end,
-					disabled = function() return not Soundboard.db.profile.IsEnabled end,
-					width = 'half',
-				},
 				
-				soundEvents = {
-					order = 5,
-					type = 'execute',
-					name = 'Sound Events',
-					desc = 'Open the Sound Events manager to create and manage automatic event triggers',
-					func = function()
-						if not Soundboard.db.profile.EventsEnabled then
-							Soundboard:Print("Event system is disabled. Enable it first!")
-							return
-						end
-						-- Show the events window
-						SoundboardEventsUI:Show()
-					end,
-					disabled = function() return not Soundboard.db.profile.IsEnabled end,
-					width = 'half',
-				},
 			},
 		},
 		
@@ -2731,8 +2701,107 @@ end
 				},
 			},
 		},
+		},
+	
+	-- Event System sub-panel
+	events = {
+		type = 'group',
+		name = 'Event System',
+		desc = 'Automatic sound triggers based on game events',
+		childGroups = 'tree',
+		args = {
+			header = {
+				order = 1,
+				type = 'header',
+				name = 'Event System Settings',
+			},
+			
+			-- Enable/Disable Event System
+			eventsEnabled = {
+				order = 2,
+				type = 'toggle',
+				name = 'Enable Event System',
+				desc = 'Enable or disable automatic sound triggers based on game events',
+				get = function() return Soundboard.db.profile.EventsEnabled end,
+				set = function(info, value) 
+					Soundboard.db.profile.EventsEnabled = value 
+					Soundboard:Print("Event system " .. (value and "enabled" or "disabled"))
+				end,
+				disabled = function() return not Soundboard.db.profile.IsEnabled end,
+				width = 'full',
+			},
+			
+			-- Description
+			description = {
+				order = 3,
+				type = 'description',
+				name = 'The Event System allows you to automatically trigger sound clips based on various game events. When enabled, you can create custom event triggers that will play sounds when specific conditions are met, such as when you mount up, die, resurrect, or other game events occur.',
+				fontSize = 'medium',
+			},
+			
+			-- Event Builder Interface (integrated directly)
+			eventBuilder = {
+				order = 10,
+				type = 'group',
+				name = 'Event Builder',
+				desc = 'Create and manage automatic event triggers',
+				inline = true,
+				disabled = function() return not Soundboard.db.profile.IsEnabled or not Soundboard.db.profile.EventsEnabled end,
+				args = {
+					manageEvents = {
+						order = 1,
+						type = 'execute',
+						name = 'Open Event Manager',
+						desc = 'Open the visual Event Manager to create, edit, and manage your automatic event triggers',
+						func = function()
+							if not SoundboardEventsUI.frame then
+								SoundboardEventsUI:Initialize()
+							end
+							SoundboardEventsUI:Show()
+							Soundboard:Print('Event Manager opened!')
+						end,
+						width = 'full',
+					},
+					
+					spacer1 = {
+						order = 2,
+						type = 'description',
+						name = '',
+						width = 'full',
+					},
+					
+					eventList = {
+						order = 3,
+						type = 'description',
+						name = function()
+							local events = SoundboardEvents:GetUserEvents()
+							if not events or #events == 0 then
+								return 'No events configured yet. Use the Event Manager above to create your first automatic sound trigger!'
+							else
+								local eventText = 'Current Events:\n'
+								for i, event in ipairs(events) do
+									if i <= 5 then -- Show only first 5 to avoid clutter
+										local status = event.enabled and '|cff00ff00Enabled|r' or '|cffff0000Disabled|r'
+										local soundName = event.soundKey and soundboard_data[event.soundKey] and soundboard_data[event.soundKey].text or event.soundKey or 'Unknown Sound'
+										eventText = eventText .. string.format('• %s → %s (%s)\n', event.name or 'Unnamed Event', soundName, status)
+									end
+								end
+								if #events > 5 then
+									eventText = eventText .. string.format('... and %d more events. Open Event Manager to see all.', #events - 5)
+								else
+									eventText = eventText .. 'Open Event Manager to create more events or modify existing ones.'
+								end
+								return eventText
+							end
+						end,
+						fontSize = 'medium',
+						width = 'full',
+					},
+				},
+			},
+		},
 	},
- }
+}
 
 -- Legacy popup dialogs (kept for compatibility but no longer used)
 -- The new Sound Events UI window replaces these popups
