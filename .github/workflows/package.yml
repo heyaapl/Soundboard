@@ -84,10 +84,9 @@ jobs:
       - name: Package addon
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }}
+          args: -g ${{ env.GAME_VERSIONS }} -p 1335953
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          CF_PROJECT_ID: "1335953"
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Debug packaging results
