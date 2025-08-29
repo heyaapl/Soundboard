@@ -2505,6 +2505,38 @@ end
 					},
 					disabled = function() return not Soundboard.db.profile.IsEnabled end,
 				},
+				
+				-- Event System Controls
+				eventsEnabled = {
+					order = 4,
+					type = 'toggle',
+					name = 'Enable Event System',
+					desc = 'Enable or disable automatic sound triggers based on game events',
+					get = function() return Soundboard.db.profile.EventsEnabled end,
+					set = function(info, value) 
+						Soundboard.db.profile.EventsEnabled = value 
+						Soundboard:Print("Event system " .. (value and "enabled" or "disabled"))
+					end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
+					width = 'half',
+				},
+				
+				soundEvents = {
+					order = 5,
+					type = 'execute',
+					name = 'Sound Events',
+					desc = 'Open the Sound Events manager to create and manage automatic event triggers',
+					func = function()
+						if not Soundboard.db.profile.EventsEnabled then
+							Soundboard:Print("Event system is disabled. Enable it first!")
+							return
+						end
+						-- Show the events window
+						SoundboardEventsUI:Show()
+					end,
+					disabled = function() return not Soundboard.db.profile.IsEnabled end,
+					width = 'half',
+				},
 			},
 		},
 		
@@ -2653,70 +2685,6 @@ end
 			},
 		},
 		
-		-- Event System
-		events = {
-			order = 50,
-			type = 'group',
-			name = 'Event System',
-			desc = 'Configure automatic sound triggers based on game events',
-			args = {
-				-- Master toggle
-				eventsEnabled = {
-					order = 1,
-					type = 'toggle',
-					name = 'Enable Event System',
-					desc = 'Enable or disable all event-triggered sounds',
-					get = function() return Soundboard.db.profile.EventsEnabled end,
-					set = function(info, value) 
-						Soundboard.db.profile.EventsEnabled = value 
-						Soundboard:Print("Event system " .. (value and "enabled" or "disabled"))
-					end,
-					disabled = function() return not Soundboard.db.profile.IsEnabled end,
-					width = 'full',
-				},
-				
-				-- Description
-				eventsDescription = {
-					order = 2,
-					type = 'description',
-					name = 'The Event System allows you to automatically play sounds when specific game events occur (mounting, dying, getting buffs, etc.).\n',
-					fontSize = 'medium',
-				},
-				
-				-- Spacer
-				spacer1 = {
-					order = 3,
-					type = 'description',
-					name = '',
-				},
-				
-				-- Create New Event Button
-				createEvent = {
-					order = 10,
-					type = 'execute', 
-					name = 'Create New Event',
-					desc = 'Create a new event trigger',
-					func = function()
-						-- Show event creation dialog
-						StaticPopup_Show("SOUNDBOARD_CREATE_EVENT")
-					end,
-					disabled = function() return not Soundboard.db.profile.IsEnabled or not Soundboard.db.profile.EventsEnabled end,
-				},
-				
-				-- List existing events
-				existingEvents = {
-					order = 20,
-					type = 'group',
-					name = 'Existing Events',
-					desc = 'Manage your existing events',
-					inline = true,
-					args = {
-						-- This will be populated dynamically
-					}
-				}
-			},
-		},
-		
 		-- Advanced Settings
 		advanced = {
 			order = 60,
@@ -2766,319 +2734,436 @@ end
 	},
  }
 
--- Event Creation Popup Dialogs
-local function CreateEventPopups()
-	-- Event Creation Dialog
-	StaticPopupDialogs["SOUNDBOARD_CREATE_EVENT"] = {
-		text = "Create New Event",
-		hasEditBox = true,
-		editBoxWidth = 350,
-		maxLetters = 50,
-		button1 = "Next",
-		button2 = "Cancel",
-		OnShow = function(self)
-			self.editBox:SetText("")
-			self.editBox:SetFocus()
-		end,
-		OnAccept = function(self)
-			local eventName = self.editBox:GetText()
-			if eventName and eventName:trim() ~= "" then
-				-- Store name and show event type selection
-				SOUNDBOARD_TEMP_EVENT_NAME = eventName:trim()
-				StaticPopup_Show("SOUNDBOARD_SELECT_EVENT_TYPE")
-			end
-		end,
-		timeout = 0,
-		whileDead = true,
-		hideOnEscape = true,
-		preferredIndex = 3,
-	}
+-- Legacy popup dialogs (kept for compatibility but no longer used)
+-- The new Sound Events UI window replaces these popups
+
+--- Sound Events UI Window
+local SoundboardEventsUI = {
+	frame = nil,
+	scrollFrame = nil,
+	content = nil,
+	isOpen = false,
+	selectedEventType = nil,
+	selectedSound = nil,
+	eventNameEditBox = nil,
+	isLocalCheck = nil,
+	createMode = false, -- Whether we're creating a new event
+	editingEvent = nil -- Event being edited
+}
+
+function SoundboardEventsUI:Initialize()
+	if self.frame then return end
 	
-	-- Event Type Selection Dialog  
-	StaticPopupDialogs["SOUNDBOARD_SELECT_EVENT_TYPE"] = {
-		text = "Select Event Type",
-		button1 = "Select",
-		button2 = "Back", 
-		button3 = "Cancel",
-		hasEditBox = false,
-		OnShow = function(self)
-			-- Create dropdown for event types if it doesn't exist
-			if not self.eventTypeDropdown then
-				local dropdown = CreateFrame("Frame", "SoundboardEventTypeDropdown", self, "UIDropDownMenuTemplate")
-				dropdown:SetPoint("CENTER", self, "CENTER", 0, -20)
-				
-				local eventTypes = SoundboardEvents:GetEventTypes()
-				local selectedType = nil
-				
-				local function OnClick(dropdownSelf, arg1, arg2, checked)
-					selectedType = arg1
-					UIDropDownMenu_SetSelectedID(dropdown, dropdownSelf:GetID())
-					UIDropDownMenu_SetText(dropdown, arg2)
-				end
-				
-				local function initialize(dropdownSelf, level)
-					for i, eventType in ipairs(eventTypes) do
-						local info = UIDropDownMenu_CreateInfo()
-						info.text = eventType.name
-						info.value = eventType.key
-						info.arg1 = eventType.key
-						info.arg2 = eventType.name  
-						info.func = OnClick
-						UIDropDownMenu_AddButton(info, level)
-					end
-				end
-				
-				UIDropDownMenu_Initialize(dropdown, initialize)
-				UIDropDownMenu_SetWidth(dropdown, 200)
-				UIDropDownMenu_SetText(dropdown, "Choose Event Type")
-				
-				self.eventTypeDropdown = dropdown
-				self.selectedType = function() return selectedType end
-			end
-		end,
-		OnAccept = function(self)
-			local selectedType = self.selectedType()
-			if selectedType then
-				SOUNDBOARD_TEMP_EVENT_TYPE = selectedType
-				StaticPopup_Show("SOUNDBOARD_SELECT_SOUND")
-			else
-				Soundboard:Print("Please select an event type")
-				return 1 -- Keep dialog open
-			end
-		end,
-		OnAlt = function(self)
-			-- Back button - return to name entry
-			StaticPopup_Show("SOUNDBOARD_CREATE_EVENT")
-		end,
-		timeout = 0,
-		whileDead = true,
-		hideOnEscape = true,
-		preferredIndex = 3,
-	}
+	DebugPrint("Initializing Sound Events UI...")
 	
-	-- Sound Selection Dialog
-	StaticPopupDialogs["SOUNDBOARD_SELECT_SOUND"] = {
-		text = "Select Sound",
-		button1 = "Create",
-		button2 = "Back",
-		button3 = "Cancel", 
-		hasEditBox = false,
-		OnShow = function(self)
-			-- Create sound selection dropdown
-			if not self.soundDropdown then
-				local dropdown = CreateFrame("Frame", "SoundboardSoundDropdown", self, "UIDropDownMenuTemplate")  
-				dropdown:SetPoint("CENTER", self, "CENTER", 0, -20)
-				
-				local selectedSound = nil
-				
-				local function OnClick(dropdownSelf, arg1, arg2, checked)
-					selectedSound = arg1
-					UIDropDownMenu_SetSelectedID(dropdown, dropdownSelf:GetID())
-					UIDropDownMenu_SetText(dropdown, arg2)
-				end
-				
-				local function initialize(dropdownSelf, level)
-					if not soundboard_data then return end
-					
-					-- Sort sounds by category then name
-					local soundList = {}
-					for soundKey, soundData in pairs(soundboard_data) do
-						if soundData.text then
-							table.insert(soundList, {
-								key = soundKey,
-								name = soundData.text,
-								category = soundData.category or "Uncategorized"
-							})
-						end
-					end
-					
-					table.sort(soundList, function(a, b) 
-						if a.category == b.category then
-							return a.name < b.name
-						end
-						return a.category < b.category
-					end)
-					
-					local lastCategory = nil
-					for i, sound in ipairs(soundList) do
-						-- Add category header
-						if lastCategory ~= sound.category then
-							if lastCategory then
-								-- Add separator
-								local separator = UIDropDownMenu_CreateInfo()
-								separator.text = ""
-								separator.isTitle = true
-								separator.notCheckable = true
-								UIDropDownMenu_AddButton(separator, level)
-							end
-							
-							local header = UIDropDownMenu_CreateInfo()
-							header.text = sound.category
-							header.isTitle = true
-							header.notCheckable = true
-							UIDropDownMenu_AddButton(header, level)
-							lastCategory = sound.category
-						end
-						
-						local info = UIDropDownMenu_CreateInfo()
-						info.text = "  " .. sound.name -- Indent under category
-						info.value = sound.key
-						info.arg1 = sound.key
-						info.arg2 = sound.name
-						info.func = OnClick
-						UIDropDownMenu_AddButton(info, level)
-					end
-				end
-				
-				UIDropDownMenu_Initialize(dropdown, initialize)
-				UIDropDownMenu_SetWidth(dropdown, 250)
-				UIDropDownMenu_SetText(dropdown, "Choose Sound")
-				
-				self.soundDropdown = dropdown
-				self.selectedSound = function() return selectedSound end
-			end
-			
-			-- Add broadcast options
-			if not self.broadcastCheck then
-				local checkButton = CreateFrame("CheckButton", "SoundboardBroadcastCheck", self, "ChatConfigCheckButtonTemplate")
-				checkButton:SetPoint("CENTER", self, "CENTER", 0, -60)
-				checkButton.Text:SetText("Play locally only (don't broadcast)")
-				checkButton.Text:SetTextColor(1, 1, 1)
-				checkButton:SetChecked(true) -- Default to local only
-				self.broadcastCheck = checkButton
-			end
-		end,
-		OnAccept = function(self)
-			local selectedSound = self.selectedSound()
-			local isLocal = self.broadcastCheck:GetChecked()
-			
-			if selectedSound and SOUNDBOARD_TEMP_EVENT_NAME and SOUNDBOARD_TEMP_EVENT_TYPE then
-				-- Create the event
-				local eventId = SoundboardEvents:CreateEvent(
-					SOUNDBOARD_TEMP_EVENT_NAME,
-					SOUNDBOARD_TEMP_EVENT_TYPE,
-					selectedSound,
-					isLocal
-				)
-				
-				if eventId then
-					Soundboard:Print("Created event: " .. SOUNDBOARD_TEMP_EVENT_NAME)
-					-- Refresh the options UI if it's open
-					LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
-				else
-					Soundboard:Print("Failed to create event")
-				end
-				
-				-- Clear temp variables
-				SOUNDBOARD_TEMP_EVENT_NAME = nil
-				SOUNDBOARD_TEMP_EVENT_TYPE = nil
-			else
-				Soundboard:Print("Please select a sound")
-				return 1 -- Keep dialog open
-			end
-		end,
-		OnAlt = function(self)
-			-- Back button
-			StaticPopup_Show("SOUNDBOARD_SELECT_EVENT_TYPE")
-		end,
-		timeout = 0,
-		whileDead = true,
-		hideOnEscape = true,
-		preferredIndex = 3,
-	}
+	-- Main frame
+	self.frame = CreateFrame("Frame", "SoundboardEventsFrame", UIParent, "BackdropTemplate")
+	self.frame:SetSize(600, 500)
+	self.frame:SetPoint("CENTER")
+	self.frame:SetFrameStrata("DIALOG")
+	self.frame:SetFrameLevel(100)
+	self.frame:SetClampedToScreen(true)
+	self.frame:SetMovable(true)
+	self.frame:EnableMouse(true)
+	self.frame:RegisterForDrag("LeftButton")
+	self.frame:SetScript("OnDragStart", function() self.frame:StartMoving() end)
+	self.frame:SetScript("OnDragStop", function() self.frame:StopMovingOrSizing() end)
+	
+	-- Apply styling
+	SoundboardUI.SetTemplate(self.frame, Soundboard.db.profile.UITemplate or "Default")
+	
+	-- Close button
+	local closeButton = CreateFrame("Button", nil, self.frame, "UIPanelCloseButton")
+	closeButton:SetPoint("TOPRIGHT", -5, -5)
+	closeButton:SetScript("OnClick", function() self:Hide() end)
+	
+	-- Title
+	local title = self.frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+	title:SetPoint("TOP", 0, -10)
+	title:SetText("Sound Events Manager")
+	title:SetTextColor(1, 0.82, 0) -- Gold color
+	
+	-- Create scroll frame for content
+	self.scrollFrame = CreateFrame("ScrollFrame", nil, self.frame, "UIPanelScrollFrameTemplate")
+	self.scrollFrame:SetPoint("TOPLEFT", 10, -40)
+	self.scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
+	
+	-- Content frame
+	self.content = CreateFrame("Frame", nil, self.scrollFrame)
+	self.content:SetSize(1, 1)
+	self.scrollFrame:SetScrollChild(self.content)
+	
+	-- Style the scrollbar
+	SoundboardUI.HandleScrollBar(self.scrollFrame.ScrollBar, Soundboard.db.profile.UITemplate or "Default")
+	
+	-- Hide initially
+	self.frame:Hide()
+	
+	DebugPrint("Sound Events UI initialized")
 end
 
--- Initialize popup dialogs
-CreateEventPopups()
-
--- Function to update existing events display in options
-local function UpdateEventsDisplay()
-	local eventsGroup = options.args.events.args.existingEvents.args
-	
-	-- Clear existing event options
-	for key in pairs(eventsGroup) do
-		if key ~= "description" then
-			eventsGroup[key] = nil
-		end
+function SoundboardEventsUI:Show()
+	if not self.frame then
+		self:Initialize()
 	end
 	
-	-- Get user events
+	self:RefreshContent()
+	self.frame:Show()
+	self.isOpen = true
+end
+
+function SoundboardEventsUI:Hide()
+	if self.frame then
+		self.frame:Hide()
+	end
+	self.isOpen = false
+	self.createMode = false
+	self.editingEvent = nil
+end
+
+function SoundboardEventsUI:RefreshContent()
+	-- Clear existing content
+	local children = {self.content:GetChildren()}
+	for _, child in pairs(children) do
+		child:Hide()
+		child:SetParent(nil)
+	end
+	
+	local yOffset = -10
+	
+	if self.createMode then
+		yOffset = self:CreateEventForm(yOffset)
+	else
+		yOffset = self:CreateMainView(yOffset)
+	end
+	
+	-- Set content height
+	self.content:SetHeight(math.abs(yOffset) + 20)
+end
+
+function SoundboardEventsUI:CreateMainView(yOffset)
+	-- Header with Create New Event button
+	local headerFrame = CreateFrame("Frame", nil, self.content)
+	headerFrame:SetSize(550, 30)
+	headerFrame:SetPoint("TOPLEFT", 10, yOffset)
+	
+	local createButton = CreateFrame("Button", nil, headerFrame, "UIPanelButtonTemplate")
+	createButton:SetSize(150, 25)
+	createButton:SetPoint("LEFT", 0, 0)
+	createButton:SetText("Create New Event")
+	createButton:SetScript("OnClick", function()
+		self.createMode = true
+		self:RefreshContent()
+	end)
+	
+	yOffset = yOffset - 40
+	
+	-- Existing events
 	local userEvents = SoundboardEvents:GetUserEvents()
 	
 	if #userEvents == 0 then
-		eventsGroup.noEvents = {
-			order = 1,
-			type = 'description',
-			name = 'No events created yet. Click "Create New Event" above to get started.',
-			fontSize = 'medium',
-		}
+		local noEventsText = self.content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+		noEventsText:SetPoint("TOPLEFT", 20, yOffset)
+		noEventsText:SetText("No events created yet. Click 'Create New Event' to get started!")
+		noEventsText:SetTextColor(0.8, 0.8, 0.8)
+		yOffset = yOffset - 30
 	else
-		for i, event in ipairs(userEvents) do
-			local eventType = SoundboardEvents.eventTypes[event.eventType]
-			local eventTypeName = eventType and eventType.name or event.eventType
-			local soundData = soundboard_data and soundboard_data[event.soundKey]
-			local soundName = soundData and soundData.text or event.soundKey
-			
-			eventsGroup["event_" .. event.id] = {
-				order = i,
-				type = 'group',
-				name = event.name,
-				desc = eventTypeName .. " → " .. soundName,
-				inline = true,
-				args = {
-					enabled = {
-						order = 1,
-						type = 'toggle',
-						name = 'Enabled',
-						desc = 'Enable or disable this event',
-						get = function() return event.enabled end,
-						set = function(info, value) 
-							event.enabled = value
-							LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
-						end,
-						width = 0.5,
-					},
-					isLocal = {
-						order = 2,
-						type = 'toggle',
-						name = 'Local Only',
-						desc = 'If enabled, sound plays only for you. If disabled, sound is broadcast to group.',
-						get = function() return event.isLocal end,
-						set = function(info, value) 
-							event.isLocal = value
-						end,
-						width = 0.5,
-					},
-					delete = {
-						order = 3,
-						type = 'execute',
-						name = 'Delete',
-						desc = 'Delete this event permanently',
-						func = function()
-							SoundboardEvents:DeleteEvent(event.id)
-							Soundboard:Print("Deleted event: " .. event.name)
-							UpdateEventsDisplay()
-							LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
-						end,
-						width = 0.5,
-						confirm = true,
-						confirmText = 'Are you sure you want to delete this event?',
-					},
-					info = {
-						order = 4,
-						type = 'description',
-						name = string.format('Type: %s | Sound: %s | %s', 
-							eventTypeName, soundName, event.isLocal and 'Local Only' or 'Broadcast'),
-						fontSize = 'small',
-					}
-				}
-			}
+		-- Events header
+		local eventsHeader = self.content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+		eventsHeader:SetPoint("TOPLEFT", 20, yOffset)
+		eventsHeader:SetText("Your Events")
+		eventsHeader:SetTextColor(1, 0.82, 0) -- Gold
+		yOffset = yOffset - 30
+		
+		-- List events
+		for _, event in ipairs(userEvents) do
+			yOffset = self:CreateEventEntry(event, yOffset)
+			yOffset = yOffset - 5 -- Spacing between events
 		end
 	end
 	
-	-- Update registry to refresh UI
-	LibStub("AceConfigRegistry-3.0"):NotifyChange("Soundboard")
+	return yOffset
 end
+
+function SoundboardEventsUI:CreateEventEntry(event, yOffset)
+	local eventType = SoundboardEvents.eventTypes[event.eventType]
+	local eventTypeName = eventType and eventType.name or event.eventType
+	local soundData = soundboard_data and soundboard_data[event.soundKey]
+	local soundName = soundData and soundData.text or event.soundKey
+	
+	-- Event frame
+	local eventFrame = CreateFrame("Frame", nil, self.content, "BackdropTemplate")
+	eventFrame:SetSize(550, 80)
+	eventFrame:SetPoint("TOPLEFT", 10, yOffset)
+	SoundboardUI.SetTemplate(eventFrame, "Transparent")
+	
+	-- Event name
+	local nameText = eventFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+	nameText:SetPoint("TOPLEFT", 10, -10)
+	nameText:SetText(event.name)
+	nameText:SetTextColor(1, 1, 1)
+	
+	-- Event info
+	local infoText = eventFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	infoText:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -5)
+	infoText:SetText(string.format("%s → %s", eventTypeName, soundName))
+	infoText:SetTextColor(0.8, 0.8, 0.8)
+	
+	-- Status
+	local statusText = eventFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+	statusText:SetPoint("TOPLEFT", infoText, "BOTTOMLEFT", 0, -3)
+	local statusColor = event.enabled and {0, 1, 0} or {1, 0, 0}
+	local localText = event.isLocal and " | Local Only" or " | Broadcast"
+	statusText:SetText((event.enabled and "Enabled" or "Disabled") .. localText)
+	statusText:SetTextColor(statusColor[1], statusColor[2], statusColor[3])
+	
+	-- Control buttons
+	local buttonY = -10
+	
+	-- Enable/Disable toggle
+	local toggleButton = CreateFrame("Button", nil, eventFrame, "UIPanelButtonTemplate")
+	toggleButton:SetSize(80, 25)
+	toggleButton:SetPoint("TOPRIGHT", -10, buttonY)
+	toggleButton:SetText(event.enabled and "Disable" or "Enable")
+	toggleButton:SetScript("OnClick", function()
+		event.enabled = not event.enabled
+		self:RefreshContent()
+	end)
+	
+	-- Delete button
+	local deleteButton = CreateFrame("Button", nil, eventFrame, "UIPanelButtonTemplate")
+	deleteButton:SetSize(60, 25)
+	deleteButton:SetPoint("RIGHT", toggleButton, "LEFT", -5, 0)
+	deleteButton:SetText("Delete")
+	deleteButton:SetScript("OnClick", function()
+		-- Show confirmation
+		StaticPopupDialogs["SOUNDBOARD_CONFIRM_DELETE"] = {
+			text = "Are you sure you want to delete the event '" .. event.name .. "'?",
+			button1 = "Delete",
+			button2 = "Cancel",
+			OnAccept = function()
+				SoundboardEvents:DeleteEvent(event.id)
+				self:RefreshContent()
+				Soundboard:Print("Deleted event: " .. event.name)
+			end,
+			timeout = 0,
+			whileDead = true,
+			hideOnEscape = true,
+		}
+		StaticPopup_Show("SOUNDBOARD_CONFIRM_DELETE")
+	end)
+	
+	-- Local/Broadcast toggle
+	local localButton = CreateFrame("Button", nil, eventFrame, "UIPanelButtonTemplate")
+	localButton:SetSize(80, 25)
+	localButton:SetPoint("RIGHT", deleteButton, "LEFT", -5, 0)
+	localButton:SetText(event.isLocal and "Make Global" or "Make Local")
+	localButton:SetScript("OnClick", function()
+		event.isLocal = not event.isLocal
+		self:RefreshContent()
+	end)
+	
+	return yOffset - 85
+end
+
+function SoundboardEventsUI:CreateEventForm(yOffset)
+	-- Back button
+	local backButton = CreateFrame("Button", nil, self.content, "UIPanelButtonTemplate")
+	backButton:SetSize(60, 25)
+	backButton:SetPoint("TOPLEFT", 10, yOffset)
+	backButton:SetText("← Back")
+	backButton:SetScript("OnClick", function()
+		self.createMode = false
+		self.editingEvent = nil
+		self:RefreshContent()
+	end)
+	
+	-- Form header
+	local headerText = self.content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+	headerText:SetPoint("TOPLEFT", 80, yOffset)
+	headerText:SetText("Create New Event")
+	headerText:SetTextColor(1, 0.82, 0)
+	
+	yOffset = yOffset - 40
+	
+	-- Event Name
+	local nameLabel = self.content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	nameLabel:SetPoint("TOPLEFT", 20, yOffset)
+	nameLabel:SetText("Event Name:")
+	nameLabel:SetTextColor(1, 1, 1)
+	
+	yOffset = yOffset - 20
+	
+	self.eventNameEditBox = CreateFrame("EditBox", nil, self.content, "InputBoxTemplate")
+	self.eventNameEditBox:SetSize(300, 20)
+	self.eventNameEditBox:SetPoint("TOPLEFT", 20, yOffset)
+	self.eventNameEditBox:SetAutoFocus(false)
+	self.eventNameEditBox:SetMaxLetters(50)
+	
+	yOffset = yOffset - 40
+	
+	-- Event Type
+	local typeLabel = self.content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	typeLabel:SetPoint("TOPLEFT", 20, yOffset)
+	typeLabel:SetText("Event Type:")
+	typeLabel:SetTextColor(1, 1, 1)
+	
+	yOffset = yOffset - 20
+	
+	local typeDropdown = CreateFrame("Frame", nil, self.content, "UIDropDownMenuTemplate")
+	typeDropdown:SetPoint("TOPLEFT", 20, yOffset)
+	
+	local function OnTypeClick(dropdownSelf, arg1, arg2, checked)
+		self.selectedEventType = arg1
+		UIDropDownMenu_SetSelectedID(typeDropdown, dropdownSelf:GetID())
+		UIDropDownMenu_SetText(typeDropdown, arg2)
+	end
+	
+	local function initializeTypeDropdown(dropdownSelf, level)
+		local eventTypes = SoundboardEvents:GetEventTypes()
+		for i, eventType in ipairs(eventTypes) do
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = eventType.name
+			info.value = eventType.key
+			info.arg1 = eventType.key
+			info.arg2 = eventType.name
+			info.func = OnTypeClick
+			UIDropDownMenu_AddButton(info, level)
+		end
+	end
+	
+	UIDropDownMenu_Initialize(typeDropdown, initializeTypeDropdown)
+	UIDropDownMenu_SetWidth(typeDropdown, 200)
+	UIDropDownMenu_SetText(typeDropdown, "Choose Event Type")
+	
+	yOffset = yOffset - 40
+	
+	-- Sound Selection
+	local soundLabel = self.content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+	soundLabel:SetPoint("TOPLEFT", 20, yOffset)
+	soundLabel:SetText("Sound:")
+	soundLabel:SetTextColor(1, 1, 1)
+	
+	yOffset = yOffset - 20
+	
+	local soundDropdown = CreateFrame("Frame", nil, self.content, "UIDropDownMenuTemplate")
+	soundDropdown:SetPoint("TOPLEFT", 20, yOffset)
+	
+	local function OnSoundClick(dropdownSelf, arg1, arg2, checked)
+		self.selectedSound = arg1
+		UIDropDownMenu_SetSelectedID(soundDropdown, dropdownSelf:GetID())
+		UIDropDownMenu_SetText(soundDropdown, arg2)
+	end
+	
+	local function initializeSoundDropdown(dropdownSelf, level)
+		if not soundboard_data then return end
+		
+		local soundList = {}
+		for soundKey, soundData in pairs(soundboard_data) do
+			if soundData.text then
+				table.insert(soundList, {
+					key = soundKey,
+					name = soundData.text,
+					category = soundData.category or "Uncategorized"
+				})
+			end
+		end
+		
+		table.sort(soundList, function(a, b) 
+			if a.category == b.category then
+				return a.name < b.name
+			end
+			return a.category < b.category
+		end)
+		
+		local lastCategory = nil
+		for i, sound in ipairs(soundList) do
+			if lastCategory ~= sound.category then
+				if lastCategory then
+					local separator = UIDropDownMenu_CreateInfo()
+					separator.text = ""
+					separator.isTitle = true
+					separator.notCheckable = true
+					UIDropDownMenu_AddButton(separator, level)
+				end
+				
+				local header = UIDropDownMenu_CreateInfo()
+				header.text = sound.category
+				header.isTitle = true
+				header.notCheckable = true
+				UIDropDownMenu_AddButton(header, level)
+				lastCategory = sound.category
+			end
+			
+			local info = UIDropDownMenu_CreateInfo()
+			info.text = "  " .. sound.name
+			info.value = sound.key
+			info.arg1 = sound.key
+			info.arg2 = sound.name
+			info.func = OnSoundClick
+			UIDropDownMenu_AddButton(info, level)
+		end
+	end
+	
+	UIDropDownMenu_Initialize(soundDropdown, initializeSoundDropdown)
+	UIDropDownMenu_SetWidth(soundDropdown, 250)
+	UIDropDownMenu_SetText(soundDropdown, "Choose Sound")
+	
+	yOffset = yOffset - 40
+	
+	-- Local/Broadcast option
+	self.isLocalCheck = CreateFrame("CheckButton", nil, self.content, "ChatConfigCheckButtonTemplate")
+	self.isLocalCheck:SetPoint("TOPLEFT", 20, yOffset)
+	self.isLocalCheck.Text:SetText("Play locally only (don't broadcast)")
+	self.isLocalCheck.Text:SetTextColor(1, 1, 1)
+	self.isLocalCheck:SetChecked(true) -- Default to local
+	
+	yOffset = yOffset - 30
+	
+	-- Create button
+	local createButton = CreateFrame("Button", nil, self.content, "UIPanelButtonTemplate")
+	createButton:SetSize(100, 30)
+	createButton:SetPoint("TOPLEFT", 20, yOffset)
+	createButton:SetText("Create Event")
+	createButton:SetScript("OnClick", function()
+		local eventName = self.eventNameEditBox:GetText():trim()
+		local eventType = self.selectedEventType
+		local soundKey = self.selectedSound
+		local isLocal = self.isLocalCheck:GetChecked()
+		
+		if eventName == "" then
+			Soundboard:Print("Please enter an event name")
+			return
+		end
+		
+		if not eventType then
+			Soundboard:Print("Please select an event type")
+			return
+		end
+		
+		if not soundKey then
+			Soundboard:Print("Please select a sound")
+			return
+		end
+		
+		-- Create the event
+		local eventId = SoundboardEvents:CreateEvent(eventName, eventType, soundKey, isLocal)
+		
+		if eventId then
+			Soundboard:Print("Created event: " .. eventName)
+			self.createMode = false
+			self.editingEvent = nil
+			self:RefreshContent()
+		else
+			Soundboard:Print("Failed to create event")
+		end
+	end)
+	
+	return yOffset - 40
+end
+
+-- Initialize the UI (will be created when first needed)
+-- SoundboardEventsUI:Initialize() -- We'll initialize on first use
 
  function Soundboard:OnInitialize()
 	DebugPrint("Soundboard:OnInitialize called")
@@ -3249,9 +3334,6 @@ end
 
  function Soundboard:OnEnable()
 	db.IsEnabled = true
-	
-	-- Initialize events display
-	UpdateEventsDisplay()
 	
 	-- Debug: Check if soundboard_data exists
 	self:Print("Soundboard enabled. Checking for sound packs...")
