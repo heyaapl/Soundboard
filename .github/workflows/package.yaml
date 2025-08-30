@@ -41,7 +41,7 @@ jobs:
           
           # Determine release type based on branch and tag
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # Tagged release
+            # Already tagged release
             if [[ "${{ github.ref_name }}" == *"alpha"* ]]; then
               RELEASE_TYPE="alpha"
             elif [[ "${{ github.ref_name }}" == *"beta"* ]]; then
@@ -52,31 +52,58 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"  # Remove v prefix
             IS_TAGGED="true"
+            SHOULD_CREATE_TAG="false"
           elif [[ "${{ github.ref_name }}" == "main" ]]; then
-            # Main branch - release
+            # Main branch - we'll create a tag to make it a release
             RELEASE_TYPE="release"
             VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
             IS_TAGGED="false"
+            SHOULD_CREATE_TAG="true"
           else
-            # Feature/develop branches - beta
-            RELEASE_TYPE="beta"
+            # Feature/develop branches - alpha builds
+            RELEASE_TYPE="alpha"
             BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
-            VERSION="${BASE_VERSION}-beta"
-            IS_TAGGED="false"
+            VERSION="${BASE_VERSION}-dev"
+            IS_TAGGED="false"  
+            SHOULD_CREATE_TAG="false"
           fi
           
           echo "RELEASE_TYPE=${RELEASE_TYPE}" >> $GITHUB_OUTPUT
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT  
           echo "IS_TAGGED=${IS_TAGGED}" >> $GITHUB_OUTPUT
+          echo "SHOULD_CREATE_TAG=${SHOULD_CREATE_TAG}" >> $GITHUB_OUTPUT
           
           echo "🏷️  Release Type: ${RELEASE_TYPE}"
           echo "📦  Version: ${VERSION}"
           echo "🏷️  Is Tagged: ${IS_TAGGED}"
+          echo "🏷️  Should Create Tag: ${SHOULD_CREATE_TAG}"
           
-      - name: Update TOC version for beta builds
-        if: steps.release-type.outputs.RELEASE_TYPE == 'beta' && steps.release-type.outputs.IS_TAGGED == 'false'
+      - name: Create automatic release tag for main branch
+        if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
         run: |
-          # Update version in TOC file for beta builds  
+          VERSION="${{ steps.release-type.outputs.VERSION }}"
+          TAG_NAME="v${VERSION}"
+          
+          echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
+          echo "📝 This will make BigWigsMods packager treat this as a release build"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create and push the tag
+          git tag "${TAG_NAME}" -m "Automatic release tag for ${TAG_NAME}"
+          git push origin "${TAG_NAME}"
+          
+          echo "✅ Created and pushed tag: ${TAG_NAME}"
+          
+          # Update our outputs to reflect that we're now tagged
+          echo "IS_TAGGED=true" >> $GITHUB_OUTPUT
+          
+      - name: Update TOC version for dev builds
+        if: steps.release-type.outputs.RELEASE_TYPE == 'alpha' && steps.release-type.outputs.IS_TAGGED == 'false'
+        run: |
+          # Update version in TOC file for dev builds  
           sed -i "s/## Version: .*/## Version: ${{ steps.release-type.outputs.VERSION }}/" Soundboard.toc
           echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
           
@@ -95,12 +122,18 @@ jobs:
           echo "🔑 CF_API_KEY present: ${{ secrets.CF_API_KEY != '' }}"
           echo "🎯 Game versions: ${{ env.GAME_VERSIONS }}"
           echo "🆔 CurseForge Project ID: 1335953"
-          echo "📋 Release type passed to packager: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
+          echo "📋 Our release type determination: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
           echo "📝 Version: ${{ steps.release-type.outputs.VERSION }}"
           echo "🏷️ Is Tagged: ${{ steps.release-type.outputs.IS_TAGGED }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           echo "🔗 Ref: ${{ github.ref }}"
           echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          echo ""
+          echo "ℹ️  Touchless Release Process:"
+          echo "   - Commits to main → Automatic tag creation → Release builds"
+          echo "   - Commits to feature branches → Alpha builds" 
+          echo "   - Manual tags → Release builds (as before)"
+          echo ""
           echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
           echo "📁 Working directory contents:"
           ls -la || dir
@@ -109,7 +142,7 @@ jobs:
           
       - name: Extract changelog for current version
         id: changelog
-        if: steps.release-type.outputs.IS_TAGGED == 'true' && steps.release-type.outputs.RELEASE_TYPE == 'release'
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release'
         run: |
           # Extract the changelog content for the current version
           VERSION="${{ steps.release-type.outputs.VERSION }}"
@@ -156,10 +189,11 @@ jobs:
           echo "Preview:"
           head -10 changelog_content.txt
           
-      - name: Create GitHub Release (Tagged releases only)
-        if: steps.release-type.outputs.IS_TAGGED == 'true' && steps.release-type.outputs.RELEASE_TYPE == 'release'
+      - name: Create GitHub Release
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release'
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.release-type.outputs.VERSION }}
           name: Soundboard v${{ steps.release-type.outputs.VERSION }}
           body: |
             ## Soundboard v${{ steps.release-type.outputs.VERSION }}
@@ -181,7 +215,7 @@ jobs:
             Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)
             
             ### 📋 Full Changelog
-            See [CHANGELOG.txt](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.txt) for complete version history.
+            See [CHANGELOG.txt](https://github.com/${{ github.repository }}/blob/v${{ steps.release-type.outputs.VERSION }}/CHANGELOG.txt) for complete version history.
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -189,7 +223,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Send Discord Notification
-        if: github.ref_name == 'main' && github.event_name == 'push'
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push'
         run: |
           # Extract changelog summary for Discord
           VERSION="${{ steps.release-type.outputs.VERSION }}"
@@ -293,10 +327,20 @@ jobs:
           echo "## 📦 Soundboard Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Branch/Tag:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Release Type:** ${{ needs.package.outputs.release-type || '❓ Unknown' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ needs.package.outputs.version || '❓ Unknown' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Target Versions:** MOP 5.5.0, Retail 11.2.5+" >> $GITHUB_STEP_SUMMARY
           echo "**CurseForge Project:** 1335953 (soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Explain CurseForge release type
+          if [[ "${{ github.ref_name }}" == "main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "**CurseForge Release Type:** 🟢 Release" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ github.ref_name }}" == "main" ]]; then
+              echo "*(Automatic tag created for main branch)*" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "**CurseForge Release Type:** 🟡 Alpha (feature branch)" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [[ "${{ needs.package.result }}" == "success" ]]; then
