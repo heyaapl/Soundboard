@@ -735,26 +735,81 @@ local SoundboardEvents = {
 	-- Event types and their human-readable names
 	eventTypes = {
 		"PLAYER_LOGIN", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_MOUNT", "PLAYER_DISMOUNT",
-		"SHAPESHIFT_ENTER", "SHAPESHIFT_EXIT", "HEROISM_BUFF", "TRANSPORT_BOARD"
+		"PLAYER_TAXI_START", "PLAYER_TAXI_END", "SHAPESHIFT_ENTER", "SHAPESHIFT_EXIT", 
+		"HEROISM_BUFF"
 	},
 	eventNames = {
 		["PLAYER_LOGIN"] = "Player Login",
 		["PLAYER_DEAD"] = "Player Dies", 
 		["PLAYER_ALIVE"] = "Player Revives",
-		["PLAYER_MOUNT"] = "Player Mounts",
+		["PLAYER_MOUNT"] = "Player Mounts", 
 		["PLAYER_DISMOUNT"] = "Player Dismounts", 
+		["PLAYER_TAXI_START"] = "Takes Taxi",
+		["PLAYER_TAXI_END"] = "Taxi Ends",
 		["SHAPESHIFT_ENTER"] = "Enter Shapeshift Form",
 		["SHAPESHIFT_EXIT"] = "Exit Shapeshift Form",
-		["HEROISM_BUFF"] = "Heroism/Bloodlust/Time Warp Applied",
-		["TRANSPORT_BOARD"] = "Boards Transport (Boats, Zeppelins, etc.)"
+		["HEROISM_BUFF"] = "Heroism/Bloodlust/Time Warp"
 	}
 }
+
+-- Helper function to check if an event type is already configured
+function SoundboardEvents:IsEventTypeConfigured(eventType)
+	if not Soundboard.db or not Soundboard.db.profile or not Soundboard.db.profile.Events then
+		return false
+	end
+	
+	local events = Soundboard.db.profile.Events
+	for eventId, eventData in pairs(events) do
+		if eventData.eventType == eventType then
+			return true, eventData  -- Return true and the event data
+		end
+	end
+	
+	return false
+end
+
+-- Get list of available (unconfigured) event types
+function SoundboardEvents:GetAvailableEventTypes()
+	local available = {}
+	local configured = {}
+	
+	for _, eventType in ipairs(self.eventTypes) do
+		local isConfigured, eventData = self:IsEventTypeConfigured(eventType)
+		if isConfigured then
+			table.insert(configured, {
+				eventType = eventType,
+				eventName = self.eventNames[eventType],
+				soundKey = eventData.soundKey,
+				playerOnly = eventData.playerOnly
+			})
+		else
+			table.insert(available, {
+				eventType = eventType,
+				eventName = self.eventNames[eventType]
+			})
+		end
+	end
+	
+	return available, configured
+end
 
 -- Player state tracking for Events system
 Soundboard.playerStates = {
 	mounted = false,
 	shapeshifted = false,
 	hasHeroismBuff = false,
+	onTaxi = false,                -- Track taxi/flight path state
+	actuallyDead = false,          -- Track if player actually died (not just loading screen)
+	lastDeathTime = 0,             -- When player actually died
+	loadingScreenActive = false,   -- Track loading screen state
+	mountedBeforeLoading = false,  -- Store mount state before loading screens
+	shapeshiftedBeforeLoading = false, -- Store shapeshift state before loading screens
+	hasLoggedInThisSession = false,-- Track if player has already logged in this session
+	sessionStartTime = 0,          -- When this session started
+	justLeftTaxi = false,          -- Track recent taxi departure to prevent mount false triggers
+	taxiEndTime = 0,               -- When taxi ended
+	justFinishedLoading = false,   -- Track recent loading screen completion
+	loadingEndTime = 0,            -- When loading screen ended
 }
 
 function SoundboardDropdown:Initialize()
@@ -1505,8 +1560,8 @@ function SoundboardDropdown:ShowEvents()
 	end)
 	yOffset = yOffset - buttonHeight - 5
 	
-	-- Events title with icon
-	local title = self:CreateButtonWithIcon("Events", yOffset, "Interface\\CURSOR\\LootRoll", true)
+	-- Events title with diamond icon
+	local title = self:CreateButtonWithIcon("Events", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_3", true)
 	title:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight - 5
 	
@@ -1544,29 +1599,49 @@ function SoundboardDropdown:ShowEvents()
 		return aName < bName
 	end)
 	
-	-- Add New Event button
-	local addBtn = self:CreateButton("+ Add New Event", yOffset)
+	-- Get availability info for the Add button
+	local availableEvents, configuredEvents = SoundboardEvents:GetAvailableEventTypes()
+	local availableCount = #availableEvents
+	local totalCount = #SoundboardEvents.eventTypes
+	
+	-- Add New Event button (show availability info)
+	local addButtonText = "+ Add New Event"
+	if availableCount > 0 then
+		addButtonText = addButtonText .. " (" .. availableCount .. "/" .. totalCount .. " available)"
+	else
+		addButtonText = "All Event Types Configured (" .. totalCount .. "/" .. totalCount .. ")"
+	end
+	
+	local addBtn = self:CreateButton(addButtonText, yOffset)
 	addBtn:SetScript("OnClick", function()
-		self:ShowAddEventDialog()
+		if availableCount > 0 then
+			self:ShowAddEventDialog()
+		else
+			Soundboard:Print("All event types are already configured!")
+			Soundboard:Print("Edit existing events or delete some to add new ones.")
+		end
 	end)
 	yOffset = yOffset - buttonHeight - 5
 	
 	-- Show configured events
 	if #eventsList > 0 then
-		local eventsHeader = self:CreateButton("Configured Events", yOffset, false, true)
+		local eventsHeader = self:CreateButton("Configured Events (Click to Edit)", yOffset, false, true)
 		eventsHeader:SetScript("OnClick", nil)
-		yOffset = yOffset - buttonHeight
+		yOffset = yOffset - 26  -- Secondary header is 26px tall
 		
 		for _, event in ipairs(eventsList) do
 			local eventName = SoundboardEvents.eventNames[event.data.eventType] or event.data.eventType
 			local soundKey = event.data.soundKey or "None"
 			local playerOnly = event.data.playerOnly and " (Player Only)" or " (Broadcast)"
 			
-			local eventBtn = self:CreateButton(eventName .. " → /" .. soundKey .. playerOnly, yOffset)
+			-- Create a taller button for longer text and use compact format
+			local eventBtn = self:CreateEventButton(eventName, soundKey, playerOnly, yOffset)
 			eventBtn:SetScript("OnClick", function()
+				DebugPrint("Edit event clicked for: " .. tostring(event.id))
+				Soundboard:Print("Opening edit dialog for: " .. eventName)
 				self:ShowEditEventDialog(event.id, event.data)
 			end)
-			yOffset = yOffset - buttonHeight
+			yOffset = yOffset - 30  -- Taller buttons need more space
 		end
 	else
 		local noEventsBtn = self:CreateButton("No events configured", yOffset)
@@ -1598,15 +1673,53 @@ function SoundboardDropdown:ShowAddEventDialog()
 	-- Title
 	local title = self:CreateButton("Add New Event - Choose Event Type", yOffset, false, true)
 	title:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - 26 - 5  -- Secondary header is 26px tall
 	
-	-- Show event types as clickable buttons
-	for _, eventType in ipairs(SoundboardEvents.eventTypes) do
-		local eventName = SoundboardEvents.eventNames[eventType] or eventType
-		local eventBtn = self:CreateButton(eventName, yOffset)
-		eventBtn:SetScript("OnClick", function()
-			self:ShowAddEventStep2(eventType)
-		end)
+	-- Get available and configured event types
+	local availableEvents, configuredEvents = SoundboardEvents:GetAvailableEventTypes()
+	
+	-- Show configured events section first (read-only, for reference)
+	if #configuredEvents > 0 then
+		local configuredHeader = self:CreateButton("Already Configured (Edit in Events List):", yOffset, false, true)
+		configuredHeader:SetScript("OnClick", nil)
+		yOffset = yOffset - 26  -- Secondary header height
+		
+		for _, configured in ipairs(configuredEvents) do
+			local configuredBtn = self:CreateButton(
+				"|cFF888888" .. configured.eventName .. " -> /" .. configured.soundKey .. 
+				(configured.playerOnly and " (Player Only)" or " (Broadcast)") .. "|r", 
+				yOffset
+			)
+			configuredBtn:SetScript("OnClick", function()
+				Soundboard:Print("This event is already configured. Go to Events list to edit it.")
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+		
+		yOffset = yOffset - 5  -- Extra spacing
+	end
+	
+	-- Show available event types
+	if #availableEvents > 0 then
+		local availableHeader = self:CreateButton("Available Event Types:", yOffset, false, true)
+		availableHeader:SetScript("OnClick", nil)
+		yOffset = yOffset - 26  -- Secondary header height
+		
+		for _, available in ipairs(availableEvents) do
+			local eventBtn = self:CreateButton(available.eventName, yOffset)
+			eventBtn:SetScript("OnClick", function()
+				self:ShowAddEventStep2(available.eventType)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		-- All event types are configured
+		local allConfiguredBtn = self:CreateButton("All event types are already configured!", yOffset)
+		allConfiguredBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+		
+		local editHintBtn = self:CreateButton("Go to Events list to edit existing events.", yOffset)
+		editHintBtn:SetScript("OnClick", nil)
 		yOffset = yOffset - buttonHeight
 	end
 	
@@ -1636,7 +1749,7 @@ function SoundboardDropdown:ShowAddEventStep2(eventType)
 	local eventName = SoundboardEvents.eventNames[eventType] or eventType
 	local title = self:CreateButton("Add Event: " .. eventName .. " - Choose Sound", yOffset, false, true)
 	title:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - 26 - 5  -- Secondary header is 26px tall
 	
 	-- Search bar for sound selection
 	self:CreateSoundSearchBar(eventType, yOffset)
@@ -1753,14 +1866,14 @@ function SoundboardDropdown:ShowAddEventStep3(eventType, soundKey)
 	
 	-- Title
 	local eventName = SoundboardEvents.eventNames[eventType] or eventType
-	local title = self:CreateButton("Add Event: " .. eventName .. " → /" .. soundKey, yOffset, false, true)
+	local title = self:CreateButton("Add Event: " .. eventName .. " -> /" .. soundKey, yOffset, false, true)
 	title:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight - 5
 	
 	-- Play Mode Selection
 	local modeHeader = self:CreateButton("Choose Play Mode:", yOffset, false, true)
 	modeHeader:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight
+	yOffset = yOffset - 26  -- Secondary header is 26px tall
 	
 	-- Player Only option
 	local playerOnlyBtn = self:CreateButton("Player Only - Only you hear the sound", yOffset)
@@ -1790,19 +1903,21 @@ function SoundboardDropdown:SaveNewEvent(eventType, soundKey, playerOnly)
 		return
 	end
 	
+	-- Check if this event type is already configured (backup protection)
+	local isConfigured, existingEventData = SoundboardEvents:IsEventTypeConfigured(eventType)
+	if isConfigured then
+		local eventName = SoundboardEvents.eventNames[eventType] or eventType
+		Soundboard:Print("ERROR: " .. eventName .. " is already configured!")
+		Soundboard:Print("Each event type can only be configured once.")
+		Soundboard:Print("Go to Events list to edit the existing event.")
+		return
+	end
+	
 	-- Create unique event ID
 	local eventId = "event_" .. eventType .. "_" .. soundKey .. "_" .. (playerOnly and "player" or "broadcast")
 	
-	-- Check if this exact event already exists
-	local events = Soundboard.db.profile.Events
-	for existingId, existingData in pairs(events) do
-		if existingData.eventType == eventType and existingData.soundKey == soundKey and existingData.playerOnly == playerOnly then
-			Soundboard:Print("This exact event configuration already exists!")
-			return
-		end
-	end
-	
 	-- Save the new event
+	local events = Soundboard.db.profile.Events
 	events[eventId] = {
 		eventType = eventType,
 		soundKey = soundKey,
@@ -1812,7 +1927,7 @@ function SoundboardDropdown:SaveNewEvent(eventType, soundKey, playerOnly)
 	-- Provide feedback
 	local eventName = SoundboardEvents.eventNames[eventType] or eventType
 	local modeText = playerOnly and "(Player Only)" or "(Broadcast)"
-	Soundboard:Print("✓ Event added: " .. eventName .. " → /" .. soundKey .. " " .. modeText)
+	Soundboard:Print("Event added: " .. eventName .. " -> /" .. soundKey .. " " .. modeText)
 	
 	-- Return to Events list
 	self:ShowEvents()
@@ -1844,7 +1959,7 @@ function SoundboardDropdown:ShowEditEventDialog(eventId, eventData)
 	-- Current configuration
 	local configHeader = self:CreateButton("Current Configuration:", yOffset, false, true)
 	configHeader:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight
+	yOffset = yOffset - 26  -- Secondary header is 26px tall
 	
 	local soundName = "/" .. (eventData.soundKey or "None")
 	local modeText = eventData.playerOnly and " (Player Only)" or " (Broadcast)"
@@ -1855,7 +1970,7 @@ function SoundboardDropdown:ShowEditEventDialog(eventId, eventData)
 	-- Edit options
 	local editHeader = self:CreateButton("Edit Options:", yOffset, false, true)
 	editHeader:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight
+	yOffset = yOffset - 26  -- Secondary header is 26px tall
 	
 	-- Change sound
 	local changeSoundBtn = self:CreateButton("Change Sound", yOffset)
@@ -1872,7 +1987,7 @@ function SoundboardDropdown:ShowEditEventDialog(eventId, eventData)
 		eventData.playerOnly = not eventData.playerOnly
 		Soundboard.db.profile.Events[eventId] = eventData
 		local newModeText = eventData.playerOnly and "Player Only" or "Broadcast"
-		Soundboard:Print("✓ Event mode changed to: " .. newModeText)
+		Soundboard:Print("Event mode changed to: " .. newModeText)
 		self:ShowEditEventDialog(eventId, eventData)
 	end)
 	yOffset = yOffset - buttonHeight
@@ -1880,9 +1995,8 @@ function SoundboardDropdown:ShowEditEventDialog(eventId, eventData)
 	-- Delete event
 	local deleteBtn = self:CreateButton("|cFFFF0000Delete Event|r", yOffset)
 	deleteBtn:SetScript("OnClick", function()
-		Soundboard.db.profile.Events[eventId] = nil
-		Soundboard:Print("✓ Event deleted: " .. eventName)
-		self:ShowEvents()
+		-- Simple confirmation dialog using the existing UI
+		self:ShowDeleteConfirmation(eventId, eventData)
 	end)
 	yOffset = yOffset - buttonHeight
 	
@@ -1914,7 +2028,7 @@ function SoundboardDropdown:ShowEditEventStep2(eventId, eventData)
 	local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
 	local title = self:CreateButton("Change Sound for: " .. eventName, yOffset, false, true)
 	title:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - 26 - 5  -- Secondary header is 26px tall
 	
 	-- Search bar for sound selection
 	self:CreateEditSoundSearchBar(eventId, eventData, yOffset)
@@ -2006,6 +2120,61 @@ function SoundboardDropdown:ShowEditEventStep2(eventId, eventData)
 	self:UpdateButtonWidths()
 end
 
+function SoundboardDropdown:ShowDeleteConfirmation(eventId, eventData)
+	DebugPrint("ShowDeleteConfirmation called for eventId: " .. tostring(eventId))
+	self:ClearContent()
+	self.currentView = "delete_confirmation"
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Cancel Delete", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowEditEventDialog(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight - 10
+	
+	-- Title
+	local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
+	local title = self:CreateButton("Delete Event: " .. eventName .. "?", yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 26 - 10
+	
+	-- Warning text
+	local warningBtn = self:CreateButton("|cFFFF8800Are you sure you want to delete this event?|r", yOffset)
+	warningBtn:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Show what will be deleted
+	local soundName = "/" .. (eventData.soundKey or "None")
+	local modeText = eventData.playerOnly and " (Player Only)" or " (Broadcast)"
+	local detailsBtn = self:CreateButton(eventName .. " -> " .. soundName .. modeText, yOffset)
+	detailsBtn:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 10
+	
+	-- Confirmation buttons
+	local confirmBtn = self:CreateButton("|cFFFF0000YES - Delete Event|r", yOffset)
+	confirmBtn:SetScript("OnClick", function()
+		Soundboard.db.profile.Events[eventId] = nil
+		Soundboard:Print("Event deleted: " .. eventName)
+		Soundboard:Print("This event type (" .. eventName .. ") is now available for configuration again")
+		self:ShowEvents()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	local cancelBtn = self:CreateButton("|cFF00FF00NO - Keep Event|r", yOffset)
+	cancelBtn:SetScript("OnClick", function()
+		self:ShowEditEventDialog(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
 -- Sound selection helper functions for Events
 function SoundboardDropdown:CreateSoundSearchBar(eventType, yOffset)
 	-- Create search box frame
@@ -2084,7 +2253,7 @@ function SoundboardDropdown:ShowSoundSearchResults(eventType, searchText)
 	local eventName = SoundboardEvents.eventNames[eventType] or eventType
 	local title = self:CreateButton("Search Results for: \"" .. searchText .. "\"", yOffset, false, true)
 	title:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - 26 - 5  -- Secondary header is 26px tall
 	
 	-- Search through sounds
 	local results = {}
@@ -2140,9 +2309,11 @@ function SoundboardDropdown:ShowSoundSelectionCategory(eventType, categoryName)
 	-- Special handling for Favorites
 	if categoryName == "Favorites" then
 		local eventName = SoundboardEvents.eventNames[eventType] or eventType
-		local title = self:CreateButtonWithIcon("Choose from Favorites for " .. eventName, yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", true)
+		local titleText = "Choose from Favorites for " .. eventName
+		local title = self:CreateButtonWithIcon(titleText, yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", true)
 		title:SetScript("OnClick", nil)
-		yOffset = yOffset - buttonHeight - 5
+		-- Use a slightly larger height for icon headers to accommodate longer text
+		yOffset = yOffset - 28
 		
 		-- Show favorite sounds
 		local favorites = self:GetFavorites()
@@ -2174,9 +2345,9 @@ function SoundboardDropdown:ShowSoundSelectionCategory(eventType, categoryName)
 		if categoryName == "Missing Configuration" then
 			titleText = "|cFFFF0000" .. titleText .. "|r"
 		end
-		local title = self:CreateButton(titleText, yOffset, true)
+		local title, headerHeight = self:CreateHeaderButton(titleText, yOffset)
 		title:SetScript("OnClick", nil)
-		yOffset = yOffset - buttonHeight - 5
+		yOffset = yOffset - headerHeight - 5
 		
 		local categoryData = self.categories[categoryName]
 		if not categoryData then
@@ -2197,7 +2368,7 @@ function SoundboardDropdown:ShowSoundSelectionCategory(eventType, categoryName)
 		for _, subcategory in ipairs(subcategoryNames) do
 			local subCategoryCount = #categoryData.subcategories[subcategory]
 			local subcatBtn = self:CreateButton(
-				"» " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
+				"> " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
 				yOffset
 			)
 			subcatBtn:SetScript("OnClick", function()
@@ -2244,9 +2415,10 @@ function SoundboardDropdown:ShowSoundSelectionSubcategory(eventType, categoryNam
 	
 	-- Subcategory title
 	local eventName = SoundboardEvents.eventNames[eventType] or eventType
-	local title = self:CreateButton("Choose from " .. categoryName .. " > " .. subcategoryName .. " for " .. eventName, yOffset, true)
+	local titleText = "Choose from " .. categoryName .. " > " .. subcategoryName .. " for " .. eventName
+	local title, headerHeight = self:CreateHeaderButton(titleText, yOffset)
 	title:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - headerHeight - 5
 	
 	local categoryData = self.categories[categoryName]
 	if not categoryData or not categoryData.subcategories[subcategoryName] then
@@ -2392,7 +2564,7 @@ function SoundboardDropdown:ShowEditSoundSearchResults(eventId, eventData, searc
 	-- Title
 	local title = self:CreateButton("Search Results for: \"" .. searchText .. "\"", yOffset, false, true)
 	title:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - 26 - 5  -- Secondary header is 26px tall
 	
 	-- Search through sounds
 	local results = {}
@@ -2448,9 +2620,11 @@ function SoundboardDropdown:ShowEditSoundSelectionCategory(eventId, eventData, c
 	-- Special handling for Favorites
 	if categoryName == "Favorites" then
 		local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
-		local title = self:CreateButtonWithIcon("Choose from Favorites for " .. eventName, yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", true)
+		local titleText = "Choose from Favorites for " .. eventName
+		local title = self:CreateButtonWithIcon(titleText, yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1", true)
 		title:SetScript("OnClick", nil)
-		yOffset = yOffset - buttonHeight - 5
+		-- Use a slightly larger height for icon headers to accommodate longer text
+		yOffset = yOffset - 28
 		
 		-- Show favorite sounds
 		local favorites = self:GetFavorites()
@@ -2482,9 +2656,9 @@ function SoundboardDropdown:ShowEditSoundSelectionCategory(eventId, eventData, c
 		if categoryName == "Missing Configuration" then
 			titleText = "|cFFFF0000" .. titleText .. "|r"
 		end
-		local title = self:CreateButton(titleText, yOffset, true)
+		local title, headerHeight = self:CreateHeaderButton(titleText, yOffset)
 		title:SetScript("OnClick", nil)
-		yOffset = yOffset - buttonHeight - 5
+		yOffset = yOffset - headerHeight - 5
 		
 		local categoryData = self.categories[categoryName]
 		if not categoryData then
@@ -2505,7 +2679,7 @@ function SoundboardDropdown:ShowEditSoundSelectionCategory(eventId, eventData, c
 		for _, subcategory in ipairs(subcategoryNames) do
 			local subCategoryCount = #categoryData.subcategories[subcategory]
 			local subcatBtn = self:CreateButton(
-				"» " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
+				"> " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
 				yOffset
 			)
 			subcatBtn:SetScript("OnClick", function()
@@ -2552,9 +2726,10 @@ function SoundboardDropdown:ShowEditSoundSelectionSubcategory(eventId, eventData
 	
 	-- Subcategory title
 	local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
-	local title = self:CreateButton("Choose from " .. categoryName .. " > " .. subcategoryName .. " for " .. eventName, yOffset, true)
+	local titleText = "Choose from " .. categoryName .. " > " .. subcategoryName .. " for " .. eventName
+	local title, headerHeight = self:CreateHeaderButton(titleText, yOffset)
 	title:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight - 5
+	yOffset = yOffset - headerHeight - 5
 	
 	local categoryData = self.categories[categoryName]
 	if not categoryData or not categoryData.subcategories[subcategoryName] then
@@ -2615,7 +2790,7 @@ function SoundboardDropdown:CreateEditSoundSelectionButton(eventId, eventData, s
 		
 		-- Provide feedback and return to edit dialog
 		local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
-		Soundboard:Print("✓ Event sound changed: " .. eventName .. " → /" .. soundKey)
+		Soundboard:Print("Event sound changed: " .. eventName .. " -> /" .. soundKey)
 		self:ShowEditEventDialog(eventId, eventData)
 	end)
 	
@@ -2703,7 +2878,7 @@ function SoundboardDropdown:ShowMainMenu()
 	-- Settings Toggle Header
 	local settingsHeader = self:CreateButton("Settings Toggle", yOffset, false, true) -- Secondary header: not title, but is secondary header
 	settingsHeader:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight
+	yOffset = yOffset - 26  -- Secondary header is 26px tall
 	
 	-- Options with simple colors
 	local emoteBtn = self:CreateButton(
@@ -2820,7 +2995,7 @@ function SoundboardDropdown:ShowMainMenu()
 	-- Categories Header
 	local categoriesHeader = self:CreateButton("Categories", yOffset, false, true) -- Secondary header: not title, but is secondary header
 	categoriesHeader:SetScript("OnClick", nil)
-	yOffset = yOffset - buttonHeight
+	yOffset = yOffset - 26  -- Secondary header is 26px tall
 	
 	-- Search bar below Categories header (always recreate to ensure visibility)
 	DebugPrint("Creating search bar at yOffset: " .. yOffset)
@@ -2838,7 +3013,7 @@ function SoundboardDropdown:ShowMainMenu()
 	end
 	
 	-- Events category (always show)
-	local eventsBtn = self:CreateButtonWithIcon("Events", yOffset, "Interface\\CURSOR\\LootRoll")
+	local eventsBtn = self:CreateButtonWithIcon("Events", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_3")
 	eventsBtn:SetScript("OnClick", function()
 		self:ShowEvents()
 	end)
@@ -2964,7 +3139,7 @@ function SoundboardDropdown:ShowCategory(categoryName)
 	for _, subcategory in ipairs(subcategoryNames) do
 		local subCategoryCount = #categoryData.subcategories[subcategory]
 		local subcatBtn = self:CreateButton(
-			"» " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
+			"> " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
 			yOffset
 		)
 		subcatBtn:SetScript("OnClick", function()
@@ -3047,9 +3222,11 @@ function SoundboardDropdown:CreateButton(text, yOffset, isTitle, isSecondaryHead
 	-- Fixed button width to allow full border rendering
 	-- Matches UpdateButtonWidths calculation: 250px to ensure full box borders display
 	local buttonWidth = 250
-	button:SetSize(buttonWidth, 20)
+	-- Make secondary headers taller for longer text
+	local buttonHeight = isSecondaryHeader and 26 or 20
+	button:SetSize(buttonWidth, buttonHeight)
 	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
-	DebugPrint("Button positioned with fixed width to prevent scrollbar clipping")
+	DebugPrint("Button positioned with fixed width and height: " .. buttonHeight .. "px")
 	
 	-- Apply ElvUI-style button styling for non-titles using selected template
 	if not isTitle and not isSecondaryHeader then
@@ -3081,10 +3258,16 @@ function SoundboardDropdown:CreateButton(text, yOffset, isTitle, isSecondaryHead
 		DebugPrint("Title styling applied with template colors: " .. selectedTemplate)
 	elseif isSecondaryHeader then
 		fontString:SetJustifyH("LEFT")  -- Secondary headers: left-aligned
-		fontString:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")  -- Secondary header: 12pt, left-aligned
+		fontString:SetJustifyV("TOP")  -- Top-aligned for wrapping
+		fontString:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")  -- Secondary header: 11pt (smaller for wrapping)
+		fontString:SetWordWrap(true)  -- Enable text wrapping for long headers
+		fontString:SetNonSpaceWrap(true)  -- Allow breaking long words
+		-- Adjust anchor points for wrapping
+		fontString:SetPoint("TOP", 0, -2)
+		fontString:SetPoint("BOTTOM", 0, 2)
 		-- Use template text color for secondary headers
 		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
-		DebugPrint("Secondary header styling applied with template colors: " .. selectedTemplate)
+		DebugPrint("Secondary header styling applied with text wrapping and template colors: " .. selectedTemplate)
 	else
 		-- Use template-specific text colors for regular buttons
 		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
@@ -3112,6 +3295,107 @@ function SoundboardDropdown:CreateButton(text, yOffset, isTitle, isSecondaryHead
 end
 
 -- Create button with icon (for favorites category)
+-- Create event button with proper text wrapping for long event descriptions
+function SoundboardDropdown:CreateEventButton(eventName, soundKey, playerOnly, yOffset)
+	DebugPrint("CreateEventButton called for: " .. tostring(eventName))
+	
+	if not self.content then
+		DebugPrint("ERROR: self.content is nil!")
+		return nil
+	end
+	
+	local button = CreateFrame("Button", nil, self.content)
+	DebugPrint("Event button frame created")
+	
+	-- Make button taller to accommodate multiple lines
+	local buttonWidth = 250
+	local buttonHeight = 28  -- Taller for better text display
+	button:SetSize(buttonWidth, buttonHeight)
+	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	DebugPrint("Event button positioned with size: " .. buttonWidth .. "x" .. buttonHeight)
+	
+	-- Apply ElvUI-style button styling
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	SoundboardUI.StyleButton(button, selectedTemplate)
+	DebugPrint("ElvUI button styling applied")
+	
+	-- Create multi-line text display
+	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fontString:SetPoint("LEFT", SoundboardUI.Scale(4), 0)
+	fontString:SetPoint("RIGHT", -SoundboardUI.Scale(4), 0)
+	fontString:SetJustifyH("LEFT")
+	fontString:SetJustifyV("MIDDLE")
+	
+	-- Use compact, multi-line format (no emojis or Unicode symbols)
+	local line1 = eventName
+	local line2 = "-> /" .. soundKey .. " " .. playerOnly
+	local displayText = line1 .. "\n" .. line2
+	fontString:SetText(displayText)
+	
+	-- Get current template colors
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	
+	-- Template-specific hover effects
+	button:SetScript("OnEnter", function(btn)
+		fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+	end)
+	
+	button:SetScript("OnLeave", function(btn)
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+	
+	button.text = fontString -- Store reference for easy access
+	DebugPrint("Event button creation completed with multi-line text")
+	return button
+end
+
+-- Create header button with proper text wrapping for long titles
+function SoundboardDropdown:CreateHeaderButton(text, yOffset)
+	DebugPrint("CreateHeaderButton called: '" .. tostring(text) .. "'")
+	
+	if not self.content then
+		DebugPrint("ERROR: self.content is nil!")
+		return nil
+	end
+	
+	local button = CreateFrame("Button", nil, self.content)
+	DebugPrint("Header button frame created")
+	
+	-- Make header button taller and calculate height based on text length
+	local buttonWidth = 250
+	local estimatedLines = math.ceil(string.len(text) / 35)  -- Rough estimate: ~35 chars per line
+	local buttonHeight = math.max(22, estimatedLines * 12 + 8)  -- At least 22px, +12px per estimated line, +8px padding
+	
+	button:SetSize(buttonWidth, buttonHeight)
+	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+	DebugPrint("Header button positioned with adaptive height: " .. buttonHeight .. "px for " .. estimatedLines .. " estimated lines")
+	
+	-- Text with proper wrapping
+	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fontString:SetPoint("LEFT", SoundboardUI.Scale(4), 0)
+	fontString:SetPoint("RIGHT", -SoundboardUI.Scale(4), 0)
+	fontString:SetPoint("TOP", 0, -4)
+	fontString:SetPoint("BOTTOM", 0, 4)
+	fontString:SetJustifyH("LEFT")
+	fontString:SetJustifyV("TOP")
+	fontString:SetWordWrap(true)  -- Enable text wrapping
+	fontString:SetNonSpaceWrap(true)  -- Allow breaking long words if needed
+	fontString:SetText(text)
+	
+	-- Use secondary header font styling
+	fontString:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")  -- Slightly smaller for headers
+	
+	-- Get current template colors
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+	fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	
+	button.text = fontString
+	DebugPrint("Header button creation completed with text wrapping and adaptive height")
+	return button, buttonHeight  -- Return both button and height for spacing calculations
+end
+
 function SoundboardDropdown:CreateButtonWithIcon(text, yOffset, iconTexture, isTitle)
 	DebugPrint("CreateButtonWithIcon called: '" .. tostring(text) .. "' with icon: " .. tostring(iconTexture))
 	
@@ -3125,9 +3409,11 @@ function SoundboardDropdown:CreateButtonWithIcon(text, yOffset, iconTexture, isT
 	
 	-- Fixed button width to allow full border rendering
 	local buttonWidth = 250
-	button:SetSize(buttonWidth, 20)
+	-- Make title buttons taller to accommodate longer text
+	local buttonHeight = isTitle and 28 or 20
+	button:SetSize(buttonWidth, buttonHeight)
 	button:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
-	DebugPrint("Button positioned with fixed width")
+	DebugPrint("Button positioned with fixed width and height: " .. buttonHeight .. "px")
 	
 	-- Apply ElvUI-style button styling for non-titles
 	if not isTitle then
@@ -3151,6 +3437,16 @@ function SoundboardDropdown:CreateButtonWithIcon(text, yOffset, iconTexture, isT
 	fontString:SetPoint("LEFT", SoundboardUI.Scale(24), 0)  -- Offset for icon
 	fontString:SetPoint("RIGHT", -SoundboardUI.Scale(4), 0)
 	fontString:SetJustifyH("LEFT")
+	
+	-- Enable text wrapping for titles
+	if isTitle then
+		fontString:SetPoint("TOP", 0, -2)
+		fontString:SetPoint("BOTTOM", 0, 2)
+		fontString:SetJustifyV("TOP")
+		fontString:SetWordWrap(true)
+		fontString:SetNonSpaceWrap(true)
+	end
+	
 	fontString:SetText(text)
 	
 	-- Get current template colors directly
@@ -3608,10 +3904,14 @@ local soundboard_data_sorted_keys = {};
 	
 	-- Register Events System events
 	self:RegisterEvent("PLAYER_LOGIN");
+	self:RegisterEvent("PLAYER_LOGOUT"); -- To reset session state
 	self:RegisterEvent("PLAYER_DEAD");
 	self:RegisterEvent("PLAYER_ALIVE");
-	self:RegisterEvent("UNIT_AURA"); -- For mount/dismount and buff detection
-	DebugPrint("Events registered: PLAYER_LOGIN, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA")
+	self:RegisterEvent("UNIT_AURA"); -- For mount/dismount, shapeshift, and buff detection
+	self:RegisterEvent("PLAYER_ENTERING_WORLD"); -- Track loading screens
+	self:RegisterEvent("LOADING_SCREEN_ENABLED"); -- Loading screen starts
+	self:RegisterEvent("LOADING_SCREEN_DISABLED"); -- Loading screen ends
+	DebugPrint("Events registered: PLAYER_LOGIN/LOGOUT, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA, LOADING_SCREEN events")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
 	-- Register with Interface Options
@@ -3636,11 +3936,12 @@ local soundboard_data_sorted_keys = {};
 			Favorites = {},            -- Table of favorited sound keys {soundKey = true}
 			-- Dynamic Sound Duration Learning
 			LearnedSoundDurations = {},-- Learned actual durations for sound files
-					-- Advanced Settings
-		DebugMode = false,         -- Enable debug output
+			-- Advanced Settings
+			DebugMode = false,         -- Enable debug output
 		-- Events System
 		EventsEnabled = true,      -- Global toggle for events system
 		Events = {},               -- Table of configured events {eventId = {eventType, soundKey, playerOnly}}
+		LastSessionEnd = nil,      -- Timestamp of last session end (for login detection)
 		}
 	 }
 	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", defaults, true)
@@ -3672,6 +3973,10 @@ local soundboard_data_sorted_keys = {};
 	if db.Events == nil then
 		db.Events = {}
 		DebugPrint("Migrated Events to default: empty table")
+	end
+	if db.LastSessionEnd == nil then
+		db.LastSessionEnd = nil  -- Will be set on first logout/disable
+		DebugPrint("Migrated LastSessionEnd to default: nil")
 	end
 	-- Remove old settings if they exist
 	if db.SayEnabled ~= nil then
@@ -3778,14 +4083,89 @@ local soundboard_data_sorted_keys = {};
 	DebugPrint("Dropdown initialization completed")
  end
 
-   function Soundboard:OnEnable()
+ function Soundboard:OnEnable()
 	db.IsEnabled = true
 	
 	-- Initialize player state to prevent false triggers on login
 	self.playerStates.mounted = IsMounted()
-	self.playerStates.shapeshifted = false
+	self.playerStates.onTaxi = UnitOnTaxi("player")
+	self.playerStates.actuallyDead = UnitIsDeadOrGhost("player")
+	self.playerStates.lastDeathTime = 0
+	self.playerStates.loadingScreenActive = false
+	self.playerStates.mountedBeforeLoading = IsMounted()
+	self.playerStates.sessionStartTime = time()
+	self.playerStates.justLeftTaxi = false
+	self.playerStates.taxiEndTime = 0
+	self.playerStates.justFinishedLoading = false
+	self.playerStates.loadingEndTime = 0
+	
+	-- Initialize shapeshift state
+	local initialShapeshift = false
+	if GetShapeshiftFormID then
+		local formID = GetShapeshiftFormID()
+		initialShapeshift = (formID and formID > 0)
+	end
+	self.playerStates.shapeshifted = initialShapeshift
+	self.playerStates.shapeshiftedBeforeLoading = initialShapeshift
 	self.playerStates.hasHeroismBuff = false
-	DebugPrint("Player states initialized: mounted=" .. tostring(self.playerStates.mounted))
+	DebugPrint("Shapeshift state initialized: " .. tostring(initialShapeshift))
+	
+	-- Check if this is a genuine login or just a reload
+	-- Handle various scenarios: genuine login, /reload, crash, Alt-F4, DC/reconnect
+	local currentTime = time()
+	local timeSinceLastSession = 0
+	
+	-- Check if we have a previous session timestamp saved in database
+	if self.db.profile.LastSessionEnd then
+		timeSinceLastSession = currentTime - self.db.profile.LastSessionEnd
+		DebugPrint("Time since last session end: " .. string.format("%.1f", timeSinceLastSession) .. "s")
+	else
+		DebugPrint("No previous session end time found - treating as first login")
+	end
+	
+	-- Determine if this is a genuine login based on multiple factors
+	local isGenuineLogin = false
+	
+	if not self.hasLoginFiredThisSession then
+		-- Runtime variable doesn't exist (fresh WoW start, crash, Alt-F4, or disconnect)
+		if timeSinceLastSession > 30 or not self.db.profile.LastSessionEnd then
+			-- Either first time or significant time gap (genuine login/crash recovery)
+			isGenuineLogin = true
+			DebugPrint("Genuine login detected: fresh start or crash recovery")
+		else
+			-- Recent session end - probably a quick restart
+			isGenuineLogin = false
+			DebugPrint("Quick restart detected (< 30s) - treating as reload")
+		end
+	else
+		-- Runtime variable exists (same WoW session)
+		-- Check if this might be a disconnect/reconnect (very recent session start)
+		local sessionDuration = currentTime - self.playerStates.sessionStartTime
+		if sessionDuration < 10 then
+			-- Very recent session start might indicate disconnect/reconnect
+			isGenuineLogin = true
+			DebugPrint("Potential disconnect/reconnect detected (session < 10s old) - allowing login events")
+		else
+			-- Normal /reload case
+			isGenuineLogin = false
+			DebugPrint("Same session /reload detected - blocking login events")
+		end
+	end
+	
+	if isGenuineLogin then
+		self.playerStates.hasLoggedInThisSession = false  -- Will be set to true on PLAYER_LOGIN
+		self.hasLoginFiredThisSession = false
+		DebugPrint("Login events will be allowed")
+	else
+		self.playerStates.hasLoggedInThisSession = true
+		self.hasLoginFiredThisSession = true
+		DebugPrint("Login events will be blocked")
+	end
+	
+	DebugPrint("Player states initialized: mounted=" .. tostring(self.playerStates.mounted) .. ", onTaxi=" .. tostring(self.playerStates.onTaxi) .. ", shapeshifted=" .. tostring(self.playerStates.shapeshifted) .. ", dead=" .. tostring(self.playerStates.actuallyDead) .. ", hasLoggedIn=" .. tostring(self.playerStates.hasLoggedInThisSession))
+	
+	-- Start a timer to check mount status periodically (backup for Classic WoW)
+	self:StartMountCheckTimer()
 	
 	-- Debug: Check if soundboard_data exists
 	self:Print("Soundboard enabled. Checking for sound packs...")
@@ -4053,22 +4433,141 @@ local soundboard_data_sorted_keys = {};
 			local eventType = args[2] or "PLAYER_DEAD"
 			Soundboard:Print("Testing event trigger: " .. eventType)
 			Soundboard:HandleEventTrigger(eventType)
+		elseif command == "testmount" then
+			Soundboard:Print("Testing mount detection system...")
+			Soundboard:Print("Current mount status: " .. tostring(IsMounted()))
+			Soundboard:Print("Current taxi status: " .. tostring(UnitOnTaxi("player")))
+			Soundboard:Print("Simulating mount change...")
+			local oldState = Soundboard.playerStates.mounted
+			Soundboard.playerStates.mounted = not IsMounted()  -- Force opposite state
+			Soundboard:CheckMountStatus()  -- This should detect the change
+			Soundboard:Print("Mount test completed")
+		elseif command == "testtaxi" then
+			Soundboard:Print("Testing taxi detection system...")
+			Soundboard:Print("Current taxi status: " .. tostring(UnitOnTaxi("player")))
+			Soundboard:Print("Simulating taxi change...")
+			local oldState = Soundboard.playerStates.onTaxi
+			Soundboard.playerStates.onTaxi = not UnitOnTaxi("player")  -- Force opposite state
+			Soundboard:CheckMountStatus()  -- This should detect the change
+			Soundboard:Print("Taxi test completed")
+		elseif command == "taxitransition" then
+			Soundboard:Print("=== Taxi Transition Debug ===")
+			Soundboard:Print("Current taxi status: " .. tostring(UnitOnTaxi("player")))
+			Soundboard:Print("Current mount status: " .. tostring(IsMounted()))
+			Soundboard:Print("Stored taxi status: " .. tostring(Soundboard.playerStates.onTaxi))
+			Soundboard:Print("Stored mount status: " .. tostring(Soundboard.playerStates.mounted))
+			Soundboard:Print("Just left taxi flag: " .. tostring(Soundboard.playerStates.justLeftTaxi))
+			if Soundboard.playerStates.justLeftTaxi then
+				local timeSinceTaxiEnd = time() - Soundboard.playerStates.taxiEndTime
+				Soundboard:Print("Time since taxi end: " .. string.format("%.1f", timeSinceTaxiEnd) .. "s (grace period: 3s)")
+				Soundboard:Print("Mount events " .. (timeSinceTaxiEnd > 3 and "enabled" or "DISABLED") .. " due to taxi grace period")
+			end
+			Soundboard:Print("Take a taxi and run this command when it ends to debug the transition!")
+		elseif command == "testshape" then
+			Soundboard:Print("Testing shapeshift detection system...")
+			local isShapeshifted = false
+			if GetShapeshiftFormID then
+				local formID = GetShapeshiftFormID()
+				isShapeshifted = (formID and formID > 0)
+			end
+			Soundboard:Print("Current shapeshift status: " .. tostring(isShapeshifted))
+			Soundboard:Print("Simulating shapeshift change...")
+			local oldState = Soundboard.playerStates.shapeshifted
+			Soundboard.playerStates.shapeshifted = not isShapeshifted
+			Soundboard:CheckShapeshiftStatus()
+			Soundboard:Print("Shapeshift test completed")
+		elseif command == "resetlogin" then
+			Soundboard:Print("Resetting login session state...")
+			Soundboard.playerStates.hasLoggedInThisSession = false
+			Soundboard.hasLoginFiredThisSession = false
+			Soundboard:Print("Login session state reset - next PLAYER_LOGIN will be treated as genuine")
+			Soundboard:Print("You can now test: /soundboardevents test PLAYER_LOGIN")
+		elseif command == "simulatecrash" then
+			Soundboard:Print("Simulating crash scenario...")
+			-- Simulate what happens after a crash by:
+			-- 1. Setting an old session end time (simulating crash without proper logout)
+			-- 2. Clearing runtime variables (simulating WoW restart)
+			Soundboard.db.profile.LastSessionEnd = time() - 60  -- 60 seconds ago
+			Soundboard.hasLoginFiredThisSession = nil  -- Clear runtime variable
+			Soundboard:Print("Crash scenario simulated (last session 60s ago, no runtime state)")
+			Soundboard:Print("Next PLAYER_LOGIN should be treated as genuine (crash recovery)")
+			Soundboard:Print("Test with: /soundboardevents test PLAYER_LOGIN")
+		elseif command == "status" then
+			Soundboard:Print("=== Events System Status ===")
+			Soundboard:Print("Events Enabled: " .. tostring(Soundboard.db.profile.EventsEnabled))
+			Soundboard:Print("Player States:")
+			Soundboard:Print("  Mounted: " .. tostring(Soundboard.playerStates.mounted))
+			Soundboard:Print("  On Taxi: " .. tostring(Soundboard.playerStates.onTaxi))
+			Soundboard:Print("  Shapeshifted: " .. tostring(Soundboard.playerStates.shapeshifted))
+			Soundboard:Print("  Actually Dead: " .. tostring(Soundboard.playerStates.actuallyDead))
+			Soundboard:Print("  Has Heroism Buff: " .. tostring(Soundboard.playerStates.hasHeroismBuff))
+			Soundboard:Print("  Loading Screen Active: " .. tostring(Soundboard.playerStates.loadingScreenActive))
+			Soundboard:Print("  Mounted Before Loading: " .. tostring(Soundboard.playerStates.mountedBeforeLoading))
+			Soundboard:Print("  Shapeshifted Before Loading: " .. tostring(Soundboard.playerStates.shapeshiftedBeforeLoading))
+			Soundboard:Print("  Has Logged In This Session: " .. tostring(Soundboard.playerStates.hasLoggedInThisSession))
+			Soundboard:Print("  Session Start Time: " .. tostring(Soundboard.playerStates.sessionStartTime))
+			Soundboard:Print("  Just Left Taxi: " .. tostring(Soundboard.playerStates.justLeftTaxi))
+			if Soundboard.playerStates.justLeftTaxi then
+				local timeSinceTaxiEnd = time() - Soundboard.playerStates.taxiEndTime
+				Soundboard:Print("  Time Since Taxi End: " .. string.format("%.1f", timeSinceTaxiEnd) .. "s (grace period until 3s)")
+			end
+			Soundboard:Print("  Just Finished Loading: " .. tostring(Soundboard.playerStates.justFinishedLoading))
+			if Soundboard.playerStates.justFinishedLoading then
+				local timeSinceLoadingEnd = time() - Soundboard.playerStates.loadingEndTime
+				Soundboard:Print("  Time Since Loading End: " .. string.format("%.1f", timeSinceLoadingEnd) .. "s (grace period until 5s)")
+				Soundboard:Print("  Mount & shapeshift events " .. (timeSinceLoadingEnd > 5 and "enabled" or "DISABLED") .. " due to loading grace period")
+			end
+			Soundboard:Print("Current Status:")
+			Soundboard:Print("  IsMounted(): " .. tostring(IsMounted()))
+			Soundboard:Print("  UnitOnTaxi(): " .. tostring(UnitOnTaxi("player")))
+			if GetShapeshiftFormID then
+				local formID = GetShapeshiftFormID()
+				Soundboard:Print("  GetShapeshiftFormID(): " .. tostring(formID) .. " (shapeshifted: " .. tostring(formID and formID > 0) .. ")")
+			else
+				Soundboard:Print("  GetShapeshiftFormID(): not available")
+			end
+			Soundboard:Print("  UnitIsDeadOrGhost(): " .. tostring(UnitIsDeadOrGhost("player")))
+			Soundboard:Print("  Zone: " .. (GetZoneText() or "Unknown"))
+			Soundboard:Print("  Subzone: " .. (GetSubZoneText() or "Unknown"))
+			Soundboard:Print("Session Info:")
+			Soundboard:Print("  Time since session start: " .. string.format("%.1f", time() - Soundboard.playerStates.sessionStartTime) .. "s")
+			if Soundboard.db.profile.LastSessionEnd then
+				local timeSinceLastEnd = time() - Soundboard.db.profile.LastSessionEnd
+				Soundboard:Print("  Time since last session end: " .. string.format("%.1f", timeSinceLastEnd) .. "s")
+			else
+				Soundboard:Print("  No previous session end recorded")
+			end
+			Soundboard:Print("  Next /reload will block login events")
+			Soundboard:Print("  Next logout -> login will allow login events")
+			Soundboard:Print("  Crash/Alt-F4 recovery: Auto-detected if > 30s gap")
 		elseif command == "add" then
 			local eventType = args[2]
 			local soundKey = args[3]
 			local playerOnly = args[4] == "true"
 			
 			if eventType and soundKey then
-				local eventId = "event_" .. eventType .. "_" .. soundKey
-				Soundboard.db.profile.Events[eventId] = {
-					eventType = eventType,
-					soundKey = soundKey,
-					playerOnly = playerOnly or true
-				}
-				Soundboard:Print("Added event: " .. eventType .. " -> /" .. soundKey .. (playerOnly and " (Player Only)" or " (Broadcast)"))
+				-- Check if this event type is already configured
+				local isConfigured, existingEventData = SoundboardEvents:IsEventTypeConfigured(eventType)
+				
+				if isConfigured then
+					local eventName = SoundboardEvents.eventNames[eventType] or eventType
+					Soundboard:Print("ERROR: " .. eventName .. " is already configured with sound: /" .. existingEventData.soundKey)
+					Soundboard:Print("Each event type can only be configured once. Use Events UI to edit existing events.")
+					Soundboard:Print("Or use: /soundboardevents clear (to clear all events)")
+				else
+					local eventId = "event_" .. eventType .. "_" .. soundKey
+					Soundboard.db.profile.Events[eventId] = {
+						eventType = eventType,
+						soundKey = soundKey,
+						playerOnly = playerOnly or true
+					}
+					local eventName = SoundboardEvents.eventNames[eventType] or eventType
+					Soundboard:Print("Added event: " .. eventName .. " -> /" .. soundKey .. (playerOnly and " (Player Only)" or " (Broadcast)"))
+				end
 			else
 				Soundboard:Print("Usage: /soundboardevents add <eventType> <soundKey> [true/false for playerOnly]")
 				Soundboard:Print("Example: /soundboardevents add PLAYER_DEAD hero true")
+				Soundboard:Print("Note: Each event type can only be configured once")
 			end
 		elseif command == "clear" then
 			Soundboard.db.profile.Events = {}
@@ -4084,16 +4583,227 @@ local soundboard_data_sorted_keys = {};
 			else
 				Soundboard:Print("No events configured")
 			end
+		elseif command == "available" then
+			local availableEvents, configuredEvents = SoundboardEvents:GetAvailableEventTypes()
+			
+			if #configuredEvents > 0 then
+				Soundboard:Print("Already Configured (" .. #configuredEvents .. "/" .. #SoundboardEvents.eventTypes .. "):")
+				for _, configured in ipairs(configuredEvents) do
+					Soundboard:Print("  |cFF888888" .. configured.eventName .. " -> /" .. configured.soundKey .. "|r")
+				end
+				Soundboard:Print("")
+			end
+			
+			if #availableEvents > 0 then
+				Soundboard:Print("Available to Configure (" .. #availableEvents .. "/" .. #SoundboardEvents.eventTypes .. "):")
+				for _, available in ipairs(availableEvents) do
+					Soundboard:Print("  |cFF00FF00" .. available.eventName .. " (" .. available.eventType .. ")|r")
+				end
+			else
+				Soundboard:Print("|cFFFFFF00All event types are configured!|r")
+				Soundboard:Print("Use Events UI to edit existing events or /soundboardevents clear to start over.")
+			end
 		else
 			Soundboard:Print("Events system commands:")
 			Soundboard:Print("  /soundboardevents test [eventType] - Test event trigger")
+			Soundboard:Print("  /soundboardevents testmount - Test mount detection system") 
+			Soundboard:Print("  /soundboardevents testtaxi - Test taxi detection system")
+			Soundboard:Print("  /soundboardevents taxitransition - Debug taxi->dismount transitions")  
+			Soundboard:Print("  /soundboardevents testshape - Test shapeshift detection system")
+			Soundboard:Print("  /soundboardevents resetlogin - Reset login session (for testing)")
+			Soundboard:Print("  /soundboardevents simulatecrash - Simulate crash/Alt-F4 scenario")
+			Soundboard:Print("  /soundboardevents status - Show detailed system status")
 			Soundboard:Print("  /soundboardevents add <eventType> <soundKey> [playerOnly] - Add event")
 			Soundboard:Print("  /soundboardevents list - List configured events")
+			Soundboard:Print("  /soundboardevents available - Show available vs configured event types")
 			Soundboard:Print("  /soundboardevents clear - Clear all events")
-			Soundboard:Print("Available event types: PLAYER_DEAD, PLAYER_ALIVE")
+			Soundboard:Print("Available event types:")
+			Soundboard:Print("  PLAYER_LOGIN (genuine logins only, excludes /reload)")
+			Soundboard:Print("  PLAYER_DEAD, PLAYER_ALIVE (includes mass res + corpse run)")
+			Soundboard:Print("  PLAYER_MOUNT, PLAYER_DISMOUNT (ground/flying mounts only)")
+			Soundboard:Print("  PLAYER_TAXI_START, PLAYER_TAXI_END (gryphons, wind riders, etc.)")
+			Soundboard:Print("  SHAPESHIFT_ENTER, SHAPESHIFT_EXIT (druid forms, stances, etc.)")
+			Soundboard:Print("  HEROISM_BUFF (heroism, bloodlust, time warp)")
+			Soundboard:Print("Additional debug commands:")
+			Soundboard:Print("  /soundboardmount - Mount & taxi detection debug")
+			Soundboard:Print("  /soundboardshape - Shapeshift detection debug")
+			Soundboard:Print("  /soundboardloading - Loading screen & mount preservation debug")
+			Soundboard:Print("  /soundboardbuffs - Show all current player buffs (for heroism)")
+			Soundboard:Print("  /soundboarddeath - Death & revive detection debug")
+			Soundboard:Print("Important Notes:")
+			Soundboard:Print("  - Each event type can only be configured ONCE")
+			Soundboard:Print("  - Mount events exclude taxis - use separate taxi events")
+			Soundboard:Print("  - Use Events UI to edit/delete existing events")
+			Soundboard:Print("")
+			Soundboard:Print("UI: Go to Events -> Click any configured event to EDIT/DELETE it!")
 		end
 	end
 	_G["SLASH_SOUNDBOARDEVENTS1"] = "/soundboardevents"
+	
+	-- Mount detection debug command
+	_G.SlashCmdList["SOUNDBOARDMOUNT"] = function(msg)
+		Soundboard:Print("=== Mount & Taxi Detection Debug ===")
+		Soundboard:Print("Current mount status: " .. tostring(IsMounted()))
+		Soundboard:Print("Current taxi status: " .. tostring(UnitOnTaxi("player")))
+		Soundboard:Print("Stored mount status: " .. tostring(Soundboard.playerStates.mounted))
+		Soundboard:Print("Stored taxi status: " .. tostring(Soundboard.playerStates.onTaxi))
+		Soundboard:Print("Mount check timer active: " .. tostring(Soundboard.mountCheckTimer ~= nil or Soundboard.mountCheckFrame ~= nil))
+		
+		-- Force a mount status check
+		Soundboard:Print("Forcing mount/taxi status check...")
+		Soundboard:CheckMountStatus()
+		
+		Soundboard:Print("Mount = regular ground/flying mounts | Taxi = gryphons/wind riders")
+		Soundboard:Print("Try mounting/dismounting and watch for mount messages")
+		Soundboard:Print("Try taking a taxi and watch for taxi messages")
+	end
+	_G["SLASH_SOUNDBOARDMOUNT1"] = "/soundboardmount"
+	
+	-- Shapeshift detection debug command
+	_G.SlashCmdList["SOUNDBOARDSHAPE"] = function(msg)
+		Soundboard:Print("=== Shapeshift Detection Debug ===")
+		
+		-- Check GetShapeshiftFormID
+		if GetShapeshiftFormID then
+			local formID = GetShapeshiftFormID()
+			Soundboard:Print("GetShapeshiftFormID(): " .. tostring(formID))
+			if formID and formID > 0 then
+				Soundboard:Print("  Currently in shapeshift form ID: " .. formID)
+			else
+				Soundboard:Print("  Not in shapeshift form (or form ID = 0)")
+			end
+		else
+			Soundboard:Print("GetShapeshiftFormID(): not available in this client")
+		end
+		
+		Soundboard:Print("Stored shapeshift state: " .. tostring(Soundboard.playerStates.shapeshifted))
+		
+		-- Check for shapeshift-related buffs
+		local shapeshiftBuffs = {
+			"Bear Form", "Cat Form", "Aquatic Form", "Travel Form", "Flight Form", 
+			"Swift Flight Form", "Moonkin Form", "Tree of Life",
+			"Battle Stance", "Defensive Stance", "Berserker Stance",
+			"Stealth", "Shadowform", "Metamorphosis", "Ghost Wolf"
+		}
+		
+		Soundboard:Print("Scanning for shapeshift buffs...")
+		local foundShapeshift = false
+		for i = 1, 40 do
+			local name = UnitBuff("player", i)
+			if name then
+				for _, shapeshiftBuff in ipairs(shapeshiftBuffs) do
+					if string.lower(name) == string.lower(shapeshiftBuff) then
+						Soundboard:Print("  Found shapeshift buff: " .. name)
+						foundShapeshift = true
+					end
+				end
+			end
+		end
+		
+		if not foundShapeshift then
+			Soundboard:Print("  No shapeshift buffs found")
+		end
+		
+		Soundboard:Print("")
+		Soundboard:Print("Enter/exit a shapeshift form (Bear, Cat, etc.) and run this command!")
+		Soundboard:Print("This will help debug shapeshift detection.")
+		Soundboard:Print("")
+		Soundboard:Print("Forcing shapeshift status check now...")
+		Soundboard:CheckShapeshiftStatus()
+	end
+	_G["SLASH_SOUNDBOARDSHAPE1"] = "/soundboardshape"
+	
+	-- Loading screen debug command
+	_G.SlashCmdList["SOUNDBOARDLOADING"] = function(msg)
+		Soundboard:Print("=== Loading Screen Debug ===")
+		Soundboard:Print("Loading Screen Active: " .. tostring(Soundboard.playerStates.loadingScreenActive))
+		Soundboard:Print("Just Finished Loading: " .. tostring(Soundboard.playerStates.justFinishedLoading))
+		if Soundboard.playerStates.justFinishedLoading then
+			local timeSinceLoading = time() - Soundboard.playerStates.loadingEndTime
+			Soundboard:Print("Time Since Loading End: " .. string.format("%.1f", timeSinceLoading) .. "s")
+			Soundboard:Print("Grace period " .. (timeSinceLoading > 5 and "expired" or "ACTIVE") .. " (5s total)")
+		end
+		Soundboard:Print("Mounted Before Loading: " .. tostring(Soundboard.playerStates.mountedBeforeLoading))
+		Soundboard:Print("Shapeshifted Before Loading: " .. tostring(Soundboard.playerStates.shapeshiftedBeforeLoading))
+		Soundboard:Print("Current Mount Status: " .. tostring(IsMounted()))
+		Soundboard:Print("Stored Mount Status: " .. tostring(Soundboard.playerStates.mounted))
+		
+		-- Check current shapeshift status
+		local currentShapeshift = false
+		if GetShapeshiftFormID then
+			local formID = GetShapeshiftFormID()
+			currentShapeshift = (formID and formID > 0)
+		end
+		Soundboard:Print("Current Shapeshift Status: " .. tostring(currentShapeshift))
+		Soundboard:Print("Stored Shapeshift Status: " .. tostring(Soundboard.playerStates.shapeshifted))
+		
+		Soundboard:Print("")
+		Soundboard:Print("Go through a loading screen while mounted/shapeshifted and run this command after!")
+		Soundboard:Print("Mount and shapeshift events should be blocked for 5 seconds after loading screens.")
+	end
+	_G["SLASH_SOUNDBOARDLOADING1"] = "/soundboardloading"
+	
+	-- Buff debug command to help debug heroism detection
+	_G.SlashCmdList["SOUNDBOARDBUFFS"] = function(msg)
+		Soundboard:Print("=== Current Player Buffs Debug ===")
+		Soundboard:Print("Scanning all player buffs...")
+		
+		local buffCount = 0
+		for i = 1, 40 do
+			local name, icon, count, dispelType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId = UnitBuff("player", i)
+			if name then
+				buffCount = buffCount + 1
+				Soundboard:Print(buffCount .. ". " .. name .. " (ID: " .. tostring(spellId) .. ")")
+				
+				-- Check if this matches any heroism spells
+				local heroismSpells = {2825, 32182, 80353, 90355, 160452, 178207, 230935, 256740, 309658, 381301, 369, 57723, 57724, 264667}
+				for _, heroismId in ipairs(heroismSpells) do
+					if spellId == heroismId then
+						Soundboard:Print("   *** THIS IS A HEROISM BUFF! ***")
+						break
+					end
+				end
+				
+				-- Check if name contains heroism keywords
+				if name then
+					local heroismNames = {"Time Warp", "Heroism", "Bloodlust", "Ancient Hysteria", "Netherwinds", "Drums", "Primal Instincts"}
+					for _, heroismName in ipairs(heroismNames) do
+						if string.find(string.lower(name), string.lower(heroismName)) then
+							Soundboard:Print("   *** NAME MATCHES HEROISM: " .. heroismName .. " ***")
+							break
+						end
+					end
+				end
+			end
+		end
+		
+		if buffCount == 0 then
+			Soundboard:Print("No buffs found on player")
+		else
+			Soundboard:Print("Total buffs: " .. buffCount)
+		end
+		
+		Soundboard:Print("Cast Time Warp/Heroism/Bloodlust and run this command again to see the buff!")
+	end
+	_G["SLASH_SOUNDBOARDBUFFS1"] = "/soundboardbuffs"
+	
+	-- Death/Revive debug command
+	_G.SlashCmdList["SOUNDBOARDDEATH"] = function(msg)
+		Soundboard:Print("=== Death/Revive Detection Debug ===")
+		Soundboard:Print("Current Death State:")
+		Soundboard:Print("  UnitIsDeadOrGhost('player'): " .. tostring(UnitIsDeadOrGhost("player")))
+		Soundboard:Print("  UnitIsDead('player'): " .. tostring(UnitIsDead("player")))
+		Soundboard:Print("  UnitIsGhost('player'): " .. tostring(UnitIsGhost("player")))
+		Soundboard:Print("  actuallyDead state: " .. tostring(Soundboard.playerStates.actuallyDead))
+		Soundboard:Print("  lastDeathTime: " .. tostring(Soundboard.playerStates.lastDeathTime))
+		Soundboard:Print("  Time since death: " .. tostring(time() - Soundboard.playerStates.lastDeathTime) .. "s")
+		Soundboard:Print("  loadingScreenActive: " .. tostring(Soundboard.playerStates.loadingScreenActive))
+		Soundboard:Print("")
+		Soundboard:Print("Die and run this command as ghost, then run it again after reviving!")
+	end
+	_G["SLASH_SOUNDBOARDDEATH1"] = "/soundboarddeath"
+	
+	-- Transport commands removed - feature disabled due to detection issues
 
 	
 	if not soundboard_data then
@@ -4123,6 +4833,13 @@ local soundboard_data_sorted_keys = {};
 
 function Soundboard:OnDisable()
 	db.IsEnabled = false;
+	
+	-- Save session end time for proper login detection after crashes/Alt-F4
+	if self.db and self.db.profile then
+		self.db.profile.LastSessionEnd = time()
+		DebugPrint("Session end time saved on addon disable: " .. tostring(self.db.profile.LastSessionEnd))
+	end
+	
 	self:Print("disabled")
 end
 
@@ -4914,13 +5631,13 @@ function Soundboard:HandlePingReply(sender, channel)
 	end
 	
 	-- Show immediate response
-	self:Print("├ " .. sender .. " (via " .. channelDisplay .. ")")
+	self:Print("+ " .. sender .. " (via " .. channelDisplay .. ")")
 	DebugPrint("Received ping reply from " .. sender .. " via " .. channel)
 end
 
 function Soundboard:ShowPingResults()
 	if not self.pingResponses then
-		self:Print("└ No Soundboard users found")
+		self:Print("- No Soundboard users found")
 		return
 	end
 	
@@ -4946,9 +5663,9 @@ function Soundboard:ShowPingResults()
 	
 	-- Show summary
 	if totalUsers == 0 then
-		self:Print("└ No Soundboard users found")
+		self:Print("- No Soundboard users found")
 	else
-		local summary = "└ Found " .. totalUsers .. " Soundboard user" .. (totalUsers > 1 and "s" or "") .. ":"
+		local summary = "- Found " .. totalUsers .. " Soundboard user" .. (totalUsers > 1 and "s" or "") .. ":"
 		if partyUsers > 0 then
 			summary = summary .. " " .. partyUsers .. " group"
 		end
@@ -4963,10 +5680,10 @@ function Soundboard:ShowPingResults()
 		-- Show broadcast reach
 		local canReceive = {}
 		if IsInGroup() or IsInRaid() then
-			table.insert(canReceive, "Group sounds → " .. (partyUsers + bothUsers) .. " users")
+			table.insert(canReceive, "Group sounds -> " .. (partyUsers + bothUsers) .. " users")
 		end
 		if Soundboard.db.profile.GuildBroadcast and IsInGuild() then
-			table.insert(canReceive, "Guild sounds → " .. (guildUsers + bothUsers) .. " users")
+			table.insert(canReceive, "Guild sounds -> " .. (guildUsers + bothUsers) .. " users")
 		end
 		
 		if #canReceive > 0 then
@@ -5062,47 +5779,369 @@ end
 -- Event Handlers
 function Soundboard:PLAYER_LOGIN(event, ...)
 	DebugPrint("PLAYER_LOGIN event triggered")
+	
+	-- Check if this is a genuine login or just a reload
+	if self.playerStates.hasLoggedInThisSession then
+		self:Print("[Events] PLAYER_LOGIN fired but this is a reload, not a genuine login - ignoring")
+		return
+	end
+	
+	-- Mark that login has occurred this session
+	self.playerStates.hasLoggedInThisSession = true
+	self.hasLoginFiredThisSession = true  -- Session variable that persists through reloads
+	
+	self:Print("[Events] Genuine player login detected - checking for configured sounds...")
+	
 	-- Add a small delay to ensure addon is fully loaded
 	C_Timer.After(2, function()
 		self:HandleEventTrigger("PLAYER_LOGIN")
 	end)
 end
 
+function Soundboard:PLAYER_LOGOUT(event, ...)
+	DebugPrint("PLAYER_LOGOUT event triggered - saving session end time")
+	
+	-- Save session end time to database for crash/Alt-F4 detection
+	self.db.profile.LastSessionEnd = time()
+	DebugPrint("Session end time saved: " .. tostring(self.db.profile.LastSessionEnd))
+	
+	-- Reset runtime session state so next login will be treated as genuine
+	self.playerStates.hasLoggedInThisSession = false
+	self.hasLoginFiredThisSession = false
+	DebugPrint("Session state reset - next PLAYER_LOGIN will be treated as genuine login")
+end
+
+function Soundboard:LOADING_SCREEN_ENABLED(event, ...)
+	DebugPrint("Loading screen started")
+	self.playerStates.loadingScreenActive = true
+	-- Store mount state before loading screen
+	self.playerStates.mountedBeforeLoading = IsMounted()
+	
+	-- Store shapeshift state before loading screen
+	local currentShapeshift = false
+	if GetShapeshiftFormID then
+		local formID = GetShapeshiftFormID()
+		currentShapeshift = (formID and formID > 0)
+	end
+	self.playerStates.shapeshiftedBeforeLoading = currentShapeshift
+	
+	DebugPrint("Stored states before loading: mounted=" .. tostring(self.playerStates.mountedBeforeLoading) .. ", shapeshifted=" .. tostring(self.playerStates.shapeshiftedBeforeLoading))
+end
+
+function Soundboard:LOADING_SCREEN_DISABLED(event, ...)
+	DebugPrint("Loading screen ended")
+	self.playerStates.loadingScreenActive = false
+	self.playerStates.justFinishedLoading = true
+	self.playerStates.loadingEndTime = time()
+	
+	DebugPrint("Set loading grace period - mount and shapeshift events will be blocked for 5 seconds")
+	
+	-- Restore mount and shapeshift states after loading screen to prevent false triggers
+	C_Timer.After(1, function()
+		local currentlyMounted = IsMounted()
+		DebugPrint("After loading - was mounted: " .. tostring(self.playerStates.mountedBeforeLoading) .. ", now mounted: " .. tostring(currentlyMounted))
+		
+		-- Get current shapeshift state
+		local currentlyShapeshifted = false
+		if GetShapeshiftFormID then
+			local formID = GetShapeshiftFormID()
+			currentlyShapeshifted = (formID and formID > 0)
+		end
+		DebugPrint("After loading - was shapeshifted: " .. tostring(self.playerStates.shapeshiftedBeforeLoading) .. ", now shapeshifted: " .. tostring(currentlyShapeshifted))
+		
+		-- Always update stored states to match current reality, don't trigger events during grace period
+		self.playerStates.mounted = currentlyMounted
+		self.playerStates.shapeshifted = currentlyShapeshifted
+		DebugPrint("Mount and shapeshift states set to current reality after loading screen (grace period active)")
+	end)
+end
+
+function Soundboard:PLAYER_ENTERING_WORLD(event, ...)
+	DebugPrint("PLAYER_ENTERING_WORLD event triggered")
+	self.playerStates.loadingScreenActive = false
+	self.playerStates.justFinishedLoading = true
+	self.playerStates.loadingEndTime = time()
+	
+	DebugPrint("Set loading grace period via PLAYER_ENTERING_WORLD - mount events blocked for 5 seconds")
+	
+	-- Store current states as the "before loading" states if not already set
+	if self.playerStates.mountedBeforeLoading == nil then
+		self.playerStates.mountedBeforeLoading = IsMounted()
+		DebugPrint("Set initial mount state on world enter: " .. tostring(self.playerStates.mountedBeforeLoading))
+	end
+	
+	if self.playerStates.shapeshiftedBeforeLoading == nil then
+		local currentShapeshift = false
+		if GetShapeshiftFormID then
+			local formID = GetShapeshiftFormID()
+			currentShapeshift = (formID and formID > 0)
+		end
+		self.playerStates.shapeshiftedBeforeLoading = currentShapeshift
+		DebugPrint("Set initial shapeshift state on world enter: " .. tostring(self.playerStates.shapeshiftedBeforeLoading))
+	end
+	
+	-- Preserve mount and shapeshift states during world loading
+	C_Timer.After(2, function()
+		local currentlyMounted = IsMounted()
+		DebugPrint("PLAYER_ENTERING_WORLD - was mounted: " .. tostring(self.playerStates.mountedBeforeLoading) .. ", now mounted: " .. tostring(currentlyMounted))
+		
+		-- Get current shapeshift state
+		local currentlyShapeshifted = false
+		if GetShapeshiftFormID then
+			local formID = GetShapeshiftFormID()
+			currentlyShapeshifted = (formID and formID > 0)
+		end
+		DebugPrint("PLAYER_ENTERING_WORLD - was shapeshifted: " .. tostring(self.playerStates.shapeshiftedBeforeLoading) .. ", now shapeshifted: " .. tostring(currentlyShapeshifted))
+		
+		-- Always update stored states to match reality without triggering events during grace period
+		self.playerStates.mounted = currentlyMounted
+		self.playerStates.shapeshifted = currentlyShapeshifted
+		DebugPrint("Mount and shapeshift states set to current reality via PLAYER_ENTERING_WORLD (grace period active)")
+		
+		-- Reset death state when entering world to prevent false revive triggers
+		if not UnitIsDeadOrGhost("player") then
+			self.playerStates.actuallyDead = false
+			DebugPrint("Reset death state after entering world")
+		end
+	end)
+end
+
 function Soundboard:PLAYER_DEAD(event, ...)
 	DebugPrint("PLAYER_DEAD event triggered")
-	self:Print("[Events] Player died - checking for configured sounds...")
+	
+	-- Ignore during loading screens
+	if self.playerStates.loadingScreenActive then
+		DebugPrint("Ignoring PLAYER_DEAD during loading screen")
+		return
+	end
+	
+	-- Always set death state when PLAYER_DEAD fires - this event is reliable
+	self.playerStates.actuallyDead = true
+	self.playerStates.lastDeathTime = time()
+	
+	self:Print("[Events] Player died (dead=" .. tostring(UnitIsDead("player")) .. ", ghost=" .. tostring(UnitIsGhost("player")) .. ") - checking for configured sounds...")
 	self:HandleEventTrigger("PLAYER_DEAD")
 end
 
 function Soundboard:PLAYER_ALIVE(event, ...)
 	DebugPrint("PLAYER_ALIVE event triggered") 
-	self:Print("[Events] Player revived - checking for configured sounds...")
-	self:HandleEventTrigger("PLAYER_ALIVE")
+	
+	-- Ignore during loading screens
+	if self.playerStates.loadingScreenActive then
+		DebugPrint("Ignoring PLAYER_ALIVE during loading screen")
+		return
+	end
+	
+	-- Check current player state
+	local isDeadOrGhost = UnitIsDeadOrGhost("player")
+	local wasActuallyDead = self.playerStates.actuallyDead
+	local timeSinceDeath = time() - self.playerStates.lastDeathTime
+	
+	self:Print("[Events] PLAYER_ALIVE - wasActuallyDead: " .. tostring(wasActuallyDead) .. ", isDeadOrGhost: " .. tostring(isDeadOrGhost) .. ", timeSinceDeath: " .. string.format("%.1f", timeSinceDeath) .. "s")
+	
+	-- Trigger revive event if player was actually dead and is now alive
+	-- This covers ALL revival methods:
+	-- - Individual resurrection spells (Resurrection, Rebirth, etc.)
+	-- - Mass resurrection spells (Mass Resurrection, etc.) 
+	-- - Running back to corpse and reviving
+	-- - Any other method that brings player from dead/ghost to alive
+	if wasActuallyDead and not isDeadOrGhost then
+		self.playerStates.actuallyDead = false
+		self:Print("[Events] Player revived (resurrection or corpse run) - checking for configured sounds...")
+		self:HandleEventTrigger("PLAYER_ALIVE")
+	elseif wasActuallyDead and isDeadOrGhost then
+		self:Print("[Events] PLAYER_ALIVE fired but player still dead/ghost - might be resurrection attempt")
+	else
+		DebugPrint("PLAYER_ALIVE fired but no death state recorded - ignoring (likely login/loading screen)")
+	end
 end
+
+function Soundboard:StartMountCheckTimer()
+	DebugPrint("Starting mount check timer for reliable mount detection")
+	
+	-- Create a timer that checks mount status every 0.5 seconds
+	if C_Timer and C_Timer.NewTicker then
+		self.mountCheckTimer = C_Timer.NewTicker(0.5, function()
+			self:CheckMountStatus()
+		end)
+		DebugPrint("Mount check timer created (C_Timer)")
+	else
+		-- Fallback for older clients
+		DebugPrint("C_Timer not available, using frame-based timer for mount checking")
+		local frame = CreateFrame("Frame")
+		local elapsed = 0
+		frame:SetScript("OnUpdate", function(self, dt)
+			elapsed = elapsed + dt
+			if elapsed >= 0.5 then
+				elapsed = 0
+				Soundboard:CheckMountStatus()
+			end
+		end)
+		self.mountCheckFrame = frame
+	end
+end
+
+-- Transport detection disabled - was causing issues with auto-detection
+
+function Soundboard:CheckShapeshiftStatus()
+	local isShapeshifted = false
+	local currentForm = nil
+	
+	-- Method 1: Use GetShapeshiftFormID if available (Druids)
+	if GetShapeshiftFormID then
+		local formID = GetShapeshiftFormID()
+		if formID and formID > 0 then
+			isShapeshifted = true
+			currentForm = "Form " .. formID
+			DebugPrint("Shapeshift detected via GetShapeshiftFormID: " .. formID)
+		end
+	end
+	
+	-- Method 2: Check for common shapeshift buffs if GetShapeshiftFormID not available or returns 0
+	if not isShapeshifted then
+		local shapeshiftBuffs = {
+			-- Druid forms
+			"Bear Form", "Cat Form", "Aquatic Form", "Travel Form", "Flight Form", 
+			"Swift Flight Form", "Moonkin Form", "Tree of Life",
+			-- Other class forms/stances
+			"Battle Stance", "Defensive Stance", "Berserker Stance",
+			"Stealth", "Shadowform", "Metamorphosis", "Ghost Wolf"
+		}
+		
+		for i = 1, 40 do
+			local name = UnitBuff("player", i)
+			if name then
+				for _, shapeshiftBuff in ipairs(shapeshiftBuffs) do
+					if string.lower(name) == string.lower(shapeshiftBuff) then
+						isShapeshifted = true
+						currentForm = name
+						DebugPrint("Shapeshift detected via buff: " .. name)
+						break
+					end
+				end
+				if isShapeshifted then break end
+			end
+		end
+	end
+	
+	-- Update shapeshift state if changed (but respect loading screen grace period)
+	if self.playerStates.shapeshifted ~= isShapeshifted then
+		DebugPrint("Shapeshift status changed from " .. tostring(self.playerStates.shapeshifted) .. " to " .. tostring(isShapeshifted) .. " (form: " .. tostring(currentForm) .. ", justFinishedLoading: " .. tostring(self.playerStates.justFinishedLoading) .. ")")
+		
+		-- Only trigger shapeshift events if we haven't just finished a loading screen (5 second grace period)
+		if not self.playerStates.justFinishedLoading then
+			self.playerStates.shapeshifted = isShapeshifted
+			
+			if isShapeshifted then
+				self:Print("[Events] Player entered shapeshift form (" .. (currentForm or "unknown") .. ") - checking for configured sounds...")
+				self:HandleEventTrigger("SHAPESHIFT_ENTER")
+			else
+				self:Print("[Events] Player exited shapeshift form - checking for configured sounds...")
+				self:HandleEventTrigger("SHAPESHIFT_EXIT")
+			end
+		else
+			-- Update state but don't trigger shapeshift events during loading grace period
+			self.playerStates.shapeshifted = isShapeshifted
+			DebugPrint("Shapeshift state changed but player just finished loading screen - not triggering shapeshift events (loading grace period)")
+		end
+	end
+end
+
+-- Transport detection function removed - feature disabled due to detection issues
+
+function Soundboard:CheckMountStatus()
+	local isMounted = IsMounted()
+	local isOnTaxi = UnitOnTaxi("player")
+	local currentTime = time()
+	
+	-- Check taxi status first (separate from mounts)
+	if self.playerStates.onTaxi ~= isOnTaxi then
+		DebugPrint("Taxi status changed from " .. tostring(self.playerStates.onTaxi) .. " to " .. tostring(isOnTaxi))
+		self.playerStates.onTaxi = isOnTaxi
+		
+		if isOnTaxi then
+			self.playerStates.justLeftTaxi = false  -- Clear taxi departure flag
+			self:Print("[Events] Player started taxi ride (Gryphon/Wind Rider) - checking for configured sounds...")
+			self:HandleEventTrigger("PLAYER_TAXI_START")
+		else
+			-- Player just left taxi - set flag to prevent mount dismount false triggers
+			self.playerStates.justLeftTaxi = true
+			self.playerStates.taxiEndTime = currentTime
+			self:Print("[Events] Player taxi ride ended - checking for configured sounds...")
+			self:HandleEventTrigger("PLAYER_TAXI_END")
+			DebugPrint("Set justLeftTaxi flag to prevent mount dismount false triggers")
+		end
+	end
+	
+	-- Clear taxi departure flag after 3 seconds
+	if self.playerStates.justLeftTaxi and (currentTime - self.playerStates.taxiEndTime) > 3 then
+		self.playerStates.justLeftTaxi = false
+		DebugPrint("Cleared justLeftTaxi flag - mount events re-enabled")
+	end
+	
+	-- Clear loading grace period after 5 seconds
+	if self.playerStates.justFinishedLoading and (currentTime - self.playerStates.loadingEndTime) > 5 then
+		self.playerStates.justFinishedLoading = false
+		DebugPrint("Cleared justFinishedLoading flag - mount and shapeshift events re-enabled after loading screen")
+	end
+	
+	-- Check mount status (but exclude taxis, recent taxi departures, and recent loading screens)
+	if self.playerStates.mounted ~= isMounted then
+		DebugPrint("Mount status changed from " .. tostring(self.playerStates.mounted) .. " to " .. tostring(isMounted) .. " (onTaxi: " .. tostring(isOnTaxi) .. ", justLeftTaxi: " .. tostring(self.playerStates.justLeftTaxi) .. ", justFinishedLoading: " .. tostring(self.playerStates.justFinishedLoading) .. ")")
+		
+		-- Only trigger mount events if:
+		-- 1. Not currently on a taxi
+		-- 2. Haven't just left a taxi (3 second grace period)
+		-- 3. Haven't just finished a loading screen (5 second grace period)
+		if not isOnTaxi and not self.playerStates.justLeftTaxi and not self.playerStates.justFinishedLoading then
+			self.playerStates.mounted = isMounted
+			
+			if isMounted then
+				self:Print("[Events] Player mounted (ground/flying mount) - checking for configured sounds...")
+				self:HandleEventTrigger("PLAYER_MOUNT")
+			else
+				self:Print("[Events] Player dismounted (ground/flying mount) - checking for configured sounds...")
+				self:HandleEventTrigger("PLAYER_DISMOUNT")
+			end
+		else
+			-- Update state but don't trigger mount events
+			self.playerStates.mounted = isMounted
+			if isOnTaxi then
+				DebugPrint("Mount state changed but player is on taxi - not triggering mount events")
+			elseif self.playerStates.justLeftTaxi then
+				DebugPrint("Mount state changed but player just left taxi - not triggering mount events (taxi grace period)")
+			elseif self.playerStates.justFinishedLoading then
+				DebugPrint("Mount state changed but player just finished loading screen - not triggering mount events (loading grace period)")
+			end
+		end
+	end
+end
+
+-- Transport event handlers removed - feature disabled due to detection issues
 
 function Soundboard:UNIT_AURA(event, unitTarget)
 	-- Only track player auras
 	if unitTarget ~= "player" then return end
 	
-	-- Check mount status
-	local isMounted = IsMounted()
-	if self.playerStates.mounted ~= isMounted then
-		self.playerStates.mounted = isMounted
-		if isMounted then
-			self:Print("[Events] Player mounted - checking for configured sounds...")
-			self:HandleEventTrigger("PLAYER_MOUNT")
-		else
-			self:Print("[Events] Player dismounted - checking for configured sounds...")
-			self:HandleEventTrigger("PLAYER_DISMOUNT")
-		end
-	end
+	DebugPrint("UNIT_AURA event fired for player")
 	
-	-- Check for Heroism/Bloodlust/Time Warp buffs
+	-- Use the comprehensive mount/taxi checking function
+	-- This will handle both mount and taxi detection properly
+	self:CheckMountStatus()
+	
+	-- Check for shapeshift form changes (Druid forms, etc.)
+	self:CheckShapeshiftStatus()
+	
+	-- Check for Heroism/Bloodlust/Time Warp buffs with enhanced debug
 	local hasHeroismBuff = false
+	local detectedSpellId = nil
+	local detectedSpellName = nil
+	
+	-- Enhanced spell ID list for all expansions
 	local heroismSpells = {
-		2825,   -- Bloodlust
-		32182,  -- Heroism  
-		80353,  -- Time Warp
+		2825,   -- Bloodlust (Shaman)
+		32182,  -- Heroism (Shaman)
+		80353,  -- Time Warp (Mage) - Original
 		90355,  -- Ancient Hysteria (Core Hound)
 		160452, -- Netherwinds (Nether Ray)
 		178207, -- Drums of Fury
@@ -5110,15 +6149,43 @@ function Soundboard:UNIT_AURA(event, unitTarget)
 		256740, -- Drums of the Maelstrom
 		309658, -- Drums of Deathly Ferocity
 		381301, -- Feral Hide Drums
+		-- Additional Time Warp variants for different expansions
+		369,    -- Time Warp (alternative ID)
+		57723,  -- Exhaustion (debuff from heroism effects)
+		57724,  -- Sated (debuff from heroism effects)
+		264667, -- Primal Instincts (Hunter pet)
+	}
+	
+	-- Also check by spell name in case spell IDs are different
+	local heroismNames = {
+		"Time Warp", "Heroism", "Bloodlust", "Ancient Hysteria", 
+		"Netherwinds", "Drums", "Primal Instincts"
 	}
 	
 	for i = 1, 40 do
-		local spellId = select(10, UnitBuff("player", i))
+		local name, _, _, _, _, _, _, _, _, spellId = UnitBuff("player", i)
 		if spellId then
+			-- Check by spell ID
 			for _, heroismId in ipairs(heroismSpells) do
 				if spellId == heroismId then
 					hasHeroismBuff = true
+					detectedSpellId = spellId
+					detectedSpellName = name
+					DebugPrint("Heroism buff detected by ID: " .. tostring(spellId) .. " (" .. tostring(name) .. ")")
 					break
+				end
+			end
+			
+			-- Check by spell name if ID check failed
+			if not hasHeroismBuff and name then
+				for _, heroismName in ipairs(heroismNames) do
+					if string.find(string.lower(name), string.lower(heroismName)) then
+						hasHeroismBuff = true
+						detectedSpellId = spellId
+						detectedSpellName = name
+						DebugPrint("Heroism buff detected by name: '" .. name .. "' (ID: " .. tostring(spellId) .. ")")
+						break
+					end
 				end
 			end
 		end
@@ -5128,10 +6195,13 @@ function Soundboard:UNIT_AURA(event, unitTarget)
 	if self.playerStates.hasHeroismBuff ~= hasHeroismBuff then
 		self.playerStates.hasHeroismBuff = hasHeroismBuff
 		if hasHeroismBuff then
-			self:Print("[Events] Heroism/Bloodlust/Time Warp buff detected - checking for configured sounds...")
+			self:Print("[Events] Heroism/Bloodlust/Time Warp buff detected: " .. (detectedSpellName or "Unknown") .. " (ID: " .. (detectedSpellId or "Unknown") .. ")")
 			self:HandleEventTrigger("HEROISM_BUFF")
+		else
+			DebugPrint("Heroism buff faded")
 		end
 	end
 end
 
+-- Old dropdown function removed - replaced with simple dropdown system
 -- Old dropdown function removed - replaced with simple dropdown system

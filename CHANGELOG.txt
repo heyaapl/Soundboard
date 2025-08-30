@@ -1,36 +1,75 @@
 # Soundboard Changelog
-## Version 1.2.0
-Major event system update! Now you can automatically trigger sounds based on game events.
+## Version 1.3.0 
+**MAJOR EVENTS SYSTEM OVERHAUL** - Complete rewrite with robust detection, UI improvements, and comprehensive testing
 
-### 🎯 Event System
-- **Automatic Sound Triggers**: Create events that automatically play sounds when specific game events occur
-- **9 Event Types Supported**:
-  - Player Login
-  - Player Mounts
-  - Player Dismounts  
-  - Player Dies
-  - Player Revives
-  - Enter Shapeshift Form (Druid forms, etc.)
-  - Exit Shapeshift Form
-  - Heroism/Bloodlust/Time Warp Applied
-  - Boards Transport (Boats, Zeppelins, etc.)
+### 🎯 Events System - Complete Rewrite
+- **10 Stable Event Types**: Reliable automatic sound triggers for game events
+  - **Player Login** (genuine logins only, excludes /reload)
+  - **Player Dies** (all death types)
+  - **Player Revives** (resurrection spells, mass res, corpse running)
+  - **Player Mounts** (ground/flying mounts only, excludes taxis)
+  - **Player Dismounts** (ground/flying mounts only, excludes taxis)
+  - **Takes Taxi** (gryphons, wind riders, flight paths)
+  - **Taxi Ends** (flight path completion)
+  - **Enter Shapeshift Form** (druid forms, warrior stances, etc.)
+  - **Exit Shapeshift Form** (leaving any shapeshift state)
+  - **Heroism/Bloodlust/Time Warp** (all heroism-type buffs)
 
-### 🎛️ Event Builder UI
-- **Intuitive 3-Step Creation**: Easy wizard-style event creation (Name → Event Type → Sound)
-- **Sound Browser**: Organized dropdown with sounds grouped by category
-- **Broadcast Options**: Choose whether events play locally only or broadcast to group (defaults to local)
-- **Event Management**: Enable/disable, modify, or delete events from the settings panel
+### 🎮 Enhanced Event Builder UI
+- **Full Sound Browser**: Search, categories, favorites, and subcategories in event creation
+- **3-Step Wizard**: Choose Event Type → Choose Sound (full browser) → Choose Mode
+- **One-Event-Per-Type**: Each trigger can only be configured once (prevents conflicts)
+- **Smart Availability**: Shows which event types are available vs already configured
+- **Full Edit System**: Click any configured event to edit sound, mode, or delete
+- **Delete Confirmation**: Prevents accidental event deletion
+- **Diamond Icon**: Events category now has a diamond icon for visual consistency
 
-### ⚙️ Event Configuration
-- **Master Toggle**: Enable/disable the entire event system
-- **Per-Event Controls**: Individual enable/disable for each created event
-- **Local vs Broadcast**: Per-event setting for local-only or group broadcast
-- **Event Persistence**: Events are saved per character profile
+### 🔒 False Trigger Prevention
+- **Loading Screen Protection**: 5-second grace period after loading screens prevents false mount triggers
+- **Taxi Separation**: Mount events completely separated from taxi/flight path events
+- **Death State Tracking**: Prevents false revive triggers on loading screens
+- **Session Management**: Login events only on genuine logins, not UI reloads
+- **Crash Recovery**: Proper login detection after crashes, Alt-F4, or disconnects
+- **Spam Prevention**: Time delays prevent rapid-fire duplicate events
 
-### 🔧 Technical Improvements
-- **Edge Detection**: Smart state monitoring prevents duplicate triggers
-- **Event Registration**: Automatic registration of only necessary WoW API events
-- **Performance Optimized**: Minimal resource usage when system is disabled
+### 🛠️ Advanced Detection Systems
+- **Timer-Based Mount Detection**: Reliable mount/dismount detection with 0.5s polling
+- **Enhanced Shapeshift Detection**: Uses GetShapeshiftFormID() and buff scanning
+- **Heroism Buff Detection**: Spell ID and name-based detection for all heroism variants
+- **Smart State Preservation**: Player states maintained through loading screens and zone changes
+- **Grace Period Management**: Multiple grace periods prevent false triggers from various sources
+
+### 🎨 UI/UX Improvements
+- **Text Wrapping**: Long headers now wrap properly without overlapping
+- **Taller Buttons**: Event entries use proper multi-line display
+- **No Unicode Issues**: Removed all emojis/symbols that show as squares in WoW
+- **Adaptive Heights**: Headers automatically adjust height based on text length
+- **Clean Formatting**: Professional appearance with proper spacing
+
+### 🧪 Comprehensive Testing Suite
+- **14 Debug Commands**: Complete testing and debugging toolkit
+  - `/soundboardevents status` - Complete system status
+  - `/soundboardmount` - Mount & taxi detection debug
+  - `/soundboardshape` - Shapeshift detection debug  
+  - `/soundboardloading` - Loading screen protection debug
+  - `/soundboardbuffs` - Heroism/buff detection debug
+  - `/soundboarddeath` - Death/revive detection debug
+  - Plus testing commands for all systems
+- **Manual Testing**: Simulate all event types for testing
+- **State Inspection**: View all internal state variables
+- **Grace Period Monitoring**: Track all protection timers
+
+### 🚫 Disabled Features
+- **Transport Events**: Temporarily disabled due to unreliable boat detection
+  - Zone changes don't work for most boats
+  - Will be re-enabled with better detection methods in future update
+
+### 🔧 Technical Foundation
+- **Robust State Management**: Comprehensive player state tracking
+- **Event Handler Architecture**: Clean separation of detection and triggering logic
+- **Database Migration**: Automatic setup for new Events system fields
+- **Error Prevention**: Extensive validation and safe function calls
+- **Performance Optimized**: Efficient timers and event handling
 ## Version 1.1.2
 - **See Who Sent Sounds**: Soundboard will now tell you who is sending sound bites. In a future update, you'll have the ability to blocklist players and specific sounds that you don't want to hear
 
