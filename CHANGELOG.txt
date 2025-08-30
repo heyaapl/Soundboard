@@ -1,4 +1,20 @@
 # Soundboard Changelog
+## Version 1.3.1
+**AUDIO NORMALIZATION UPDATE** - All sound files normalized for consistent volume levels
+
+### 🎵 Audio Quality Improvements
+- **Volume Normalization**: All 460 sound files have been normalized to consistent audio levels
+- **Reference Standard**: Audio levels matched to `druid.mp3` reference file (-14.4 dB mean volume)
+- **Smart Leveling**: Quiet sounds boosted up, loud sounds brought down for uniform experience
+- **Quality Preserved**: High-quality 192k MP3 encoding maintains audio fidelity
+- **Professional Standards**: Uses industry-standard LUFS (Loudness Units Full Scale) normalization
+
+### 🔧 Technical Details
+- **FFmpeg Processing**: Advanced audio processing using loudnorm filter
+- **Target Levels**: -14.4 LUFS integrated loudness, -0.2 dB true peak
+- **Consistent Experience**: No more sudden volume jumps between different sounds
+- **Backup Maintained**: Original files preserved during normalization process
+
 ## Version 1.3.0 
 **MAJOR EVENTS SYSTEM OVERHAUL** - Complete rewrite with robust detection, UI improvements, and comprehensive testing
 

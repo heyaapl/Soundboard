@@ -184,6 +184,100 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: Send Discord Notification
+        if: github.ref_name == 'main' && github.event_name == 'push'
+        run: |
+          # Extract changelog summary for Discord
+          VERSION="${{ steps.release-type.outputs.VERSION }}"
+          
+          # Get the first few lines of changelog for the current version as summary
+          CHANGELOG_SUMMARY=$(awk -v version="$VERSION" '
+          BEGIN { 
+            found = 0; 
+            content = ""; 
+            in_version = 0;
+            line_count = 0;
+          }
+          /^## Version / { 
+            if (found && in_version) {
+              exit;
+            }
+            if ($0 ~ version || gsub(/^## Version /, "") == version) {
+              found = 1; 
+              in_version = 1;
+              # Get the description line (usually the bold summary)
+              getline;
+              if ($0 ~ /^\*\*.*\*\*/) {
+                content = $0;
+                line_count++;
+              }
+              next;
+            }
+          }
+          found && in_version && line_count < 8 { 
+            if ($0 ~ /^### / || $0 ~ /^- /) {
+              if (content != "") content = content "\n";
+              content = content $0;
+              line_count++;
+            }
+          }
+          END { 
+            if (content != "") {
+              print content;
+            } else {
+              print "New version released with improvements and fixes!";
+            }
+          }
+          ' CHANGELOG.txt)
+          
+          # Create Discord webhook payload
+          cat << EOF > discord_payload.json
+          {
+            "username": "Soundboard Release Bot",
+            "avatar_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/256/256/638204664364552055.png",
+            "embeds": [{
+              "title": "🎵 Soundboard - New Release Available!",
+              "description": "A new version of Soundboard has been released!",
+              "color": 5814783,
+              "fields": [
+                {
+                  "name": "📦 Version",
+                  "value": "v$VERSION",
+                  "inline": true
+                },
+                {
+                  "name": "📅 Release Date", 
+                  "value": "$(date -u '+%B %d, %Y')",
+                  "inline": true
+                },
+                {
+                  "name": "📈 Downloads",
+                  "value": "[CurseForge Page](https://www.curseforge.com/wow/addons/soundboard)",
+                  "inline": true
+                },
+                {
+                  "name": "📋 Changelog Summary",
+                  "value": "$CHANGELOG_SUMMARY",
+                  "inline": false
+                }
+              ],
+              "footer": {
+                "text": "Soundboard for World of Warcraft",
+                "icon_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/64/64/638204664364552055.png"
+              },
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+            }]
+          }
+          EOF
+          
+          # Send to Discord webhook
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d @discord_payload.json \
+               "${{ secrets.DISCORD_WEBHOOK }}"
+          
+          echo "📢 Discord notification sent for version $VERSION"
+          
   build-summary:
     runs-on: ubuntu-latest
     needs: package
