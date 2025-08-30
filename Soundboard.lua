@@ -1632,10 +1632,35 @@ function SoundboardDropdown:ShowEvents()
 		for _, event in ipairs(eventsList) do
 			local eventName = SoundboardEvents.eventNames[event.data.eventType] or event.data.eventType
 			local soundKey = event.data.soundKey or "None"
-			local playerOnly = event.data.playerOnly and " (Player Only)" or " (Broadcast)"
+			
+			-- Build mode text with broadcast routing info
+			local modeText
+			if event.data.playerOnly then
+				modeText = " (Player Only)"
+			else
+							-- Handle broadcast routing display (with backwards compatibility)
+			local broadcastToGroup = event.data.broadcastToGroup
+			if broadcastToGroup == nil then broadcastToGroup = true end
+			
+			local broadcastToGuild = event.data.broadcastToGuild
+			if broadcastToGuild == nil then broadcastToGuild = true end
+			
+			DebugPrint("Events list display - broadcastToGroup: " .. tostring(event.data.broadcastToGroup) .. " -> " .. tostring(broadcastToGroup))
+			DebugPrint("Events list display - broadcastToGuild: " .. tostring(event.data.broadcastToGuild) .. " -> " .. tostring(broadcastToGuild))
+				
+				local routingText = {}
+				if broadcastToGroup then table.insert(routingText, "Group") end
+				if broadcastToGuild then table.insert(routingText, "Guild") end
+				
+				if #routingText > 0 then
+					modeText = " (Broadcast: " .. table.concat(routingText, " + ") .. ")"
+				else
+					modeText = " (Broadcast: None)"
+				end
+			end
 			
 			-- Create a taller button for longer text and use compact format
-			local eventBtn = self:CreateEventButton(eventName, soundKey, playerOnly, yOffset)
+			local eventBtn = self:CreateEventButton(eventName, soundKey, modeText, yOffset)
 			eventBtn:SetScript("OnClick", function()
 				DebugPrint("Edit event clicked for: " .. tostring(event.id))
 				Soundboard:Print("Opening edit dialog for: " .. eventName)
@@ -1878,14 +1903,33 @@ function SoundboardDropdown:ShowAddEventStep3(eventType, soundKey)
 	-- Player Only option
 	local playerOnlyBtn = self:CreateButton("Player Only - Only you hear the sound", yOffset)
 	playerOnlyBtn:SetScript("OnClick", function()
-		self:SaveNewEvent(eventType, soundKey, true)
+		self:SaveNewEvent(eventType, soundKey, true, false, false)
 	end)
 	yOffset = yOffset - buttonHeight
 	
-	-- Broadcast option
-	local broadcastBtn = self:CreateButton("Broadcast - Others with Soundboard hear it too", yOffset)
-	broadcastBtn:SetScript("OnClick", function()
-		self:SaveNewEvent(eventType, soundKey, false)
+	-- Broadcast options header
+	local broadcastHeader = self:CreateButton("Broadcast Options:", yOffset, false, true)
+	broadcastHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - 26  -- Secondary header is 26px tall
+	
+	-- Broadcast to both Group and Guild
+	local broadcastBothBtn = self:CreateButton("Broadcast to Group + Guild", yOffset)
+	broadcastBothBtn:SetScript("OnClick", function()
+		self:SaveNewEvent(eventType, soundKey, false, true, true)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Broadcast to Group only
+	local broadcastGroupBtn = self:CreateButton("Broadcast to Group only", yOffset)
+	broadcastGroupBtn:SetScript("OnClick", function()
+		self:SaveNewEvent(eventType, soundKey, false, true, false)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Broadcast to Guild only
+	local broadcastGuildBtn = self:CreateButton("Broadcast to Guild only", yOffset)
+	broadcastGuildBtn:SetScript("OnClick", function()
+		self:SaveNewEvent(eventType, soundKey, false, false, true)
 	end)
 	yOffset = yOffset - buttonHeight
 	
@@ -1895,8 +1939,8 @@ function SoundboardDropdown:ShowAddEventStep3(eventType, soundKey)
 	self:UpdateButtonWidths()
 end
 
-function SoundboardDropdown:SaveNewEvent(eventType, soundKey, playerOnly)
-	DebugPrint("SaveNewEvent called: " .. tostring(eventType) .. " -> " .. tostring(soundKey) .. " (playerOnly: " .. tostring(playerOnly) .. ")")
+function SoundboardDropdown:SaveNewEvent(eventType, soundKey, playerOnly, broadcastToGroup, broadcastToGuild)
+	DebugPrint("SaveNewEvent called: " .. tostring(eventType) .. " -> " .. tostring(soundKey) .. " (playerOnly: " .. tostring(playerOnly) .. ", broadcastToGroup: " .. tostring(broadcastToGroup) .. ", broadcastToGuild: " .. tostring(broadcastToGuild) .. ")")
 	
 	if not Soundboard.db or not Soundboard.db.profile then
 		Soundboard:Print("Error: Database not available")
@@ -1921,13 +1965,23 @@ function SoundboardDropdown:SaveNewEvent(eventType, soundKey, playerOnly)
 	events[eventId] = {
 		eventType = eventType,
 		soundKey = soundKey,
-		playerOnly = playerOnly
+		playerOnly = playerOnly,
+		-- New broadcast routing options (with defaults for backwards compatibility)
+		broadcastToGroup = (broadcastToGroup ~= nil) and broadcastToGroup or true,
+		broadcastToGuild = (broadcastToGuild ~= nil) and broadcastToGuild or true
 	}
 	
 	-- Provide feedback
 	local eventName = SoundboardEvents.eventNames[eventType] or eventType
-	local modeText = playerOnly and "(Player Only)" or "(Broadcast)"
-	Soundboard:Print("Event added: " .. eventName .. " -> /" .. soundKey .. " " .. modeText)
+	if playerOnly then
+		Soundboard:Print("Event added: " .. eventName .. " -> /" .. soundKey .. " (Player Only)")
+	else
+		local routingText = {}
+		if events[eventId].broadcastToGroup then table.insert(routingText, "Group") end
+		if events[eventId].broadcastToGuild then table.insert(routingText, "Guild") end
+		local routingStr = #routingText > 0 and table.concat(routingText, " + ") or "None"
+		Soundboard:Print("Event added: " .. eventName .. " -> /" .. soundKey .. " (Broadcast: " .. routingStr .. ")")
+	end
 	
 	-- Return to Events list
 	self:ShowEvents()
@@ -1962,8 +2016,34 @@ function SoundboardDropdown:ShowEditEventDialog(eventId, eventData)
 	yOffset = yOffset - 26  -- Secondary header is 26px tall
 	
 	local soundName = "/" .. (eventData.soundKey or "None")
-	local modeText = eventData.playerOnly and " (Player Only)" or " (Broadcast)"
-	local currentBtn = self:CreateButton("Sound: " .. soundName .. modeText, yOffset)
+	
+	-- Build current mode text with broadcast routing info
+	local currentModeText
+	if eventData.playerOnly then
+		currentModeText = " (Player Only)"
+	else
+		-- Proper boolean handling with nil check
+		local broadcastToGroup = eventData.broadcastToGroup
+		if broadcastToGroup == nil then broadcastToGroup = true end  -- Default for backwards compatibility
+		
+		local broadcastToGuild = eventData.broadcastToGuild
+		if broadcastToGuild == nil then broadcastToGuild = true end  -- Default for backwards compatibility
+		
+		DebugPrint("Edit dialog display - broadcastToGroup: " .. tostring(eventData.broadcastToGroup) .. " -> " .. tostring(broadcastToGroup))
+		DebugPrint("Edit dialog display - broadcastToGuild: " .. tostring(eventData.broadcastToGuild) .. " -> " .. tostring(broadcastToGuild))
+		
+		local routingText = {}
+		if broadcastToGroup then table.insert(routingText, "Group") end
+		if broadcastToGuild then table.insert(routingText, "Guild") end
+		
+		if #routingText > 0 then
+			currentModeText = " (Broadcast: " .. table.concat(routingText, " + ") .. ")"
+		else
+			currentModeText = " (Broadcast: None)"
+		end
+	end
+	
+	local currentBtn = self:CreateButton("Sound: " .. soundName .. currentModeText, yOffset)
 	currentBtn:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight - 5
 	
@@ -1979,16 +2059,64 @@ function SoundboardDropdown:ShowEditEventDialog(eventId, eventData)
 	end)
 	yOffset = yOffset - buttonHeight
 	
-	-- Toggle player-only vs broadcast
-	local currentMode = eventData.playerOnly and "Player Only" or "Broadcast"
-	local newMode = eventData.playerOnly and "Broadcast" or "Player Only"
-	local toggleModeBtn = self:CreateButton("Switch to " .. newMode, yOffset)
-	toggleModeBtn:SetScript("OnClick", function()
-		eventData.playerOnly = not eventData.playerOnly
+	-- Mode selection options
+	local modeHeader = self:CreateButton("Change Play Mode:", yOffset, false, true)
+	modeHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - 26  -- Secondary header is 26px tall
+	
+	-- Player Only option
+	local playerOnlyBtn = self:CreateButton("Player Only - Only you hear the sound", yOffset)
+	playerOnlyBtn:SetScript("OnClick", function()
+		eventData.playerOnly = true
+		eventData.broadcastToGroup = false
+		eventData.broadcastToGuild = false
 		Soundboard.db.profile.Events[eventId] = eventData
-		local newModeText = eventData.playerOnly and "Player Only" or "Broadcast"
-		Soundboard:Print("Event mode changed to: " .. newModeText)
-		self:ShowEditEventDialog(eventId, eventData)
+		Soundboard:Print("Event mode changed to: Player Only")
+		-- Reload from database to ensure UI shows current state
+		local updatedEventData = Soundboard.db.profile.Events[eventId]
+		self:ShowEditEventDialog(eventId, updatedEventData)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Broadcast to both Group and Guild
+	local broadcastBothBtn = self:CreateButton("Broadcast to Group + Guild", yOffset)
+	broadcastBothBtn:SetScript("OnClick", function()
+		eventData.playerOnly = false
+		eventData.broadcastToGroup = true
+		eventData.broadcastToGuild = true
+		Soundboard.db.profile.Events[eventId] = eventData
+		Soundboard:Print("Event mode changed to: Broadcast to Group + Guild")
+		-- Reload from database to ensure UI shows current state
+		local updatedEventData = Soundboard.db.profile.Events[eventId]
+		self:ShowEditEventDialog(eventId, updatedEventData)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Broadcast to Group only
+	local broadcastGroupBtn = self:CreateButton("Broadcast to Group only", yOffset)
+	broadcastGroupBtn:SetScript("OnClick", function()
+		eventData.playerOnly = false
+		eventData.broadcastToGroup = true
+		eventData.broadcastToGuild = false
+		Soundboard.db.profile.Events[eventId] = eventData
+		Soundboard:Print("Event mode changed to: Broadcast to Group only")
+		-- Reload from database to ensure UI shows current state
+		local updatedEventData = Soundboard.db.profile.Events[eventId]
+		self:ShowEditEventDialog(eventId, updatedEventData)
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Broadcast to Guild only
+	local broadcastGuildBtn = self:CreateButton("Broadcast to Guild only", yOffset)
+	broadcastGuildBtn:SetScript("OnClick", function()
+		eventData.playerOnly = false
+		eventData.broadcastToGroup = false
+		eventData.broadcastToGuild = true
+		Soundboard.db.profile.Events[eventId] = eventData
+		Soundboard:Print("Event mode changed to: Broadcast to Guild only")
+		-- Reload from database to ensure UI shows current state
+		local updatedEventData = Soundboard.db.profile.Events[eventId]
+		self:ShowEditEventDialog(eventId, updatedEventData)
 	end)
 	yOffset = yOffset - buttonHeight
 	
@@ -2866,6 +2994,7 @@ function SoundboardDropdown:ShowMainMenu()
 	local groupEnabled = (addonDB and addonDB.GroupEnabled) or false  
 	local soundboardEnabled = (addonDB and addonDB.IsEnabled) or false
 	local guildEnabled = (addonDB and addonDB.GuildBroadcast) or false
+	local groupBroadcastEnabled = (addonDB and addonDB.GroupBroadcast) or false
 	DebugPrint("DB values retrieved")
 	
 	-- Title
@@ -2961,6 +3090,31 @@ function SoundboardDropdown:ShowMainMenu()
 			self:ShowMainMenu()
 		else
 			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking guild button!")
+			Soundboard:Print("Error: Database not available")
+		end
+	end)
+	yOffset = yOffset - buttonHeight
+	
+	-- Group broadcast option
+	local groupBroadcastBtn = self:CreateButton(
+		groupBroadcastEnabled and "Group: |cFF00FF00ON|r" or "Group: |cFFFF0000OFF|r",
+		yOffset
+	)
+	groupBroadcastBtn:SetScript("OnClick", function()
+		local currentDB = Soundboard.db and Soundboard.db.profile
+		DebugPrint("Group broadcast button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
+		if currentDB then
+			local oldValue = currentDB.GroupBroadcast
+			currentDB.GroupBroadcast = not currentDB.GroupBroadcast
+			DebugPrint("GroupBroadcast changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.GroupBroadcast))
+			if currentDB.GroupBroadcast then
+				Soundboard:Print("Group broadcast |cFF00FF00enabled|r")
+			else
+				Soundboard:Print("Group broadcast |cFFFF0000disabled|r")
+			end
+			self:ShowMainMenu()
+		else
+			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking group broadcast button!")
 			Soundboard:Print("Error: Database not available")
 		end
 	end)
@@ -3932,6 +4086,7 @@ local soundboard_data_sorted_keys = {};
 			UITemplate = "Default",    -- UI template: "Default", "Transparent", "ClassColor"
 			-- Broadcasting Settings
 			GuildBroadcast = true,     -- true/false
+			GroupBroadcast = true,     -- true/false
 			-- Favorites System (Account-wide)
 			Favorites = {},            -- Table of favorited sound keys {soundKey = true}
 			-- Dynamic Sound Duration Learning
@@ -3957,6 +4112,11 @@ local soundboard_data_sorted_keys = {};
 	if db.GuildBroadcast == nil then
 		db.GuildBroadcast = true
 		DebugPrint("Migrated GuildBroadcast to default: true")
+	end
+	
+	if db.GroupBroadcast == nil then
+		db.GroupBroadcast = true
+		DebugPrint("Migrated GroupBroadcast to default: true")
 	end
 	
 	-- Handle database migration for favorites system
@@ -4578,7 +4738,29 @@ local soundboard_data_sorted_keys = {};
 				Soundboard:Print("Configured events:")
 				for eventId, eventData in pairs(events) do
 					local eventName = SoundboardEvents.eventNames[eventData.eventType] or eventData.eventType
-					Soundboard:Print("  " .. eventName .. " -> /" .. eventData.soundKey .. (eventData.playerOnly and " (Player Only)" or " (Broadcast)"))
+					-- Build mode text with broadcast routing info for command output
+					local modeText
+					if eventData.playerOnly then
+						modeText = " (Player Only)"
+					else
+						local broadcastToGroup = eventData.broadcastToGroup
+						if broadcastToGroup == nil then broadcastToGroup = true end
+						
+						local broadcastToGuild = eventData.broadcastToGuild
+						if broadcastToGuild == nil then broadcastToGuild = true end
+						
+						local routingText = {}
+						if broadcastToGroup then table.insert(routingText, "Group") end
+						if broadcastToGuild then table.insert(routingText, "Guild") end
+						
+						if #routingText > 0 then
+							modeText = " (Broadcast: " .. table.concat(routingText, " + ") .. ")"
+						else
+							modeText = " (Broadcast: None)"
+						end
+					end
+					
+					Soundboard:Print("  " .. eventName .. " -> /" .. eventData.soundKey .. modeText)
 				end
 			else
 				Soundboard:Print("No events configured")
@@ -5471,14 +5653,30 @@ function Soundboard:DoEmote(key, arg2, sender)
 						Soundboard.db.profile.GuildBroadcast = true
 					end
 					
-					-- Send to group members (existing functionality)
-					Soundboard:Send(key, "PARTY")
-					DebugPrint("Sent to group: " .. key)
+					local groupEnabled = Soundboard.db.profile.GroupBroadcast
+					if groupEnabled == nil then
+						groupEnabled = true -- Default for existing users
+						Soundboard.db.profile.GroupBroadcast = true
+					end
+					
+					-- Send to group members if enabled
+					if groupEnabled then
+						Soundboard:Send(key, "PARTY")
+						DebugPrint("Sent to group: " .. key)
+					else
+						DebugPrint("Group broadcasting disabled - not sending to group: " .. key)
+					end
 					
 					-- Send to guild members if enabled
 					if guildEnabled and IsInGuild() then
 						Soundboard:Send(key, "GUILD")
 						DebugPrint("Sent to guild: " .. key)
+					else
+						if not guildEnabled then
+							DebugPrint("Guild broadcasting disabled - not sending to guild: " .. key)
+						elseif not IsInGuild() then
+							DebugPrint("Not in guild - not sending to guild: " .. key)
+						end
 					end
 				end
 				LastEmoteTime = time();
@@ -5512,7 +5710,26 @@ function Soundboard:OnCommReceived(prefix, msg, distri, sender)
 			self:HandlePingReply(sender, channel)
 
 		else
-			Soundboard:DoEmote(msg, false, sender)
+			-- Check if we should process this broadcast based on distribution channel and settings
+			local shouldProcess = true
+			
+			if distri == "GUILD" then
+				-- Check if guild broadcasts are enabled
+				if not self.db.profile.GuildBroadcast then
+					DebugPrint("Ignoring guild broadcast from " .. sender .. " - guild broadcasting disabled")
+					shouldProcess = false
+				end
+			elseif distri == "PARTY" or distri == "RAID" then
+				-- Check if group broadcasts are enabled
+				if not self.db.profile.GroupBroadcast then
+					DebugPrint("Ignoring group broadcast from " .. sender .. " - group broadcasting disabled")
+					shouldProcess = false
+				end
+			end
+			
+			if shouldProcess then
+				Soundboard:DoEmote(msg, false, sender)
+			end
 		end
 	end
 end
@@ -5696,34 +5913,34 @@ end
 
 -- Events System Functions
 function Soundboard:HandleEventTrigger(eventType)
-	self:Print("[Events] HandleEventTrigger called for: " .. tostring(eventType))
+	DebugPrint("[Events] HandleEventTrigger called for: " .. tostring(eventType))
 	
 	-- Check if Events system is enabled
 	if not self.db or not self.db.profile or not self.db.profile.EventsEnabled then
-		self:Print("[Events] System disabled, ignoring event: " .. tostring(eventType))
+		DebugPrint("[Events] System disabled, ignoring event: " .. tostring(eventType))
 		return
 	end
 	
-	self:Print("[Events] System is enabled, checking for configured events...")
+	DebugPrint("[Events] System is enabled, checking for configured events...")
 	
 	-- Get configured events
 	local events = self.db.profile.Events
 	if not events then
-		self:Print("[Events] No events table found")
+		DebugPrint("[Events] No events table found")
 		return
 	end
 	
 	-- Count and show events
 	local eventCount = 0
 	for _ in pairs(events) do eventCount = eventCount + 1 end
-	self:Print("[Events] Found " .. eventCount .. " total configured events")
+	DebugPrint("[Events] Found " .. eventCount .. " total configured events")
 	
 	-- Find events matching this trigger
 	local matchCount = 0
 	for eventId, eventData in pairs(events) do
 		if eventData.eventType == eventType then
 			matchCount = matchCount + 1
-			self:Print("[Events] Match #" .. matchCount .. ": " .. eventId .. " -> /" .. (eventData.soundKey or "None"))
+			DebugPrint("[Events] Match #" .. matchCount .. ": " .. eventId .. " -> /" .. (eventData.soundKey or "None"))
 			
 			-- Get the sound data
 			local soundKey = eventData.soundKey
@@ -5732,28 +5949,36 @@ function Soundboard:HandleEventTrigger(eventType)
 				
 				if eventData.playerOnly then
 					-- Play only for the player
-					self:Print("[Events] Playing sound for player only: /" .. soundKey)
+					DebugPrint("[Events] Playing sound for player only: /" .. soundKey)
 					self:PlaySoundForPlayer(soundData.file, soundKey)
 				else
-					-- Broadcast to others (use existing emote system)
-					self:Print("[Events] Broadcasting sound to others: /" .. soundKey)
-					self:SayGagKey(soundKey)
+					-- Handle broadcast routing based on event settings
+					local broadcastToGroup = eventData.broadcastToGroup
+					if broadcastToGroup == nil then broadcastToGroup = true end  -- Default to true for backwards compatibility
+					
+					local broadcastToGuild = eventData.broadcastToGuild  
+					if broadcastToGuild == nil then broadcastToGuild = true end  -- Default to true for backwards compatibility
+					
+					DebugPrint("[Events] Broadcasting sound with routing - Group: " .. tostring(broadcastToGroup) .. ", Guild: " .. tostring(broadcastToGuild))
+					
+					-- Call custom broadcast function instead of SayGagKey
+					self:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild)
 				end
 			else
-				self:Print("[Events] ERROR: Sound not found in soundboard_data: " .. tostring(soundKey))
+				DebugPrint("[Events] ERROR: Sound not found in soundboard_data: " .. tostring(soundKey))
 				if not soundboard_data then
-					self:Print("[Events] soundboard_data is nil!")
+					DebugPrint("[Events] soundboard_data is nil!")
 				elseif not soundboard_data[soundKey] then
-					self:Print("[Events] soundKey '" .. soundKey .. "' not found in soundboard_data")
+					DebugPrint("[Events] soundKey '" .. soundKey .. "' not found in soundboard_data")
 				end
 			end
 		end
 	end
 	
 	if matchCount == 0 then
-		self:Print("[Events] No events configured for: " .. tostring(eventType))
+		DebugPrint("[Events] No events configured for: " .. tostring(eventType))
 	else
-		self:Print("[Events] Processed " .. matchCount .. " matching event(s)")
+		DebugPrint("[Events] Processed " .. matchCount .. " matching event(s)")
 	end
 end
 
@@ -5773,7 +5998,77 @@ function Soundboard:PlaySoundForPlayer(soundFile, soundKey)
 	
 	-- Provide feedback
 	local soundName = soundKey and ("/" .. soundKey) or "Sound"
-	self:Print(soundName .. " triggered by event (player only)")
+	DebugPrint(soundName .. " triggered by event (player only)")
+end
+
+function Soundboard:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild)
+	DebugPrint("BroadcastSoundForEvent called for: " .. tostring(soundKey) .. " (Group: " .. tostring(broadcastToGroup) .. ", Guild: " .. tostring(broadcastToGuild) .. ")")
+	
+	if not soundKey then
+		DebugPrint("ERROR: No sound key provided for event broadcast")
+		return
+	end
+	
+	-- Play the sound locally first
+	local emote = soundboard_data and soundboard_data[soundKey]
+	if emote and emote.file then
+		-- Get volume with fallback to default
+		local volume = (db and db.MasterVolume) or 1.0
+		-- Play using the sound queue system
+		self:PlaySoundWithVolume(emote.file, volume, soundKey, nil)
+	end
+	
+	-- Handle broadcasting to other users based on event preferences and global settings
+	local actualGroupBroadcast = false
+	local actualGuildBroadcast = false
+	
+	-- Check if we should broadcast to group
+	if broadcastToGroup then
+		if self.db.profile.GroupBroadcast then
+			actualGroupBroadcast = true
+			DebugPrint("[Events] Will broadcast to group (event allows + global setting enabled)")
+		else
+			DebugPrint("[Events] Event wants to broadcast to group, but global group broadcasting is disabled")
+		end
+	else
+		DebugPrint("[Events] Event configured to not broadcast to group")
+	end
+	
+	-- Check if we should broadcast to guild
+	if broadcastToGuild then
+		if self.db.profile.GuildBroadcast then
+			actualGuildBroadcast = true
+			DebugPrint("[Events] Will broadcast to guild (event allows + global setting enabled)")
+		else
+			DebugPrint("[Events] Event wants to broadcast to guild, but global guild broadcasting is disabled")
+		end
+	else
+		DebugPrint("[Events] Event configured to not broadcast to guild")
+	end
+	
+	-- Perform actual broadcasts
+	if actualGroupBroadcast then
+		self:Send(soundKey, "PARTY")
+		DebugPrint("[Events] Broadcasted to group: " .. soundKey)
+	end
+	
+	if actualGuildBroadcast and IsInGuild() then
+		self:Send(soundKey, "GUILD")
+		DebugPrint("[Events] Broadcasted to guild: " .. soundKey)
+	elseif actualGuildBroadcast and not IsInGuild() then
+		DebugPrint("[Events] Wanted to broadcast to guild but not in guild: " .. soundKey)
+	end
+	
+	-- Provide user feedback
+	local broadcastTargets = {}
+	if actualGroupBroadcast then table.insert(broadcastTargets, "group") end
+	if actualGuildBroadcast then table.insert(broadcastTargets, "guild") end
+	
+	if #broadcastTargets > 0 then
+		DebugPrint("/" .. soundKey .. " triggered by event (broadcasted to " .. table.concat(broadcastTargets, " + ") .. ")")
+	else
+		DebugPrint("/" .. soundKey .. " triggered by event (no broadcasts sent - all channels disabled)")
+	end
 end
 
 -- Event Handlers
@@ -5782,7 +6077,7 @@ function Soundboard:PLAYER_LOGIN(event, ...)
 	
 	-- Check if this is a genuine login or just a reload
 	if self.playerStates.hasLoggedInThisSession then
-		self:Print("[Events] PLAYER_LOGIN fired but this is a reload, not a genuine login - ignoring")
+		DebugPrint("[Events] PLAYER_LOGIN fired but this is a reload, not a genuine login - ignoring")
 		return
 	end
 	
@@ -5790,7 +6085,7 @@ function Soundboard:PLAYER_LOGIN(event, ...)
 	self.playerStates.hasLoggedInThisSession = true
 	self.hasLoginFiredThisSession = true  -- Session variable that persists through reloads
 	
-	self:Print("[Events] Genuine player login detected - checking for configured sounds...")
+	DebugPrint("[Events] Genuine player login detected - checking for configured sounds...")
 	
 	-- Add a small delay to ensure addon is fully loaded
 	C_Timer.After(2, function()
@@ -5919,7 +6214,7 @@ function Soundboard:PLAYER_DEAD(event, ...)
 	self.playerStates.actuallyDead = true
 	self.playerStates.lastDeathTime = time()
 	
-	self:Print("[Events] Player died (dead=" .. tostring(UnitIsDead("player")) .. ", ghost=" .. tostring(UnitIsGhost("player")) .. ") - checking for configured sounds...")
+	DebugPrint("[Events] Player died (dead=" .. tostring(UnitIsDead("player")) .. ", ghost=" .. tostring(UnitIsGhost("player")) .. ") - checking for configured sounds...")
 	self:HandleEventTrigger("PLAYER_DEAD")
 end
 
@@ -5937,7 +6232,7 @@ function Soundboard:PLAYER_ALIVE(event, ...)
 	local wasActuallyDead = self.playerStates.actuallyDead
 	local timeSinceDeath = time() - self.playerStates.lastDeathTime
 	
-	self:Print("[Events] PLAYER_ALIVE - wasActuallyDead: " .. tostring(wasActuallyDead) .. ", isDeadOrGhost: " .. tostring(isDeadOrGhost) .. ", timeSinceDeath: " .. string.format("%.1f", timeSinceDeath) .. "s")
+	DebugPrint("[Events] PLAYER_ALIVE - wasActuallyDead: " .. tostring(wasActuallyDead) .. ", isDeadOrGhost: " .. tostring(isDeadOrGhost) .. ", timeSinceDeath: " .. string.format("%.1f", timeSinceDeath) .. "s")
 	
 	-- Trigger revive event if player was actually dead and is now alive
 	-- This covers ALL revival methods:
@@ -5947,10 +6242,10 @@ function Soundboard:PLAYER_ALIVE(event, ...)
 	-- - Any other method that brings player from dead/ghost to alive
 	if wasActuallyDead and not isDeadOrGhost then
 		self.playerStates.actuallyDead = false
-		self:Print("[Events] Player revived (resurrection or corpse run) - checking for configured sounds...")
+		DebugPrint("[Events] Player revived (resurrection or corpse run) - checking for configured sounds...")
 		self:HandleEventTrigger("PLAYER_ALIVE")
 	elseif wasActuallyDead and isDeadOrGhost then
-		self:Print("[Events] PLAYER_ALIVE fired but player still dead/ghost - might be resurrection attempt")
+		DebugPrint("[Events] PLAYER_ALIVE fired but player still dead/ghost - might be resurrection attempt")
 	else
 		DebugPrint("PLAYER_ALIVE fired but no death state recorded - ignoring (likely login/loading screen)")
 	end
@@ -6033,10 +6328,10 @@ function Soundboard:CheckShapeshiftStatus()
 			self.playerStates.shapeshifted = isShapeshifted
 			
 			if isShapeshifted then
-				self:Print("[Events] Player entered shapeshift form (" .. (currentForm or "unknown") .. ") - checking for configured sounds...")
+				DebugPrint("[Events] Player entered shapeshift form (" .. (currentForm or "unknown") .. ") - checking for configured sounds...")
 				self:HandleEventTrigger("SHAPESHIFT_ENTER")
 			else
-				self:Print("[Events] Player exited shapeshift form - checking for configured sounds...")
+				DebugPrint("[Events] Player exited shapeshift form - checking for configured sounds...")
 				self:HandleEventTrigger("SHAPESHIFT_EXIT")
 			end
 		else
@@ -6061,13 +6356,13 @@ function Soundboard:CheckMountStatus()
 		
 		if isOnTaxi then
 			self.playerStates.justLeftTaxi = false  -- Clear taxi departure flag
-			self:Print("[Events] Player started taxi ride (Gryphon/Wind Rider) - checking for configured sounds...")
+			DebugPrint("[Events] Player started taxi ride (Gryphon/Wind Rider) - checking for configured sounds...")
 			self:HandleEventTrigger("PLAYER_TAXI_START")
 		else
 			-- Player just left taxi - set flag to prevent mount dismount false triggers
 			self.playerStates.justLeftTaxi = true
 			self.playerStates.taxiEndTime = currentTime
-			self:Print("[Events] Player taxi ride ended - checking for configured sounds...")
+			DebugPrint("[Events] Player taxi ride ended - checking for configured sounds...")
 			self:HandleEventTrigger("PLAYER_TAXI_END")
 			DebugPrint("Set justLeftTaxi flag to prevent mount dismount false triggers")
 		end
@@ -6097,10 +6392,10 @@ function Soundboard:CheckMountStatus()
 			self.playerStates.mounted = isMounted
 			
 			if isMounted then
-				self:Print("[Events] Player mounted (ground/flying mount) - checking for configured sounds...")
+				DebugPrint("[Events] Player mounted (ground/flying mount) - checking for configured sounds...")
 				self:HandleEventTrigger("PLAYER_MOUNT")
 			else
-				self:Print("[Events] Player dismounted (ground/flying mount) - checking for configured sounds...")
+				DebugPrint("[Events] Player dismounted (ground/flying mount) - checking for configured sounds...")
 				self:HandleEventTrigger("PLAYER_DISMOUNT")
 			end
 		else
@@ -6195,7 +6490,7 @@ function Soundboard:UNIT_AURA(event, unitTarget)
 	if self.playerStates.hasHeroismBuff ~= hasHeroismBuff then
 		self.playerStates.hasHeroismBuff = hasHeroismBuff
 		if hasHeroismBuff then
-			self:Print("[Events] Heroism/Bloodlust/Time Warp buff detected: " .. (detectedSpellName or "Unknown") .. " (ID: " .. (detectedSpellId or "Unknown") .. ")")
+			DebugPrint("[Events] Heroism/Bloodlust/Time Warp buff detected: " .. (detectedSpellName or "Unknown") .. " (ID: " .. (detectedSpellId or "Unknown") .. ")")
 			self:HandleEventTrigger("HEROISM_BUFF")
 		else
 			DebugPrint("Heroism buff faded")

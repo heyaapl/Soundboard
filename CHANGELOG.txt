@@ -1,140 +1,31 @@
 # Soundboard Changelog
-## Version 1.3.1
+## Version 1.2.0
+**MAJOR EVENTS SYSTEM OVERHAUL** - Complete rewrite with robust detection, UI improvements, and comprehensive testing
 **AUDIO NORMALIZATION UPDATE** - All sound files normalized for consistent volume levels
 
 ### 🎵 Audio Quality Improvements
 - **Volume Normalization**: All 460 sound files have been normalized to consistent audio levels
-- **Reference Standard**: Audio levels matched to `druid.mp3` reference file (-14.4 dB mean volume)
 - **Smart Leveling**: Quiet sounds boosted up, loud sounds brought down for uniform experience
-- **Quality Preserved**: High-quality 192k MP3 encoding maintains audio fidelity
-- **Professional Standards**: Uses industry-standard LUFS (Loudness Units Full Scale) normalization
-
-### 🔧 Technical Details
-- **FFmpeg Processing**: Advanced audio processing using loudnorm filter
-- **Target Levels**: -14.4 LUFS integrated loudness, -0.2 dB true peak
-- **Consistent Experience**: No more sudden volume jumps between different sounds
-- **Backup Maintained**: Original files preserved during normalization process
-
-## Version 1.3.0 
-**MAJOR EVENTS SYSTEM OVERHAUL** - Complete rewrite with robust detection, UI improvements, and comprehensive testing
 
 ### 🎯 Events System - Complete Rewrite
-- **10 Stable Event Types**: Reliable automatic sound triggers for game events
-  - **Player Login** (genuine logins only, excludes /reload)
-  - **Player Dies** (all death types)
-  - **Player Revives** (resurrection spells, mass res, corpse running)
-  - **Player Mounts** (ground/flying mounts only, excludes taxis)
-  - **Player Dismounts** (ground/flying mounts only, excludes taxis)
-  - **Takes Taxi** (gryphons, wind riders, flight paths)
-  - **Taxi Ends** (flight path completion)
-  - **Enter Shapeshift Form** (druid forms, warrior stances, etc.)
-  - **Exit Shapeshift Form** (leaving any shapeshift state)
-  - **Heroism/Bloodlust/Time Warp** (all heroism-type buffs)
+- **10 Event Types**: Reliable automatic sound triggers for game events
+  - **Player Login**
+  - **Player Revives**
+  - **Player Dies**
+  - **Player Mounts**
+  - **Player Dismounts**
+  - **Takes Taxi**
+  - **Taxi Ends**
+  - **Enter Shapeshift Form**
+  - **Exit Shapeshift Form**
+  - **Heroism/Bloodlust/Time Warp**
 
-### 🎮 Enhanced Event Builder UI
+### 🎮 Event Builder UI
 - **Full Sound Browser**: Search, categories, favorites, and subcategories in event creation
-- **3-Step Wizard**: Choose Event Type → Choose Sound (full browser) → Choose Mode
+- **3-Step Wizard**: Choose Event Type → Choose Sound → Choose Broadcast Mode
 - **One-Event-Per-Type**: Each trigger can only be configured once (prevents conflicts)
-- **Smart Availability**: Shows which event types are available vs already configured
 - **Full Edit System**: Click any configured event to edit sound, mode, or delete
-- **Delete Confirmation**: Prevents accidental event deletion
-- **Diamond Icon**: Events category now has a diamond icon for visual consistency
-
-### 🔒 False Trigger Prevention
-- **Loading Screen Protection**: 5-second grace period after loading screens prevents false mount triggers
-- **Taxi Separation**: Mount events completely separated from taxi/flight path events
-- **Death State Tracking**: Prevents false revive triggers on loading screens
-- **Session Management**: Login events only on genuine logins, not UI reloads
-- **Crash Recovery**: Proper login detection after crashes, Alt-F4, or disconnects
-- **Spam Prevention**: Time delays prevent rapid-fire duplicate events
-
-### 🛠️ Advanced Detection Systems
-- **Timer-Based Mount Detection**: Reliable mount/dismount detection with 0.5s polling
-- **Enhanced Shapeshift Detection**: Uses GetShapeshiftFormID() and buff scanning
-- **Heroism Buff Detection**: Spell ID and name-based detection for all heroism variants
-- **Smart State Preservation**: Player states maintained through loading screens and zone changes
-- **Grace Period Management**: Multiple grace periods prevent false triggers from various sources
 
 ### 🎨 UI/UX Improvements
 - **Text Wrapping**: Long headers now wrap properly without overlapping
-- **Taller Buttons**: Event entries use proper multi-line display
-- **No Unicode Issues**: Removed all emojis/symbols that show as squares in WoW
 - **Adaptive Heights**: Headers automatically adjust height based on text length
-- **Clean Formatting**: Professional appearance with proper spacing
-
-### 🧪 Comprehensive Testing Suite
-- **14 Debug Commands**: Complete testing and debugging toolkit
-  - `/soundboardevents status` - Complete system status
-  - `/soundboardmount` - Mount & taxi detection debug
-  - `/soundboardshape` - Shapeshift detection debug  
-  - `/soundboardloading` - Loading screen protection debug
-  - `/soundboardbuffs` - Heroism/buff detection debug
-  - `/soundboarddeath` - Death/revive detection debug
-  - Plus testing commands for all systems
-- **Manual Testing**: Simulate all event types for testing
-- **State Inspection**: View all internal state variables
-- **Grace Period Monitoring**: Track all protection timers
-
-### 🚫 Disabled Features
-- **Transport Events**: Temporarily disabled due to unreliable boat detection
-  - Zone changes don't work for most boats
-  - Will be re-enabled with better detection methods in future update
-
-### 🔧 Technical Foundation
-- **Robust State Management**: Comprehensive player state tracking
-- **Event Handler Architecture**: Clean separation of detection and triggering logic
-- **Database Migration**: Automatic setup for new Events system fields
-- **Error Prevention**: Extensive validation and safe function calls
-- **Performance Optimized**: Efficient timers and event handling
-## Version 1.1.2
-- **See Who Sent Sounds**: Soundboard will now tell you who is sending sound bites. In a future update, you'll have the ability to blocklist players and specific sounds that you don't want to hear
-
-## Version 1.1
-Major feature update with queue system, learning AI, favorites, and search functionality!
-
-### 🎵 Sound Queue System
-- **Smart Queue**: Prevents overlapping sounds by automatically queueing them
-- **Real-time Feedback**: Shows queue position and estimated wait times
-- **Duplicate Prevention**: Blocks identical sounds from being queued multiple times
-- **Seamless Playback**: Automatic progression through queued sounds
-
-### ⭐ Favorites System
-- **Star Sounds**: Click star icons to favorite/unfavorite sounds
-
-### 🔍 Search System
-- **Instant Search**: Search bar to find sounds and categories quickly
-- **Smart Results**: Shows categories above individual sounds in results
-
-### 🎨 User Interface Improvements  
-- **Improved Button Sizing**: Better border rendering and text display
-
-### 🎭 Events System
-- **27 Event Types**: Comprehensive event triggering system
-  - **Core Events**: Player Login, Player Mounts/Dismounts, Player Dies/Revives
-  - **Shapeshift Events**: Enter/Exit Shapeshift Forms (Druid forms, Priest Shadowform, etc.)
-  - **Combat Events**: Entering/Leaving Combat, Critical Hits/Heals, Killing Blows
-  - **Social Events**: Joining/Leaving Groups, Friends Coming Online, Guild Member Activity
-  - **Character Events**: Level Up, Learning Spells, Achievements, Rare/Epic Loot
-  - **Environmental Events**: Dungeon/Raid Entry/Exit, Weather Changes, Day/Night Cycle
-  - **PvP Events**: Battleground Entry, Honor Kills, Flag/Objective Captures
-  - **Special Events**: Heroism/Bloodlust/Time Warp, Transport Boarding
-- **Events Manager UI**: Center-screen interface for managing events
-- **Event Configuration**: Choose trigger type, sound, and broadcast mode
-- **Player-Only vs Broadcast**: Option to play sounds locally or share with others
-- **Global Events Toggle**: Master on/off switch for all events
-- **Smart Detection**: Intelligent event detection preventing false triggers
-- **Cross-Version Support**: Works across Classic, TBC, Wrath, and Modern WoW
-
-## 🔧 Critical Compatibility Fixes
-- **Fixed Classic WoW Loading**: Resolved C_Timer API incompatibilities preventing addon from loading
-- **Timer System Fallbacks**: Implemented CreateFrame-based timer system for Classic WoW  
-- **API Compatibility**: Added safe checks for modern WoW functions (GetMaxBattlefieldID, GetShapeshiftFormID, etc.)
-- **Sound Queue Classic Support**: Updated sound queue with compatible timer mechanisms
-- **Restored Working Version**: Reverted to stable base and safely re-implemented Events system
-- **Events System v2**: Basic Events system with Login, Death, and Revive triggers
-- **Events Toggle**: Added Events ON/OFF toggle to main Soundboard menu
-- **Events UI Framework**: Center-screen Events Manager window with placeholder interface
-- **Events Test Commands**: `/soundboardevents test` and `/soundboardtest` for system verification
-- **Added Main Command**: Fixed missing `/soundboard` command to open dropdown menu
-- **Enhanced Error Checking**: Added comprehensive startup logging and library validation
-- **Classic Timer Fixes**: Fixed all remaining C_Timer compatibility issues in sound queue and ping systems
