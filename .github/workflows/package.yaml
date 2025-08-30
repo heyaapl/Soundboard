@@ -83,7 +83,7 @@ jobs:
       - name: Package addon
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -r ${{ steps.release-type.outputs.RELEASE_TYPE }} -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -t ${{ steps.release-type.outputs.RELEASE_TYPE }} -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
@@ -100,7 +100,7 @@ jobs:
           echo "🏷️ Is Tagged: ${{ steps.release-type.outputs.IS_TAGGED }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           echo "🔗 Ref: ${{ github.ref }}"
-          echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -r ${{ steps.release-type.outputs.RELEASE_TYPE }} -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -t ${{ steps.release-type.outputs.RELEASE_TYPE }} -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
           echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
           echo "📁 Working directory contents:"
           ls -la || dir
