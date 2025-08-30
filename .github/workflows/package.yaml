@@ -21,6 +21,9 @@ env:
 jobs:
   package:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to create tags and releases
+      actions: read    # Required to read workflow context
     outputs:
       release-type: ${{ steps.release-type.outputs.RELEASE_TYPE }}
       version: ${{ steps.release-type.outputs.VERSION }}
@@ -32,6 +35,7 @@ jobs:
         with:
           fetch-depth: 0  # Fetch full history for proper versioning
           submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}  # Ensure we can push tags
           
       - name: Determine release type and version
         id: release-type
@@ -80,6 +84,8 @@ jobs:
           
       - name: Create automatic release tag for main branch
         if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.release-type.outputs.VERSION }}"
           TAG_NAME="v${VERSION}"
@@ -87,9 +93,12 @@ jobs:
           echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
           echo "📝 This will make BigWigsMods packager treat this as a release build"
           
-          # Configure git
+          # Configure git with token authentication
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Set up authenticated remote URL
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           
           # Create and push the tag
           git tag "${TAG_NAME}" -m "Automatic release tag for ${TAG_NAME}"
