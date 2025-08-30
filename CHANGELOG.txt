@@ -1,22 +1,31 @@
 # Soundboard Changelog
-## Version 1.1.2
-- **See Who Sent Sounds**: Soundboard will now tell you who is sending sound bites. In a future update, you'll have the ability to blocklist players and specific sounds that you don't want to hear
+## Version 1.2.0
+**MAJOR EVENTS SYSTEM OVERHAUL** - Complete rewrite with robust detection, UI improvements, and comprehensive testing
+**AUDIO NORMALIZATION UPDATE** - All sound files normalized for consistent volume levels
 
-## Version 1.1
-Major feature update with queue system, learning AI, favorites, and search functionality!
+### 🎵 Audio Quality Improvements
+- **Volume Normalization**: All 460 sound files have been normalized to consistent audio levels
+- **Smart Leveling**: Quiet sounds boosted up, loud sounds brought down for uniform experience
 
-### 🎵 Sound Queue System
-- **Smart Queue**: Prevents overlapping sounds by automatically queueing them
-- **Real-time Feedback**: Shows queue position and estimated wait times
-- **Duplicate Prevention**: Blocks identical sounds from being queued multiple times
-- **Seamless Playback**: Automatic progression through queued sounds
+### 🎯 Events System - Complete Rewrite
+- **10 Event Types**: Reliable automatic sound triggers for game events
+  - **Player Login**
+  - **Player Revives**
+  - **Player Dies**
+  - **Player Mounts**
+  - **Player Dismounts**
+  - **Takes Taxi**
+  - **Taxi Ends**
+  - **Enter Shapeshift Form**
+  - **Exit Shapeshift Form**
+  - **Heroism/Bloodlust/Time Warp**
 
-### ⭐ Favorites System
-- **Star Sounds**: Click star icons to favorite/unfavorite sounds
+### 🎮 Event Builder UI
+- **Full Sound Browser**: Search, categories, favorites, and subcategories in event creation
+- **3-Step Wizard**: Choose Event Type → Choose Sound → Choose Broadcast Mode
+- **One-Event-Per-Type**: Each trigger can only be configured once (prevents conflicts)
+- **Full Edit System**: Click any configured event to edit sound, mode, or delete
 
-### 🔍 Search System
-- **Instant Search**: Search bar to find sounds and categories quickly
-- **Smart Results**: Shows categories above individual sounds in results
-
-### 🎨 User Interface Improvements  
-- **Improved Button Sizing**: Better border rendering and text display
+### 🎨 UI/UX Improvements
+- **Text Wrapping**: Long headers now wrap properly without overlapping
+- **Adaptive Heights**: Headers automatically adjust height based on text length

@@ -1,0 +1,312 @@
+name: Package and Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'hotfix/**' 
+      - 'release/**'
+      - '*'  # Allow any branch to trigger builds
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  GAME_VERSIONS: "5.5.0,11.2.5,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic and Retail
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    outputs:
+      release-type: ${{ steps.release-type.outputs.RELEASE_TYPE }}
+      version: ${{ steps.release-type.outputs.VERSION }}
+      is-tagged: ${{ steps.release-type.outputs.IS_TAGGED }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for proper versioning
+          submodules: recursive
+          
+      - name: Determine release type and version
+        id: release-type
+        run: |
+          echo "Branch/Tag: ${{ github.ref_name }}"
+          echo "Ref: ${{ github.ref }}"
+          
+          # Determine release type based on branch and tag
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Tagged release
+            if [[ "${{ github.ref_name }}" == *"alpha"* ]]; then
+              RELEASE_TYPE="alpha"
+            elif [[ "${{ github.ref_name }}" == *"beta"* ]]; then
+              RELEASE_TYPE="beta" 
+            else
+              RELEASE_TYPE="release"
+            fi
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # Remove v prefix
+            IS_TAGGED="true"
+          elif [[ "${{ github.ref_name }}" == "main" ]]; then
+            # Main branch - release
+            RELEASE_TYPE="release"
+            VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+            IS_TAGGED="false"
+          else
+            # Feature/develop branches - beta
+            RELEASE_TYPE="beta"
+            BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+            VERSION="${BASE_VERSION}-beta"
+            IS_TAGGED="false"
+          fi
+          
+          echo "RELEASE_TYPE=${RELEASE_TYPE}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT  
+          echo "IS_TAGGED=${IS_TAGGED}" >> $GITHUB_OUTPUT
+          
+          echo "🏷️  Release Type: ${RELEASE_TYPE}"
+          echo "📦  Version: ${VERSION}"
+          echo "🏷️  Is Tagged: ${IS_TAGGED}"
+          
+      - name: Update TOC version for beta builds
+        if: steps.release-type.outputs.RELEASE_TYPE == 'beta' && steps.release-type.outputs.IS_TAGGED == 'false'
+        run: |
+          # Update version in TOC file for beta builds  
+          sed -i "s/## Version: .*/## Version: ${{ steps.release-type.outputs.VERSION }}/" Soundboard.toc
+          echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
+          
+      - name: Package addon
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Debug packaging results
+        if: always()
+        run: |
+          echo "📦 Packaging completed"
+          echo "🔑 CF_API_KEY present: ${{ secrets.CF_API_KEY != '' }}"
+          echo "🎯 Game versions: ${{ env.GAME_VERSIONS }}"
+          echo "🆔 CurseForge Project ID: 1335953"
+          echo "📋 Release type: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
+          echo "📝 Version: ${{ steps.release-type.outputs.VERSION }}"
+          echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
+          echo "📁 Working directory contents:"
+          ls -la || dir
+          echo "📁 Looking for .zip files:"
+          find . -name "*.zip" 2>/dev/null || echo "No zip files found"
+          
+      - name: Extract changelog for current version
+        id: changelog
+        if: steps.release-type.outputs.IS_TAGGED == 'true' && steps.release-type.outputs.RELEASE_TYPE == 'release'
+        run: |
+          # Extract the changelog content for the current version
+          VERSION="${{ steps.release-type.outputs.VERSION }}"
+          
+          # Read changelog and extract content for the current version
+          awk -v version="$VERSION" '
+          BEGIN { 
+            found = 0; 
+            content = ""; 
+            in_version = 0;
+          }
+          /^## Version / { 
+            if (found && in_version) {
+              # We hit the next version, stop processing
+              exit;
+            }
+            if ($0 ~ version || gsub(/^## Version /, "") == version) {
+              found = 1; 
+              in_version = 1;
+              next; # Skip the version header itself
+            }
+          }
+          found && in_version { 
+            if (content != "") content = content "\n";
+            content = content $0;
+          }
+          END { 
+            if (content != "") {
+              print content;
+            } else {
+              print "No changelog content found for version " version;
+            }
+          }
+          ' CHANGELOG.txt > changelog_content.txt
+          
+          # Store the changelog content in output
+          {
+            echo 'CHANGELOG_CONTENT<<EOF'
+            cat changelog_content.txt
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          
+          echo "📝 Extracted changelog for version $VERSION"
+          echo "Preview:"
+          head -10 changelog_content.txt
+          
+      - name: Create GitHub Release (Tagged releases only)
+        if: steps.release-type.outputs.IS_TAGGED == 'true' && steps.release-type.outputs.RELEASE_TYPE == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Soundboard v${{ steps.release-type.outputs.VERSION }}
+          body: |
+            ## Soundboard v${{ steps.release-type.outputs.VERSION }}
+            
+            ${{ steps.changelog.outputs.CHANGELOG_CONTENT }}
+            
+            ---
+            
+            ### 📦 Installation
+            1. Download the latest release
+            2. Extract to your WoW AddOns folder  
+            3. Restart World of Warcraft
+            
+            ### 🎮 Supported Versions
+            - **Mists of Pandaria Classic** (5.5.0) 
+            - **World of Warcraft Retail** (11.2.5+)
+            
+            ### 📥 Download
+            Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)
+            
+            ### 📋 Full Changelog
+            See [CHANGELOG.txt](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.txt) for complete version history.
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Send Discord Notification
+        if: github.ref_name == 'main' && github.event_name == 'push'
+        run: |
+          # Extract changelog summary for Discord
+          VERSION="${{ steps.release-type.outputs.VERSION }}"
+          
+          # Get the first few lines of changelog for the current version as summary
+          CHANGELOG_SUMMARY=$(awk -v version="$VERSION" '
+          BEGIN { 
+            found = 0; 
+            content = ""; 
+            in_version = 0;
+            line_count = 0;
+          }
+          /^## Version / { 
+            if (found && in_version) {
+              exit;
+            }
+            if ($0 ~ version || gsub(/^## Version /, "") == version) {
+              found = 1; 
+              in_version = 1;
+              # Get the description line (usually the bold summary)
+              getline;
+              if ($0 ~ /^\*\*.*\*\*/) {
+                content = $0;
+                line_count++;
+              }
+              next;
+            }
+          }
+          found && in_version && line_count < 8 { 
+            if ($0 ~ /^### / || $0 ~ /^- /) {
+              if (content != "") content = content "\n";
+              content = content $0;
+              line_count++;
+            }
+          }
+          END { 
+            if (content != "") {
+              print content;
+            } else {
+              print "New version released with improvements and fixes!";
+            }
+          }
+          ' CHANGELOG.txt)
+          
+          # Create Discord webhook payload
+          cat << EOF > discord_payload.json
+          {
+            "username": "Soundboard Release Bot",
+            "avatar_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/256/256/638204664364552055.png",
+            "embeds": [{
+              "title": "🎵 Soundboard - New Release Available!",
+              "description": "A new version of Soundboard has been released!",
+              "color": 5814783,
+              "fields": [
+                {
+                  "name": "📦 Version",
+                  "value": "v$VERSION",
+                  "inline": true
+                },
+                {
+                  "name": "📅 Release Date", 
+                  "value": "$(date -u '+%B %d, %Y')",
+                  "inline": true
+                },
+                {
+                  "name": "📈 Downloads",
+                  "value": "[CurseForge Page](https://www.curseforge.com/wow/addons/soundboard)",
+                  "inline": true
+                },
+                {
+                  "name": "📋 Changelog Summary",
+                  "value": "$CHANGELOG_SUMMARY",
+                  "inline": false
+                }
+              ],
+              "footer": {
+                "text": "Soundboard for World of Warcraft",
+                "icon_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/64/64/638204664364552055.png"
+              },
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+            }]
+          }
+          EOF
+          
+          # Send to Discord webhook
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d @discord_payload.json \
+               "${{ secrets.DISCORD_WEBHOOK }}"
+          
+          echo "📢 Discord notification sent for version $VERSION"
+          
+  build-summary:
+    runs-on: ubuntu-latest
+    needs: package
+    if: always()
+    
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## 📦 Soundboard Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch/Tag:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Type:** ${{ needs.package.outputs.release-type || '❓ Unknown' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.package.outputs.version || '❓ Unknown' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Versions:** MOP 5.5.0, Retail 11.2.5+" >> $GITHUB_STEP_SUMMARY
+          echo "**CurseForge Project:** 1335953 (soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.package.result }}" == "success" ]]; then
+            echo "### ✅ Build Status: Success" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ "${{ github.ref_name }}" == "main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "🚀 **Release build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY  
+              echo "🧪 **Beta build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow) for testing" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "### ❌ Build Status: Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the package job logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
