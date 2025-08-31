@@ -167,6 +167,28 @@ soundboard_data["ew-david"] = {
 	["duration"] = 2,
 };
 
+soundboard_data["hero-russian"] = {
+	["text"] = 		"* I need a hero! *",
+	["cmd1"] = "hero-russian",
+	["msg"] = "I need a hero!",
+	["emote"] = "roar",
+	["category"] = "Music",
+	["subcategory"] = "Bonnie Tyler",
+	["file"] = dir.."hero_russian.mp3",
+	["duration"] = 46,
+};
+
+soundboard_data["hero-japanese"] = {
+	["text"] = 		"* I need a hero! *",
+	["cmd1"] = "hero-japanese",
+	["msg"] = "I need a hero!",
+	["emote"] = "roar",
+	["category"] = "Music",
+	["subcategory"] = "Bonnie Tyler",
+	["file"] = dir.."hero_japanese.mp3",
+	["duration"] = 46,
+};
+
 soundboard_data["lizard"] = {
 	["text"] = 		"* Single Lizard *",
 	["cmd1"] = "lizard",
