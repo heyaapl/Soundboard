@@ -30,6 +30,165 @@ soundboard_data["finalfantasy"] = {
 	["duration"] = 45,
 };
 
+soundboard_data["oof"] = {
+	["text"] = 		"* OOF! *",
+	["cmd1"] = "oof",
+	["msg"] = "says oof!",
+	["category"] = "Video Games",
+	["file"] = dir.."oof.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["amongus"] = {
+	["text"] = 		"* is the imposter! *",
+	["cmd1"] = "amongus",
+	["msg"] = "is the imposter!",
+	["category"] = "Video Games",
+	["subcategory"] = "Among Us",
+	["file"] = dir.."among-us.mp3",
+	["duration"] = 6,
+};
+
+soundboard_data["amongusalarm"] = {
+	["text"] = 		"* triggered the alarm! *",
+	["cmd1"] = "amongusalarm",
+	["msg"] = "triggered the alarm!",
+	["category"] = "Video Games",
+	["subcategory"] = "Among Us",
+	["file"] = dir.."among-us.mp3",
+	["duration"] = 12,
+};
+
+soundboard_data["linda"] = {
+	["text"] = 		"* listen, Linda! *",
+	["cmd1"] = "linda",
+	["msg"] = "listen, Linda!",
+	["category"] = "Memes",
+	["file"] = dir.."linda.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["suspicious"] = {
+	["text"] = 		"* is trying to not be suspicious! *",
+	["cmd1"] = "suspicious",
+	["msg"] = "is trying to not be suspicious!",
+	["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Parks and Rec",
+	["file"] = dir.."dont-be-suspicious.mp3",
+	["duration"] = 17,
+};
+
+soundboard_data["literally"] = {
+	["text"] = 		"* is LITERALLY trying! *",
+	["cmd1"] = "literally",
+	["msg"] = "is LITERALLY trying!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Parks and Rec",
+	["file"] = dir.."literally.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["treat-yo-self"] = {
+	["text"] = 		"* is treatin' them selves! *",
+	["cmd1"] = "treat-yo-self",
+	["msg"] = "is treatin' them selves!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Parks and Rec",
+	["file"] = dir.."treat-yo-self.mp3",
+	["duration"] = 4,
+};
+
+soundboard_data["poopeh"] = {
+	["text"] = 		"* ignores the poopeh! *",
+	["cmd1"] = "poopeh",
+	["msg"] = "ignores the poopeh!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Ted Lasso",
+	["file"] = dir.."poopeh.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["practice-ted-lasso"] = {
+	["text"] = 		"* rants about practice! *",
+	["cmd1"] = "practice-ted-lasso",
+	["msg"] = "rants about practice!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Ted Lasso",
+	["file"] = dir.."practice-ted-lasso.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["white-lotus-theme"] = {
+	["text"] = 		"* LULULULULULU *",
+	["cmd1"] = "wl-theme",
+	["msg"] = "LULULULULULU!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "White Lotus",
+	["file"] = dir.."white-lotus.mp3",
+	["duration"] = 16,
+};
+
+soundboard_data["piper-no"] = {
+	["text"] = 		"* Piper, nooooo *",
+	["cmd1"] = "piper-no",
+	["msg"] = "Piper, noooo!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "White Lotus",
+	["file"] = dir.."piper-no.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["bebe"] = {
+	["text"] = 		"* admires the bebe *",
+	["cmd1"] = "bebe",
+	["msg"] = "admires the bebe!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Schitts Creek",
+	["file"] = dir.."bebe.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["ew-david"] = {
+	["text"] = 		"* Ew, David! *",
+	["cmd1"] = "ew-david",
+	["msg"] = "Ew, David!",
+	-- ["emote"] = "suspicious",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Schitts Creek",
+	["file"] = dir.."ew-david.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["hero-russian"] = {
+	["text"] = 		"* I need a hero! *",
+	["cmd1"] = "hero-russian",
+	["msg"] = "I need a hero!",
+	["emote"] = "roar",
+	["category"] = "Music",
+	["subcategory"] = "Bonnie Tyler",
+	["file"] = dir.."hero_russian.mp3",
+	["duration"] = 46,
+};
+
+soundboard_data["hero-japanese"] = {
+	["text"] = 		"* I need a hero! *",
+	["cmd1"] = "hero-japanese",
+	["msg"] = "I need a hero!",
+	["emote"] = "roar",
+	["category"] = "Music",
+	["subcategory"] = "Bonnie Tyler",
+	["file"] = dir.."hero_japanese.mp3",
+	["duration"] = 46,
+};
+
 soundboard_data["lizard"] = {
 	["text"] = 		"* Single Lizard *",
 	["cmd1"] = "lizard",
