@@ -1,4 +1,27 @@
 # Soundboard Changelog
+## Version 1.3.0
+**BLOCKLIST SYSTEM** - Never hear annoying sounds again! Block any sound while keeping queue timing perfect
+**NEW TV & MOVIE SOUNDS** - Fresh additions from Ted Lasso, Schitt's Creek, White Lotus, and more!
+
+### 🚫 Blocklist System - Take Control!
+- **Block Any Sound**: Click the X next to any sound to block it forever
+- **Smart Queue Timing**: Blocked sounds still count in the queue (no timing disruption!)
+- **Easy Management**: "Blocked Sounds" menu appears automatically when you have blocked sounds
+- **Quick Toggle**: Click the X again to unblock - red X means blocked, gray X means allowed
+
+### 🎭 Fresh Sound Collection
+- **Ted Lasso Pack**: New sounds including "ignores the poopeh" and practice rants
+- **Schitt's Creek**: Classic "Ew, David!" and "admires the bebe" 
+- **White Lotus**: Theme song and "Piper, nooooo" moments
+- **Parks & Rec**: "LITERALLY trying!" for those peak Leslie moments
+- **Hero Variations**: Japanese and Russian versions of the epic hero song
+
+### 🎵 Sound Experience Improvements  
+- **Perfect for Groups**: Finally block that one sound your friend spams constantly
+- **Raid-Friendly**: Block distracting sounds during serious content while keeping fun ones
+- **Personal Control**: Everyone can customize their own sound experience
+- **Zero Queue Disruption**: Blocked sounds still "play" their timing to keep everything smooth
+
 ## Version 1.2.0
 **MAJOR EVENTS SYSTEM OVERHAUL** - Complete rewrite with robust detection, UI improvements, and comprehensive testing
 **AUDIO NORMALIZATION UPDATE** - All sound files normalized for consistent volume levels
