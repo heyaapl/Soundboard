@@ -536,7 +536,7 @@ local function IsSameSoundPlaying(soundFile)
 	return SoundQueue.currentSound.file == soundFile
 end
 
-local function AddSoundToQueue(soundFile, volume, key)
+local function AddSoundToQueue(soundFile, volume, key, isBlocked)
 	-- Check if same sound is already playing - ignore if so
 	if IsSameSoundPlaying(soundFile) then
 		DebugPrint("Ignoring duplicate sound request: " .. tostring(soundFile))
@@ -558,10 +558,11 @@ local function AddSoundToQueue(soundFile, volume, key)
 		file = soundFile,
 		volume = volume or 1.0,
 		key = key,
-		timestamp = time()
+		timestamp = time(),
+		blocked = isBlocked or false
 	})
 	
-	DebugPrint("Added sound to queue: " .. tostring(soundFile) .. " (Queue size: " .. #SoundQueue.queue .. ")")
+	DebugPrint("Added sound to queue: " .. tostring(soundFile) .. " (Queue size: " .. #SoundQueue.queue .. ")" .. (isBlocked and " [BLOCKED]" or ""))
 	return true, "queued"
 end
 
@@ -591,6 +592,29 @@ local function PlayNextInQueue()
 	local nextSound = table.remove(SoundQueue.queue, 1)
 	SoundQueue.currentSound = nextSound
 	SoundQueue.isPlaying = true
+	
+	local soundName = nextSound.key and ("/" .. nextSound.key) or "Sound"
+	
+	-- Check if this sound is blocked
+	if nextSound.blocked then
+		DebugPrint("Blocked sound in queue - simulating play time: " .. tostring(nextSound.file))
+		Soundboard:Print("Soundboard blocked " .. soundName .. " from playing")
+		
+		-- Simulate the sound timing without actually playing
+		SoundQueue.currentSoundStartTime = time()
+		local duration = GetSoundDuration(nextSound.file, nextSound.key)
+		DebugPrint("Simulating blocked sound duration: " .. tostring(duration) .. " seconds")
+		
+		SoundQueue.processingTimer = C_Timer.NewTimer(duration, function()
+			DebugPrint("Blocked sound simulation finished, processing next in queue")
+			
+			SoundQueue.isPlaying = false
+			SoundQueue.currentSound = nil
+			SoundQueue.currentSoundStartTime = nil
+			PlayNextInQueue()
+		end)
+		return
+	end
 	
 	DebugPrint("Playing next sound from queue: " .. tostring(nextSound.file))
 	
@@ -671,14 +695,31 @@ local function QueueSound(soundFile, volume, key, sender)
 		return false
 	end
 	
-	-- If nothing is playing, play immediately
+	-- Check if sound is blocked
+	local isBlocked = false
+	if key then
+		if SoundboardDropdown and SoundboardDropdown.IsBlocked then
+			-- Use dropdown method if available
+			isBlocked = SoundboardDropdown:IsBlocked(key)
+		elseif Soundboard and Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.Blocklist then
+			-- Fallback: check directly from database
+			isBlocked = Soundboard.db.profile.Blocklist[key] == true
+		end
+		
+		if isBlocked then
+			DebugPrint("Sound is blocked: " .. tostring(key))
+		end
+	end
+	
+	-- If nothing is playing, play immediately (or simulate if blocked)
 	if not SoundQueue.isPlaying then
 		-- Set up the first item and mark as playing before starting
 		local queueItem = {
 			file = soundFile,
 			volume = volume or 1.0,
 			key = key,
-			timestamp = time()
+			timestamp = time(),
+			blocked = isBlocked
 		}
 		SoundQueue.queue = {queueItem}
 		SoundQueue.isPlaying = true  -- Mark as playing immediately to prevent race conditions
@@ -688,12 +729,16 @@ local function QueueSound(soundFile, volume, key, sender)
 		-- Provide user feedback for immediate play
 		local soundName = key and ("/" .. key) or "Sound"
 		local senderText = sender and (" (sent by " .. sender .. ")") or ""
-		Soundboard:Print(soundName .. " is now playing" .. senderText .. "!")
+		
+		-- Note: Don't print blocked message here since it will be printed in PlayNextInQueue
+		if not isBlocked then
+			Soundboard:Print(soundName .. " is now playing" .. senderText .. "!")
+		end
 		return true
 	end
 	
 	-- Try to add to queue first
-	local success, status = AddSoundToQueue(soundFile, volume, key)
+	local success, status = AddSoundToQueue(soundFile, volume, key, isBlocked)
 	
 	-- Calculate position and time AFTER adding to queue for accurate results
 	local queuePosition = #SoundQueue.queue  -- Current position in queue
@@ -708,14 +753,22 @@ local function QueueSound(soundFile, volume, key, sender)
 		-- Round the wait time to a reasonable precision
 		local waitTimeRounded = math.max(1, math.ceil(estimatedWaitTime))
 		
-		if soundsAhead == 0 then
-			Soundboard:Print(soundName .. " will play next in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. senderText)
+		if isBlocked then
+			if soundsAhead == 0 then
+				Soundboard:Print(soundName .. " is queued next (will be blocked) in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. senderText)
+			else
+				Soundboard:Print(soundName .. " is queued (will be blocked) in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. ", and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or "") .. senderText)
+			end
 		else
-			Soundboard:Print(soundName .. " will play in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. ", and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or "") .. senderText)
+			if soundsAhead == 0 then
+				Soundboard:Print(soundName .. " will play next in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. senderText)
+			else
+				Soundboard:Print(soundName .. " will play in " .. waitTimeRounded .. " second" .. (waitTimeRounded == 1 and "" or "s") .. ", and is behind " .. soundsAhead .. " sound" .. (soundsAhead > 1 and "s" or "") .. senderText)
+			end
 		end
 		
 		-- Debug output for troubleshooting
-		DebugPrint("Queue feedback: " .. soundName .. " | Position: " .. queuePosition .. " | Estimated wait: " .. string.format("%.1f", estimatedWaitTime) .. "s | Sounds ahead: " .. soundsAhead)
+		DebugPrint("Queue feedback: " .. soundName .. " | Position: " .. queuePosition .. " | Estimated wait: " .. string.format("%.1f", estimatedWaitTime) .. "s | Sounds ahead: " .. soundsAhead .. (isBlocked and " [BLOCKED]" or ""))
 	end
 	
 	return success
@@ -1109,6 +1162,68 @@ function SoundboardDropdown:HasFavorites()
 	return false
 end
 
+-- ==================== BLOCKLIST SYSTEM ====================
+
+-- Toggle blocked status for a sound
+function SoundboardDropdown:ToggleBlocked(soundKey)
+	if not Soundboard.db or not Soundboard.db.profile then
+		DebugPrint("ERROR: Cannot toggle blocked - database not available")
+		return false
+	end
+	
+	local blocklist = Soundboard.db.profile.Blocklist
+	local wasBlocked = blocklist[soundKey] == true
+	
+	if wasBlocked then
+		blocklist[soundKey] = nil
+		DebugPrint("Removed from blocklist: " .. tostring(soundKey))
+	else
+		blocklist[soundKey] = true
+		DebugPrint("Added to blocklist: " .. tostring(soundKey))
+	end
+	
+	return not wasBlocked -- Return new blocked status
+end
+
+-- Check if a sound is blocked
+function SoundboardDropdown:IsBlocked(soundKey)
+	if not Soundboard.db or not Soundboard.db.profile then
+		return false
+	end
+	return Soundboard.db.profile.Blocklist[soundKey] == true
+end
+
+-- Get all blocked sounds
+function SoundboardDropdown:GetBlockedSounds()
+	if not Soundboard.db or not Soundboard.db.profile then
+		return {}
+	end
+	
+	local blocked = {}
+	for soundKey, _ in pairs(Soundboard.db.profile.Blocklist) do
+		if soundboard_data[soundKey] then
+			blocked[soundKey] = soundboard_data[soundKey]
+		end
+	end
+	
+	return blocked
+end
+
+-- Check if any blocked sounds exist
+function SoundboardDropdown:HasBlockedSounds()
+	if not Soundboard.db or not Soundboard.db.profile then
+		return false
+	end
+	
+	for soundKey, _ in pairs(Soundboard.db.profile.Blocklist) do
+		if soundboard_data[soundKey] then
+			return true
+		end
+	end
+	
+	return false
+end
+
 -- ==================== SEARCH SYSTEM ====================
 
 -- Initialize search state
@@ -1429,10 +1544,46 @@ function SoundboardDropdown:CreateSoundButtonWithStar(soundKey, soundData, yOffs
 	-- Initialize star appearance
 	updateStar()
 	
-	-- Main sound text (offset to make room for star) - show command and description
+	-- Create block button (right side)
+	local blockButton = CreateFrame("Button", nil, button)
+	blockButton:SetSize(16, 16)
+	blockButton:SetPoint("RIGHT", -2, 0)
+	
+	-- Block texture - using X
+	local blockTexture = blockButton:CreateTexture(nil, "ARTWORK")
+	blockTexture:SetAllPoints()
+	
+	-- Update block appearance based on blocked status
+	local function updateBlock()
+		local isBlocked = self:IsBlocked(soundKey)
+		if isBlocked then
+			blockTexture:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_7")  -- Red X
+			blockTexture:SetVertexColor(1, 0.2, 0.2, 1)  -- Red
+		else
+			blockTexture:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_7")  -- Red X
+			blockTexture:SetVertexColor(0.3, 0.3, 0.3, 1)  -- Dark gray
+		end
+	end
+	
+	-- Block click handler
+	blockButton:SetScript("OnClick", function()
+		local newStatus = self:ToggleBlocked(soundKey)
+		updateBlock()
+		Soundboard:Print((newStatus and "Blocked" or "Unblocked") .. ": " .. (soundData.text or soundKey))
+		
+		-- Refresh blocked sounds menu if we're viewing it and removed the last one
+		if not newStatus and not self:HasBlockedSounds() and self.currentView == "blocked" then
+			self:ShowMainMenu()
+		end
+	end)
+	
+	-- Initialize block appearance
+	updateBlock()
+	
+	-- Main sound text (offset to make room for star and block button) - show command and description
 	local fontString = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	fontString:SetPoint("LEFT", 20, 0)  -- Offset for star
-	fontString:SetPoint("RIGHT", -4, 0)
+	fontString:SetPoint("RIGHT", -20, 0)  -- Offset for block button
 	fontString:SetJustifyH("LEFT")
 	
 	-- Format: /command - description (like original)
@@ -1457,8 +1608,8 @@ function SoundboardDropdown:CreateSoundButtonWithStar(soundKey, soundData, yOffs
 		end
 		
 		if Soundboard.db.profile.IsEnabled then
-			-- Use SayGagKey to ensure proper queue handling
-			Soundboard:SayGagKey(soundKey)
+			-- Use SaySoundboardKey to ensure proper queue handling
+			Soundboard:SaySoundboardKey(soundKey)
 			self.frame:Hide()
 			self.isOpen = false
 		else
@@ -1534,6 +1685,60 @@ function SoundboardDropdown:ShowFavorites()
 		-- This shouldn't happen since HasFavorites() checked first, but just in case
 		local noFavoritesBtn = self:CreateButton("No favorites found", yOffset)
 		noFavoritesBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	
+	-- Update content size and scrollbar
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
+end
+
+-- Show blocked sounds category
+function SoundboardDropdown:ShowBlockedSounds()
+	DebugPrint("ShowBlockedSounds called")
+	self:ClearContent()
+	self.currentView = "blocked"
+	
+	local yOffset = -5
+	local buttonHeight = 22
+	
+	-- Back button
+	local backBtn = self:CreateButton("< Back to Menu", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self.currentView = nil
+		self:ShowMainMenu()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Blocked sounds title with red X icon
+	local title = self:CreateButtonWithIcon("Blocked Sounds", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_7", true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+	
+	-- Get all blocked sounds
+	local blockedSounds = self:GetBlockedSounds()
+	local blockedList = {}
+	
+	for soundKey, soundData in pairs(blockedSounds) do
+		table.insert(blockedList, {key = soundKey, data = soundData})
+	end
+	
+	-- Sort blocked sounds alphabetically by text
+	table.sort(blockedList, function(a, b) 
+		return (a.data.text or "") < (b.data.text or "") 
+	end)
+	
+	-- Show blocked sounds with stars and block buttons
+	if #blockedList > 0 then
+		for _, blocked in ipairs(blockedList) do
+			local soundBtn = self:CreateSoundButtonWithStar(blocked.key, blocked.data, yOffset)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		-- This shouldn't happen since HasBlockedSounds() checked first, but just in case
+		local noBlockedBtn = self:CreateButton("No blocked sounds found", yOffset)
+		noBlockedBtn:SetScript("OnClick", nil)
 		yOffset = yOffset - buttonHeight
 	end
 	
@@ -3166,6 +3371,15 @@ function SoundboardDropdown:ShowMainMenu()
 		yOffset = yOffset - buttonHeight
 	end
 	
+	-- Blocked Sounds category (only show if blocked sounds exist)
+	if self:HasBlockedSounds() then
+		local blockedBtn = self:CreateButtonWithIcon("Blocked Sounds", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_7")
+		blockedBtn:SetScript("OnClick", function()
+			self:ShowBlockedSounds()
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+	
 	-- Events category (always show)
 	local eventsBtn = self:CreateButtonWithIcon("Events", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_3")
 	eventsBtn:SetScript("OnClick", function()
@@ -4089,6 +4303,8 @@ local soundboard_data_sorted_keys = {};
 			GroupBroadcast = true,     -- true/false
 			-- Favorites System (Account-wide)
 			Favorites = {},            -- Table of favorited sound keys {soundKey = true}
+			-- Blocklist System (Account-wide)
+			Blocklist = {},           -- Table of blocked sound keys {soundKey = true}
 			-- Dynamic Sound Duration Learning
 			LearnedSoundDurations = {},-- Learned actual durations for sound files
 			-- Advanced Settings
@@ -4123,6 +4339,12 @@ local soundboard_data_sorted_keys = {};
 	if db.Favorites == nil then
 		db.Favorites = {}
 		DebugPrint("Migrated Favorites to default: empty table")
+	end
+	
+	-- Handle database migration for blocklist system
+	if db.Blocklist == nil then
+		db.Blocklist = {}
+		DebugPrint("Migrated Blocklist to default: empty table")
 	end
 	
 	-- Handle database migration for events system
@@ -4996,7 +5218,7 @@ local soundboard_data_sorted_keys = {};
 		for key,value in pairs(soundboard_data) do
 			local function makeHandler(emoteKey)
 				return function()
-					Soundboard:SayGagKey(emoteKey)
+					Soundboard:SaySoundboardKey(emoteKey)
 				end
 			end
 			_G.SlashCmdList["SOUNDBOARD_"..key] = makeHandler(key)
@@ -5038,7 +5260,7 @@ function Soundboard:RegisterSlashCommands()
 	for key,value in pairs(soundboard_data) do
 		local function makeHandler(emoteKey)
 			return function()
-				Soundboard:SayGagKey(emoteKey)
+				Soundboard:SaySoundboardKey(emoteKey)
 			end
 		end
 		_G.SlashCmdList["SOUNDBOARD_"..key] = makeHandler(key)
@@ -5582,7 +5804,7 @@ function Soundboard:ListEmotes()
 	end
 end
 
-function Soundboard:SayGagKey(key)
+function Soundboard:SaySoundboardKey(key)
 	DebugPrint("Trying to play emote: " .. tostring(key))
 	
 	if(db.IsEnabled) then
@@ -5591,6 +5813,20 @@ function Soundboard:SayGagKey(key)
 				local emote = soundboard_data and soundboard_data[key];
 				if emote then
 					DebugPrint("Found emote data for: " .. key)
+					
+					-- Check if this sound is blocked before doing anything
+					local isBlocked = false
+					if SoundboardDropdown and SoundboardDropdown.IsBlocked then
+						isBlocked = SoundboardDropdown:IsBlocked(key)
+					elseif Soundboard and Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.Blocklist then
+						isBlocked = Soundboard.db.profile.Blocklist[key] == true
+					end
+					
+					if isBlocked then
+						local soundName = key and ("/" .. key) or "Sound"
+						Soundboard:Print("Soundboard blocked " .. soundName .. " from playing")
+						return -- Exit early, don't do emote or sound
+					end
 					
 					-- Handle emote messages
 					if (emote["msg"] ~= nil) and db.EmoteEnabled then 
@@ -5961,7 +6197,7 @@ function Soundboard:HandleEventTrigger(eventType)
 					
 					DebugPrint("[Events] Broadcasting sound with routing - Group: " .. tostring(broadcastToGroup) .. ", Guild: " .. tostring(broadcastToGuild))
 					
-					-- Call custom broadcast function instead of SayGagKey
+					-- Call custom broadcast function instead of SaySoundboardKey
 					self:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild)
 				end
 			else
