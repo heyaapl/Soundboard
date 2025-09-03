@@ -317,91 +317,104 @@ jobs:
           # Extract changelog summary for Discord
           VERSION="${{ steps.release-type.outputs.VERSION }}"
           
-          # Get the first few lines of changelog for the current version as summary
-          CHANGELOG_SUMMARY=$(awk -v version="$VERSION" '
-          BEGIN { 
-            found = 0; 
-            content = ""; 
-            in_version = 0;
-            line_count = 0;
-          }
-          /^## Version / { 
-            if (found && in_version) {
-              exit;
-            }
-            if ($0 ~ version || gsub(/^## Version /, "") == version) {
-              found = 1; 
-              in_version = 1;
-              # Get the description line (usually the bold summary)
-              getline;
-              if ($0 ~ /^\*\*.*\*\*/) {
-                content = $0;
-                line_count++;
-              }
-              next;
-            }
-          }
-          found && in_version && line_count < 8 { 
-            if ($0 ~ /^### / || $0 ~ /^- /) {
-              if (content != "") content = content "\n";
-              content = content $0;
-              line_count++;
-            }
-          }
-          END { 
-            if (content != "") {
-              print content;
-            } else {
-              print "New version released with improvements and fixes!";
-            }
-          }
-          ' CHANGELOG.txt)
-          
-          # Create Discord webhook payload
-          cat << EOF > discord_payload.json
-          {
-            "embeds": [{
-              "title": "🎵 Soundboard - New Release Available!",
-              "description": "A new version of Soundboard has been released!",
-              "color": 5814783,
-              "fields": [
-                {
-                  "name": "📦 Version",
-                  "value": "v$VERSION",
-                  "inline": true
-                },
-                {
-                  "name": "📅 Release Date", 
-                  "value": "$(date -u '+%B %d, %Y')",
-                  "inline": true
-                },
-                {
-                  "name": "📈 Downloads",
-                  "value": "[CurseForge Page](https://www.curseforge.com/wow/addons/soundboard-for-wow)",
-                  "inline": true
-                },
-                {
-                  "name": "📋 Changelog Summary",
-                  "value": "$CHANGELOG_SUMMARY",
-                  "inline": false
+          # Create a concise, Discord-friendly changelog summary
+          if [[ "$VERSION" == "1.3.2" ]]; then
+            CHANGELOG_SUMMARY="**NEW COMEDY GOLD** - Massive collection of The Office, Monty Python, and internet meme classics!"
+            CHANGELOG_SUMMARY+="\n\n**📺 The Office Pack** - 6 new sounds including Identity Theft, That's What She Said, and Office Theme"
+            CHANGELOG_SUMMARY+="\n**🏰 Monty Python Pack** - 6 new sounds from Holy Grail and Life of Brian"  
+            CHANGELOG_SUMMARY+="\n**🎭 Meme Collection** - 6 new internet classics and viral hits"
+            CHANGELOG_SUMMARY+="\n\n**Total: 18 new sounds** across 3 categories!"
+          else
+            # Extract the main description line for other versions
+            CHANGELOG_SUMMARY=$(awk -v version="$VERSION" '
+            /^## Version / { 
+              if ($0 ~ version) {
+                found = 1; 
+                getline;
+                if ($0 ~ /^\*\*.*\*\*/) {
+                  gsub(/^\*\*/, "", $0);
+                  gsub(/\*\*.*$/, "", $0);
+                  print $0;
+                  exit;
                 }
-              ],
-              "footer": {
-                "text": "Soundboard for World of Warcraft",
-                "icon_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/64/64/638204664364552055.png"
-              },
-              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
-            }]
-          }
-          EOF
+              }
+            }
+            END { 
+              if (!found) print "New version released with improvements and fixes!";
+            }
+            ' CHANGELOG.txt)
+          fi
+          
+          # Get current date and create JSON payload
+          CURRENT_DATE=$(date -u '+%B %d, %Y')
+          CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+          
+          echo "🔍 Discord changelog summary:"
+          echo -e "$CHANGELOG_SUMMARY"
+          
+          # Create Discord webhook payload using jq to ensure valid JSON
+          jq -n \
+            --arg title "🎵 Soundboard - New Release Available!" \
+            --arg description "A new version of Soundboard has been released!" \
+            --arg version "v$VERSION" \
+            --arg date "$CURRENT_DATE" \
+            --arg changelog "$CHANGELOG_SUMMARY" \
+            --arg timestamp "$CURRENT_TIMESTAMP" \
+            '{
+              "embeds": [{
+                "title": $title,
+                "description": $description,
+                "color": 5814783,
+                "fields": [
+                  {
+                    "name": "📦 Version",
+                    "value": $version,
+                    "inline": true
+                  },
+                  {
+                    "name": "📅 Release Date",
+                    "value": $date,
+                    "inline": true
+                  },
+                  {
+                    "name": "📈 Downloads",
+                    "value": "[CurseForge Page](https://www.curseforge.com/wow/addons/soundboard-for-wow)",
+                    "inline": true
+                  },
+                  {
+                    "name": "📋 Changelog Summary",
+                    "value": $changelog,
+                    "inline": false
+                  }
+                ],
+                "footer": {
+                  "text": "Soundboard for World of Warcraft",
+                  "icon_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/64/64/638204664364552055.png"
+                },
+                "timestamp": $timestamp
+              }]
+            }' > discord_payload.json
+          
+          echo "📋 Discord payload created:"
+          head -10 discord_payload.json
           
           # Send to Discord webhook
-          curl -H "Content-Type: application/json" \
+          echo "🚀 Sending Discord notification..."
+          DISCORD_RESPONSE=$(curl -s -w "%{http_code}" -H "Content-Type: application/json" \
                -X POST \
                -d @discord_payload.json \
-               "${{ secrets.DISCORD_WEBHOOK }}"
+               "${{ secrets.DISCORD_WEBHOOK }}")
           
-          echo "📢 Discord notification sent for version $VERSION"
+          HTTP_CODE=${DISCORD_RESPONSE: -3}
+          RESPONSE_BODY=${DISCORD_RESPONSE%???}
+          
+          if [[ "$HTTP_CODE" -eq 204 ]]; then
+            echo "✅ Discord notification sent successfully for version $VERSION"
+          else
+            echo "❌ Discord webhook failed with HTTP $HTTP_CODE"
+            echo "Response: $RESPONSE_BODY"
+            # Don't fail the workflow for Discord issues
+          fi
           
   build-summary:
     runs-on: ubuntu-latest
