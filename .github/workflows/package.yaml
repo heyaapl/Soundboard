@@ -11,9 +11,6 @@ on:
       - '*'  # Allow any branch to trigger builds
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - main
 
 env:
   GAME_VERSIONS: "5.5.0,11.2.5,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic and Retail
@@ -42,10 +39,17 @@ jobs:
         run: |
           echo "Branch/Tag: ${{ github.ref_name }}"
           echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Debug: Checking branch conditions..."
+          
+          # Get the branch name for comparison
+          BRANCH_NAME="${{ github.ref_name }}"
+          echo "Debug: BRANCH_NAME='${BRANCH_NAME}'"
           
           # Determine release type based on branch and tag
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             # Already tagged release
+            echo "Debug: Processing existing tag"
             if [[ "${{ github.ref_name }}" == *"alpha"* ]]; then
               RELEASE_TYPE="alpha"
             elif [[ "${{ github.ref_name }}" == *"beta"* ]]; then
@@ -57,19 +61,24 @@ jobs:
             VERSION="${VERSION#v}"  # Remove v prefix
             IS_TAGGED="true"
             SHOULD_CREATE_TAG="false"
-          elif [[ "${{ github.ref_name }}" == "main" ]]; then
+          elif [[ "${BRANCH_NAME}" == "main" ]]; then
             # Main branch - we'll create a tag to make it a release
+            echo "Debug: Detected main branch - setting up RELEASE build"
             RELEASE_TYPE="release"
-            VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+            BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+            VERSION="${BASE_VERSION}"  # NO -dev suffix for main branch
             IS_TAGGED="false"
             SHOULD_CREATE_TAG="true"
+            echo "Debug: Main branch - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
           else
-            # Feature/develop branches - alpha builds
+            # Feature/develop branches - alpha builds  
+            echo "Debug: Detected feature/develop branch '${BRANCH_NAME}' - setting up ALPHA build"
             RELEASE_TYPE="alpha"
             BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
             VERSION="${BASE_VERSION}-dev"
             IS_TAGGED="false"  
             SHOULD_CREATE_TAG="false"
+            echo "Debug: Feature branch - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
           fi
           
           echo "RELEASE_TYPE=${RELEASE_TYPE}" >> $GITHUB_OUTPUT
@@ -87,11 +96,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ steps.release-type.outputs.VERSION }}"
-          TAG_NAME="v${VERSION}"
+          BASE_VERSION="${{ steps.release-type.outputs.VERSION }}"
+          BASE_TAG_NAME="v${BASE_VERSION}"
           
-          echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
-          echo "📝 This will make BigWigsMods packager treat this as a release build"
+          echo "🏷️ Checking for existing tags for version: ${BASE_VERSION}"
           
           # Configure git with token authentication
           git config user.name "github-actions[bot]"
@@ -100,14 +108,50 @@ jobs:
           # Set up authenticated remote URL
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           
+          # Fetch all tags to ensure we have the latest
+          git fetch --tags origin
+          
+          # Check if base tag already exists
+          if git rev-parse --verify "refs/tags/${BASE_TAG_NAME}" >/dev/null 2>&1; then
+            echo "⚠️  Tag ${BASE_TAG_NAME} already exists, finding available suffix..."
+            
+            # Try suffixes a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+            SUFFIX=""
+            for letter in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+              CANDIDATE_TAG="${BASE_TAG_NAME}${letter}"
+              if ! git rev-parse --verify "refs/tags/${CANDIDATE_TAG}" >/dev/null 2>&1; then
+                SUFFIX="${letter}"
+                TAG_NAME="${CANDIDATE_TAG}"
+                FINAL_VERSION="${BASE_VERSION}${letter}"
+                break
+              fi
+            done
+            
+            if [[ -z "${SUFFIX}" ]]; then
+              echo "❌ Could not find available suffix after trying a-z"
+              exit 1
+            fi
+            
+            echo "✅ Using suffix '${SUFFIX}': ${TAG_NAME}"
+          else
+            echo "✅ Base tag ${BASE_TAG_NAME} is available"
+            TAG_NAME="${BASE_TAG_NAME}"
+            FINAL_VERSION="${BASE_VERSION}"
+          fi
+          
+          echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
+          echo "📝 This will make BigWigsMods packager treat this as a release build"
+          
           # Create and push the tag
           git tag "${TAG_NAME}" -m "Automatic release tag for ${TAG_NAME}"
           git push origin "${TAG_NAME}"
           
           echo "✅ Created and pushed tag: ${TAG_NAME}"
+          echo "📦 Final version for packaging: ${FINAL_VERSION}"
           
-          # Update our outputs to reflect that we're now tagged
+          # Update our outputs to reflect that we're now tagged and update version if suffix was added
           echo "IS_TAGGED=true" >> $GITHUB_OUTPUT
+          echo "VERSION=${FINAL_VERSION}" >> $GITHUB_OUTPUT
           
       - name: Update TOC version for dev builds
         if: steps.release-type.outputs.RELEASE_TYPE == 'alpha' && steps.release-type.outputs.IS_TAGGED == 'false'
@@ -132,11 +176,17 @@ jobs:
           echo "🎯 Game versions: ${{ env.GAME_VERSIONS }}"
           echo "🆔 CurseForge Project ID: 1335953"
           echo "📋 Our release type determination: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
-          echo "📝 Version: ${{ steps.release-type.outputs.VERSION }}"
+          echo "📝 Final version used: ${{ steps.release-type.outputs.VERSION }}"
           echo "🏷️ Is Tagged: ${{ steps.release-type.outputs.IS_TAGGED }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           echo "🔗 Ref: ${{ github.ref }}"
           echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          echo "🏷️ Git tags on current commit:"
+          git tag --points-at HEAD || echo "No tags found"
+          echo "🏷️ Recent git tags for this version family:"
+          CURRENT_VERSION="${{ steps.release-type.outputs.VERSION }}"
+          BASE_VERSION=$(echo "${CURRENT_VERSION}" | sed 's/[a-z]*$//')
+          git tag --sort=-version:refname | grep -E "^v?${BASE_VERSION}[a-z]*$" | head -5 || echo "No matching tags found"
           echo ""
           echo "ℹ️  Touchless Release Process:"
           echo "   - Commits to main → Automatic tag creation → Release builds"
@@ -232,7 +282,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Send Discord Notification
-        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push'
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release'
         run: |
           # Extract changelog summary for Discord
           VERSION="${{ steps.release-type.outputs.VERSION }}"
@@ -280,8 +330,6 @@ jobs:
           # Create Discord webhook payload
           cat << EOF > discord_payload.json
           {
-            "username": "Soundboard Release Bot",
-            "avatar_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/256/256/638204664364552055.png",
             "embeds": [{
               "title": "🎵 Soundboard - New Release Available!",
               "description": "A new version of Soundboard has been released!",
