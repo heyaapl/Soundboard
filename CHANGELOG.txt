@@ -1,4 +1,16 @@
 # Soundboard Changelog
+## Version 1.3.1
+**STEALTH EVENTS** - New automatic sound triggers for entering and exiting stealth/invisibility
+**BUG FIXES** - Fixed missing sound file for /linda command
+
+### 🥷 Stealth Detection System
+- **Enter Stealth Event**: Automatic sound trigger when entering stealth, invisibility, or using invisibility potions
+- **Exit Stealth Event**: Automatic sound trigger when leaving stealth or invisibility effects
+- **Complete Coverage**: Detects all forms of stealth including class abilities, spells, and consumables
+
+### 🔧 Bug Fixes  
+- **Linda Command Fix**: Restored missing sound file for the /linda command - now plays properly again
+
 ## Version 1.3.0
 **BLOCKLIST SYSTEM** - Never hear annoying sounds again! Block any sound while keeping queue timing perfect
 **NEW TV & MOVIE SOUNDS** - Fresh additions from Ted Lasso, Schitt's Creek, White Lotus, and more!
