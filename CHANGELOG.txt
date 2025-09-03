@@ -1,4 +1,35 @@
 # Soundboard Changelog
+## Version 1.3.2
+**NEW COMEDY GOLD** - Fresh collection of The Office and Monty Python classics!
+
+### 📺 The Office Pack
+- **Identity Theft**: "Identity Theft is not a joke Jim!" (`/identitytheft`)
+- **That's What She Said**: The classic Michael Scott line (`/twss`) 
+- **Office Theme**: The iconic intro music (`/office-theme`)
+
+### 🏰 Monty Python Pack
+- **Biggus Dicckus**: The legendary name from Life of Brian (`/biggusdicckus`)
+- **Bleed On Me**: "Are you going to bleed on me?" (`/bleedonme`)
+- **Turn Into a Newt**: The witch trial classic (`/newt`)
+- **Much Rejoicing**: "And there was much rejoicing!" (`/much-rejoicing`)
+- **Ni!**: The Knights Who Say Ni (`/ni`)
+- **Run Away!**: "Run away! Run away!" with flee emote (`/run-away`)
+
+### 🎭 Meme Collection
+- **Single Lizard**: Short and sweet lizard meme (`/lizard`)
+- **Lizard Long**: Extended version for maximum impact (`/lizard-long`)
+- **You Have Been Promoted**: Congratulations sound (`/promoted`)
+- **You Are Just a Baby**: Calling out the babies (`/baby`)
+- **Thanks, an Avocado**: The grateful avocado meme (`/avocado`)
+- **Lord Have Mercy**: "Lord have mercy!" exclamation (`/bust`)
+
+### 🎭 Comedy Collection Highlights
+- **6 New Monty Python Sounds**: From Holy Grail and Life of Brian 
+- **6 New Meme Sounds**: Internet classics and viral hits
+- **3 New Office Sounds**: Michael Scott's greatest hits
+- **Perfect for Raids**: "Run away!" with automatic flee emote for those wipe moments
+- **Instant Classics**: Timeless comedy that never gets old
+
 ## Version 1.3.1
 **STEALTH EVENTS** - New automatic sound triggers for entering and exiting stealth/invisibility
 **BUG FIXES** - Fixed missing sound file for /linda command

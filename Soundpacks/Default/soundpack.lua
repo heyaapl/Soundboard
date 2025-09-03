@@ -198,6 +198,163 @@ soundboard_data["lizard"] = {
 	["duration"] = 2,
 };
 
+soundboard_data["promoted"] = {
+	["text"] = 		"* You have been promoted! *",
+	["cmd1"] = "promoted",
+	["msg"] = "has been promoted!",
+	["category"] = "Memes",
+	["file"] = dir.."promoted.mp3",
+	["duration"] = 8,
+};
+
+soundboard_data["baby"] = {
+	["text"] = 		"* You are just a baby! *",
+	["cmd1"] = "baby",
+	["msg"] = "is just a baby!",
+	["category"] = "Memes",
+	["file"] = dir.."baby.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["avocado"] = {
+	["text"] = 		"* Thanks, an avocado! *",
+	["cmd1"] = "avocado",
+	["msg"] = "thanks, an avocado!",
+	["category"] = "Memes",
+	["file"] = dir.."avocado.mp3",
+	["duration"] = 7,
+};
+
+soundboard_data["bust"] = {
+	["text"] = 		"* Lord have mercy! *",
+	["cmd1"] = "bust",
+	["msg"] = "is about to bust!",
+	["category"] = "Memes",
+	["file"] = dir.."bust.mp3",
+	["duration"] = 5,
+};
+
+soundboard_data["no-god"] = {
+	["text"] = 		"* No God! *",
+	["cmd1"] = "no-god",
+	["msg"] = "no god!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "The Office",
+	["file"] = dir.."no-god.mp3",
+	["duration"] = 8,
+};
+
+soundboard_data["idiot-dwight"] = {
+	["text"] = 		"* Would an idiot do that? *",
+	["cmd1"] = "idiot-dwight",
+	["msg"] = "would an idiot do that?",
+	["category"] = "Movies/TV",
+	["subcategory"] = "The Office",
+	["file"] = dir.."idiot-dwight.mp3",
+	["duration"] = 7,
+};
+
+soundboard_data["parkour"] = {
+	["text"] = 		"* Parkour! *",
+	["cmd1"] = "parkour",
+	["msg"] = "is doing parkour!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "The Office",
+	["file"] = dir.."parkour.mp3",
+	["duration"] = 8,
+};
+
+soundboard_data["identitytheft"] = {
+	["text"] = 		"* Identity Theft is not a joke *",
+	["cmd1"] = "identitytheft",
+	["msg"] = "Identity Theft is not a joke Jim!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "The Office",
+	["file"] = dir.."identitytheft.mp3",
+	["duration"] = 5,
+};
+
+soundboard_data["twss"] = {
+	["text"] = 		"* Thats what she said *",
+	["cmd1"] = "twss",
+	["msg"] = "Thats what she said!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "The Office",
+	["file"] = dir.."twss.mp3",
+	["duration"] = 5,
+};
+
+soundboard_data["office-theme"] = {
+	["text"] = 		"* The Office Theme Song *",
+	["cmd1"] = "office-theme",
+	["msg"] = "The Office Theme Song!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "The Office",
+	["file"] = dir.."office-theme.mp3",
+	["duration"] = 13,
+};
+
+soundboard_data["biggusdicckus"] = {
+	["text"] = 		"* Biggus Dicckus *",
+	["cmd1"] = "biggusdicckus",
+	["msg"] = "Biggus Dicckus!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
+	["file"] = dir.."biggusdicckus.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["bleedonme"] = {
+	["text"] = 		"* Are you going to bleed on me *",
+	["cmd1"] = "bleedonme",
+	["msg"] = "is going to bleed on you!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
+	["file"] = dir.."bleedonme.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["newt"] = {
+	["text"] = 		"* Turn into a newt *",
+	["cmd1"] = "newt",
+	["msg"] = "is going to turn into a newt!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
+	["file"] = dir.."newt.mp3",
+	["duration"] = 6,
+};
+
+soundboard_data["much-rejoicing"] = {
+	["text"] = 		"* Much rejoicing *",
+	["cmd1"] = "much-rejoicing",
+	["msg"] = "is now rejoicing!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
+	["file"] = dir.."much-rejoicing.mp3",
+	["duration"] = 4,
+};
+
+soundboard_data["ni"] = {
+	["text"] = 		"* Ni! *",
+	["cmd1"] = "ni",
+	["msg"] = "says ni!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
+	["file"] = dir.."ni.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["run-away"] = {
+	["text"] = 		"* Run away! *",
+	["cmd1"] = "run-away",
+	["msg"] = "is running away!",
+	["emote"] = "flee",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Monty Python",
+	["file"] = dir.."run-away.mp3",
+	["duration"] = 11,
+};
+
 soundboard_data["yourfather"] = {
 	["text"] = 		"* Luke, I am your father *",
 	["cmd1"] = "yourfather",
