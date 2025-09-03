@@ -789,7 +789,7 @@ local SoundboardEvents = {
 	eventTypes = {
 		"PLAYER_LOGIN", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_MOUNT", "PLAYER_DISMOUNT",
 		"PLAYER_TAXI_START", "PLAYER_TAXI_END", "SHAPESHIFT_ENTER", "SHAPESHIFT_EXIT", 
-		"HEROISM_BUFF"
+		"STEALTH_ENTER", "STEALTH_EXIT", "HEROISM_BUFF"
 	},
 	eventNames = {
 		["PLAYER_LOGIN"] = "Player Login",
@@ -801,6 +801,8 @@ local SoundboardEvents = {
 		["PLAYER_TAXI_END"] = "Taxi Ends",
 		["SHAPESHIFT_ENTER"] = "Enter Shapeshift Form",
 		["SHAPESHIFT_EXIT"] = "Exit Shapeshift Form",
+		["STEALTH_ENTER"] = "Enter Stealth/Invisibility",
+		["STEALTH_EXIT"] = "Exit Stealth/Invisibility",
 		["HEROISM_BUFF"] = "Heroism/Bloodlust/Time Warp"
 	}
 }
@@ -850,6 +852,7 @@ end
 Soundboard.playerStates = {
 	mounted = false,
 	shapeshifted = false,
+	stealthed = false,             -- Track stealth/invisibility state
 	hasHeroismBuff = false,
 	onTaxi = false,                -- Track taxi/flight path state
 	actuallyDead = false,          -- Track if player actually died (not just loading screen)
@@ -857,6 +860,7 @@ Soundboard.playerStates = {
 	loadingScreenActive = false,   -- Track loading screen state
 	mountedBeforeLoading = false,  -- Store mount state before loading screens
 	shapeshiftedBeforeLoading = false, -- Store shapeshift state before loading screens
+	stealthedBeforeLoading = false, -- Store stealth state before loading screens
 	hasLoggedInThisSession = false,-- Track if player has already logged in this session
 	sessionStartTime = 0,          -- When this session started
 	justLeftTaxi = false,          -- Track recent taxi departure to prevent mount false triggers
@@ -4489,8 +4493,15 @@ local soundboard_data_sorted_keys = {};
 	end
 	self.playerStates.shapeshifted = initialShapeshift
 	self.playerStates.shapeshiftedBeforeLoading = initialShapeshift
+	
+	-- Initialize stealth state
+	local initialStealth = self:CheckForStealthAuras()
+	self.playerStates.stealthed = initialStealth
+	self.playerStates.stealthedBeforeLoading = initialStealth
+	
 	self.playerStates.hasHeroismBuff = false
 	DebugPrint("Shapeshift state initialized: " .. tostring(initialShapeshift))
+	DebugPrint("Stealth state initialized: " .. tostring(initialStealth))
 	
 	-- Check if this is a genuine login or just a reload
 	-- Handle various scenarios: genuine login, /reload, crash, Alt-F4, DC/reconnect
@@ -4544,7 +4555,7 @@ local soundboard_data_sorted_keys = {};
 		DebugPrint("Login events will be blocked")
 	end
 	
-	DebugPrint("Player states initialized: mounted=" .. tostring(self.playerStates.mounted) .. ", onTaxi=" .. tostring(self.playerStates.onTaxi) .. ", shapeshifted=" .. tostring(self.playerStates.shapeshifted) .. ", dead=" .. tostring(self.playerStates.actuallyDead) .. ", hasLoggedIn=" .. tostring(self.playerStates.hasLoggedInThisSession))
+	DebugPrint("Player states initialized: mounted=" .. tostring(self.playerStates.mounted) .. ", onTaxi=" .. tostring(self.playerStates.onTaxi) .. ", shapeshifted=" .. tostring(self.playerStates.shapeshifted) .. ", stealthed=" .. tostring(self.playerStates.stealthed) .. ", dead=" .. tostring(self.playerStates.actuallyDead) .. ", hasLoggedIn=" .. tostring(self.playerStates.hasLoggedInThisSession))
 	
 	-- Start a timer to check mount status periodically (backup for Classic WoW)
 	self:StartMountCheckTimer()
@@ -4858,6 +4869,15 @@ local soundboard_data_sorted_keys = {};
 			Soundboard.playerStates.shapeshifted = not isShapeshifted
 			Soundboard:CheckShapeshiftStatus()
 			Soundboard:Print("Shapeshift test completed")
+		elseif command == "teststealth" then
+			Soundboard:Print("Testing stealth detection system...")
+			local isStealth, stealthType = Soundboard:CheckForStealthAuras()
+			Soundboard:Print("Current stealth status: " .. tostring(isStealth) .. (stealthType and (" (" .. stealthType .. ")") or ""))
+			Soundboard:Print("Simulating stealth change...")
+			local oldState = Soundboard.playerStates.stealthed
+			Soundboard.playerStates.stealthed = not isStealth
+			Soundboard:CheckStealthStatus()
+			Soundboard:Print("Stealth test completed")
 		elseif command == "resetlogin" then
 			Soundboard:Print("Resetting login session state...")
 			Soundboard.playerStates.hasLoggedInThisSession = false
@@ -6356,7 +6376,11 @@ function Soundboard:LOADING_SCREEN_ENABLED(event, ...)
 	end
 	self.playerStates.shapeshiftedBeforeLoading = currentShapeshift
 	
-	DebugPrint("Stored states before loading: mounted=" .. tostring(self.playerStates.mountedBeforeLoading) .. ", shapeshifted=" .. tostring(self.playerStates.shapeshiftedBeforeLoading))
+	-- Store stealth state before loading screen
+	local currentStealth = self:CheckForStealthAuras()
+	self.playerStates.stealthedBeforeLoading = currentStealth
+	
+	DebugPrint("Stored states before loading: mounted=" .. tostring(self.playerStates.mountedBeforeLoading) .. ", shapeshifted=" .. tostring(self.playerStates.shapeshiftedBeforeLoading) .. ", stealthed=" .. tostring(self.playerStates.stealthedBeforeLoading))
 end
 
 function Soundboard:LOADING_SCREEN_DISABLED(event, ...)
@@ -6365,7 +6389,7 @@ function Soundboard:LOADING_SCREEN_DISABLED(event, ...)
 	self.playerStates.justFinishedLoading = true
 	self.playerStates.loadingEndTime = time()
 	
-	DebugPrint("Set loading grace period - mount and shapeshift events will be blocked for 5 seconds")
+	DebugPrint("Set loading grace period - mount, shapeshift, and stealth events will be blocked for 5 seconds")
 	
 	-- Restore mount and shapeshift states after loading screen to prevent false triggers
 	C_Timer.After(1, function()
@@ -6380,10 +6404,15 @@ function Soundboard:LOADING_SCREEN_DISABLED(event, ...)
 		end
 		DebugPrint("After loading - was shapeshifted: " .. tostring(self.playerStates.shapeshiftedBeforeLoading) .. ", now shapeshifted: " .. tostring(currentlyShapeshifted))
 		
+		-- Get current stealth state
+		local currentlyStealth = self:CheckForStealthAuras()
+		DebugPrint("After loading - was stealthed: " .. tostring(self.playerStates.stealthedBeforeLoading) .. ", now stealthed: " .. tostring(currentlyStealth))
+		
 		-- Always update stored states to match current reality, don't trigger events during grace period
 		self.playerStates.mounted = currentlyMounted
 		self.playerStates.shapeshifted = currentlyShapeshifted
-		DebugPrint("Mount and shapeshift states set to current reality after loading screen (grace period active)")
+		self.playerStates.stealthed = currentlyStealth
+		DebugPrint("Mount, shapeshift, and stealth states set to current reality after loading screen (grace period active)")
 	end)
 end
 
@@ -6393,7 +6422,7 @@ function Soundboard:PLAYER_ENTERING_WORLD(event, ...)
 	self.playerStates.justFinishedLoading = true
 	self.playerStates.loadingEndTime = time()
 	
-	DebugPrint("Set loading grace period via PLAYER_ENTERING_WORLD - mount events blocked for 5 seconds")
+	DebugPrint("Set loading grace period via PLAYER_ENTERING_WORLD - mount, shapeshift, and stealth events blocked for 5 seconds")
 	
 	-- Store current states as the "before loading" states if not already set
 	if self.playerStates.mountedBeforeLoading == nil then
@@ -6411,7 +6440,13 @@ function Soundboard:PLAYER_ENTERING_WORLD(event, ...)
 		DebugPrint("Set initial shapeshift state on world enter: " .. tostring(self.playerStates.shapeshiftedBeforeLoading))
 	end
 	
-	-- Preserve mount and shapeshift states during world loading
+	if self.playerStates.stealthedBeforeLoading == nil then
+		local currentStealth = self:CheckForStealthAuras()
+		self.playerStates.stealthedBeforeLoading = currentStealth
+		DebugPrint("Set initial stealth state on world enter: " .. tostring(self.playerStates.stealthedBeforeLoading))
+	end
+	
+	-- Preserve mount, shapeshift, and stealth states during world loading
 	C_Timer.After(2, function()
 		local currentlyMounted = IsMounted()
 		DebugPrint("PLAYER_ENTERING_WORLD - was mounted: " .. tostring(self.playerStates.mountedBeforeLoading) .. ", now mounted: " .. tostring(currentlyMounted))
@@ -6424,10 +6459,15 @@ function Soundboard:PLAYER_ENTERING_WORLD(event, ...)
 		end
 		DebugPrint("PLAYER_ENTERING_WORLD - was shapeshifted: " .. tostring(self.playerStates.shapeshiftedBeforeLoading) .. ", now shapeshifted: " .. tostring(currentlyShapeshifted))
 		
+		-- Get current stealth state
+		local currentlyStealth = self:CheckForStealthAuras()
+		DebugPrint("PLAYER_ENTERING_WORLD - was stealthed: " .. tostring(self.playerStates.stealthedBeforeLoading) .. ", now stealthed: " .. tostring(currentlyStealth))
+		
 		-- Always update stored states to match reality without triggering events during grace period
 		self.playerStates.mounted = currentlyMounted
 		self.playerStates.shapeshifted = currentlyShapeshifted
-		DebugPrint("Mount and shapeshift states set to current reality via PLAYER_ENTERING_WORLD (grace period active)")
+		self.playerStates.stealthed = currentlyStealth
+		DebugPrint("Mount, shapeshift, and stealth states set to current reality via PLAYER_ENTERING_WORLD (grace period active)")
 		
 		-- Reset death state when entering world to prevent false revive triggers
 		if not UnitIsDeadOrGhost("player") then
@@ -6578,6 +6618,57 @@ function Soundboard:CheckShapeshiftStatus()
 	end
 end
 
+function Soundboard:CheckForStealthAuras()
+	local stealthBuffs = {
+		"Stealth",              -- Rogue stealth
+		"Prowl",                -- Druid stealth (cat form)
+		"Invisibility",         -- Mage invisibility
+		"Greater Invisibility", -- Mage greater invisibility
+		"Invisibility Potion",  -- Invisibility potion
+		"Lesser Invisibility Potion", -- Lesser invisibility potion
+	}
+	
+	for i = 1, 40 do
+		local name = UnitBuff("player", i)
+		if not name then break end
+		
+		for _, stealthBuff in ipairs(stealthBuffs) do
+			if name == stealthBuff then
+				DebugPrint("Stealth aura detected: " .. name)
+				return true, name
+			end
+		end
+	end
+	
+	return false, nil
+end
+
+function Soundboard:CheckStealthStatus()
+	local isStealth, currentStealthType = self:CheckForStealthAuras()
+	
+	-- Only trigger events if stealth state actually changed
+	if self.playerStates.stealthed ~= isStealth then
+		DebugPrint("Stealth status changed from " .. tostring(self.playerStates.stealthed) .. " to " .. tostring(isStealth) .. (currentStealthType and (" (" .. currentStealthType .. ")") or ""))
+		
+		-- Don't trigger stealth events during loading grace period
+		if not self.playerStates.justFinishedLoading then
+			self.playerStates.stealthed = isStealth
+			
+			if isStealth then
+				DebugPrint("[Events] Player entered stealth/invisibility" .. (currentStealthType and (" (" .. currentStealthType .. ")") or "") .. " - checking for configured sounds...")
+				self:HandleEventTrigger("STEALTH_ENTER")
+			else
+				DebugPrint("[Events] Player exited stealth/invisibility - checking for configured sounds...")
+				self:HandleEventTrigger("STEALTH_EXIT")
+			end
+		else
+			-- Update state but don't trigger stealth events during loading grace period
+			self.playerStates.stealthed = isStealth
+			DebugPrint("Stealth state changed but player just finished loading screen - not triggering stealth events (loading grace period)")
+		end
+	end
+end
+
 -- Transport detection function removed - feature disabled due to detection issues
 
 function Soundboard:CheckMountStatus()
@@ -6662,6 +6753,9 @@ function Soundboard:UNIT_AURA(event, unitTarget)
 	
 	-- Check for shapeshift form changes (Druid forms, etc.)
 	self:CheckShapeshiftStatus()
+	
+	-- Check for stealth/invisibility changes (Rogue Stealth, Druid Prowl, Mage Invisibility, Invisibility Potions)
+	self:CheckStealthStatus()
 	
 	-- Check for Heroism/Bloodlust/Time Warp buffs with enhanced debug
 	local hasHeroismBuff = false
