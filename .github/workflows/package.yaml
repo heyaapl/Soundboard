@@ -153,12 +153,43 @@ jobs:
           echo "IS_TAGGED=true" >> $GITHUB_OUTPUT
           echo "VERSION=${FINAL_VERSION}" >> $GITHUB_OUTPUT
           
+          # Brief pause to ensure tag is fully propagated
+          echo "⏳ Waiting for tag propagation..."
+          sleep 3
+          
+      - name: Refresh git state for packager
+        if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
+        run: |
+          echo "🔄 Refreshing git state to ensure packager sees new tag..."
+          git fetch --tags origin
+          echo "🏷️ Tags now visible:"
+          git tag --points-at HEAD
+          echo "🔍 Current commit tagged as:"
+          git describe --tags --exact-match HEAD || echo "No exact tag match found"
+          
       - name: Update TOC version for dev builds
         if: steps.release-type.outputs.RELEASE_TYPE == 'alpha' && steps.release-type.outputs.IS_TAGGED == 'false'
         run: |
           # Update version in TOC file for dev builds  
           sed -i "s/## Version: .*/## Version: ${{ steps.release-type.outputs.VERSION }}/" Soundboard.toc
           echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
+          
+      - name: Pre-packaging verification
+        run: |
+          echo "🔍 Pre-packaging state check:"
+          echo "📋 Release Type: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
+          echo "📝 Version: ${{ steps.release-type.outputs.VERSION }}"
+          echo "🏷️ Is Tagged: ${{ steps.release-type.outputs.IS_TAGGED }}"
+          echo "🌿 Branch: ${{ github.ref_name }}"
+          echo "🔗 Ref: ${{ github.ref }}"
+          echo "📦 Package name will be: Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          echo "🏷️ Current git tags on HEAD:"
+          git tag --points-at HEAD || echo "❌ No tags found on HEAD"
+          echo "🏷️ Tag detection by git describe:"
+          git describe --tags --exact-match HEAD 2>/dev/null && echo "✅ Tag detected" || echo "❌ No exact tag match"
+          echo "🔑 CF_API_KEY present: ${{ secrets.CF_API_KEY != '' }}"
+          echo ""
+          echo "🚀 Launching BigWigsMods packager..."
           
       - name: Package addon
         uses: BigWigsMods/packager@v2
