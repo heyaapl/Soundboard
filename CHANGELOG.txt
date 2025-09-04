@@ -1,4 +1,18 @@
 # Soundboard Changelog
+## Version 1.3.3
+**SOUTH PARK EXPANSION** - Three iconic South Park classics join the soundboard!
+
+### 🏮 South Park Pack
+- **City Wok**: Tuong Lu Kim's restaurant greeting with bow emote (`/citywok`)
+- **Goddamn Mongolians**: Classic rage moment with fist emote (`/goddamn-mongolians`)
+- **Goddamnit Cartman**: Eric Cartman frustration with fist emote (`/goddamnit-cartman`)
+
+### 🎭 Comedy Collection Update
+- **3 New South Park Sounds**: Classic quotes from fan-favorite characters
+- **Perfect Timing**: Short clips (2-6 seconds) for quick comedic moments
+- **Emote Integration**: Automatic bow and fist emotes enhance the experience
+- **Instant Recognition**: Iconic lines that South Park fans will love
+
 ## Version 1.3.2
 **NEW COMEDY GOLD** - Massive collection of The Office, Monty Python, and internet meme classics!
 
