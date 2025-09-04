@@ -1,15 +1,21 @@
 name: Package and Release
 
+# TRIGGERS:
+# - Pushes to main branch → Automatic RELEASE builds (tags created automatically)
+# - Pushes to feature/develop branches → ALPHA builds  
+# - Manual tags (v*) → RELEASE builds (as before)
+# - Pull requests → No builds (only manual PR merges to main trigger releases)
+
 on:
   push:
     branches:
-      - main
+      - main          # ANY commit to main triggers RELEASE build
       - develop
       - 'feature/**'
       - 'hotfix/**' 
       - 'release/**'
     tags:
-      - 'v*'
+      - 'v*'          # Manual tags also trigger RELEASE builds
 
 env:
   GAME_VERSIONS: "5.5.0,11.2.5,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic and Retail
@@ -140,10 +146,23 @@ jobs:
           
           echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
           echo "📝 This will make BigWigsMods packager treat this as a release build"
+          echo "⚠️  Using backdated timestamp to prevent 'future tag' detection by packager"
           
-          # Create and push the tag
+          # Create and push the tag with a slight time offset to prevent "future tag" detection
+          # Use a timestamp that's 30 seconds in the past to ensure it's not considered "future"
+          TIMESTAMP=$(date -u -d '30 seconds ago' '+%Y-%m-%d %H:%M:%S')
+          echo "🕒 Creating tag with timestamp: ${TIMESTAMP} UTC"
+          
+          # Set git environment to use the backdated timestamp
+          export GIT_COMMITTER_DATE="${TIMESTAMP}"
+          export GIT_AUTHOR_DATE="${TIMESTAMP}"
+          
           git tag "${TAG_NAME}" -m "Automatic release tag for ${TAG_NAME}"
           git push origin "${TAG_NAME}"
+          
+          # Clear the timestamp variables
+          unset GIT_COMMITTER_DATE
+          unset GIT_AUTHOR_DATE
           
           echo "✅ Created and pushed tag: ${TAG_NAME}"
           echo "📦 Final version for packaging: ${FINAL_VERSION}"
@@ -152,19 +171,50 @@ jobs:
           echo "IS_TAGGED=true" >> $GITHUB_OUTPUT
           echo "VERSION=${FINAL_VERSION}" >> $GITHUB_OUTPUT
           
-          # Brief pause to ensure tag is fully propagated
-          echo "⏳ Waiting for tag propagation..."
-          sleep 3
+          # Extended pause to ensure tag is fully propagated and avoid "future tag" detection
+          echo "⏳ Waiting for tag propagation and timestamp validation..."
+          sleep 10
+          
+          # Verify tag was created successfully
+          if git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+            echo "✅ Tag ${TAG_NAME} verified locally"
+          else
+            echo "❌ Tag ${TAG_NAME} not found locally after creation"
+            exit 1
+          fi
           
       - name: Refresh git state for packager
         if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
         run: |
           echo "🔄 Refreshing git state to ensure packager sees new tag..."
           git fetch --tags origin
+          
+          # Additional wait to ensure remote tag is fully propagated
+          echo "⏳ Additional propagation delay for remote systems..."
+          sleep 5
+          
           echo "🏷️ Tags now visible:"
           git tag --points-at HEAD
           echo "🔍 Current commit tagged as:"
-          git describe --tags --exact-match HEAD || echo "No exact tag match found"
+          if git describe --tags --exact-match HEAD 2>/dev/null; then
+            echo "✅ Tag successfully detected by git describe"
+          else
+            echo "❌ No exact tag match found - this may cause packaging issues"
+            exit 1
+          fi
+          
+          # Show tag creation timestamp to help debug future tag issues
+          TAG_NAME="v${{ steps.release-type.outputs.VERSION }}"
+          echo "🕒 Tag timestamp information:"
+          git log -1 --format="Created: %ai" "${TAG_NAME}" || echo "Could not get tag timestamp"
+          
+          # Additional verification that should prevent "future tag" issues
+          echo "🕒 Current system time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "🕒 Tag object info:"
+          git cat-file -p "${TAG_NAME}" | head -5 || echo "Could not read tag object"
+          
+          # Final verification before proceeding to packaging
+          echo "✅ All tag verifications passed - ready for packaging"
           
       - name: Update TOC version for dev builds
         if: steps.release-type.outputs.RELEASE_TYPE == 'alpha' && steps.release-type.outputs.IS_TAGGED == 'false'
@@ -193,7 +243,7 @@ jobs:
       - name: Package addon
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}" -d
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
@@ -210,7 +260,7 @@ jobs:
           echo "🏷️ Is Tagged: ${{ steps.release-type.outputs.IS_TAGGED }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           echo "🔗 Ref: ${{ github.ref }}"
-          echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }} -d"
           echo "🏷️ Git tags on current commit:"
           git tag --points-at HEAD || echo "No tags found"
           echo "🏷️ Recent git tags for this version family:"
