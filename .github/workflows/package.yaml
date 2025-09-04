@@ -2,7 +2,7 @@ name: Package and Release
 
 # TRIGGERS:
 # - GitHub Release creation → RELEASE builds and CurseForge uploads (WORKING)
-# - Pushes to release → Automatically create GitHub Release → Triggers CurseForge upload
+# - Pushes to release → RELEASE builds and direct CurseForge uploads
 # - Pushes to feature/develop branches → ALPHA builds (WORKING)  
 
 on:
@@ -76,9 +76,9 @@ jobs:
             echo "Debug: Processing push to branch '${BRANCH_NAME}'"
             
             if [[ "${BRANCH_NAME}" == "release" ]]; then
-              # Release branch push - create GitHub Release (which will trigger packaging)
-              echo "Debug: Release branch push - will create GitHub Release"
-              RELEASE_TYPE="release-creation"  # Special type to indicate we're creating a release
+              # Release branch push - direct release packaging
+              echo "Debug: Release branch push - will package as release"
+              RELEASE_TYPE="release"  # Direct release build
               BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
               
               # Check for existing tags to determine version
@@ -109,8 +109,8 @@ jobs:
               fi
               
               IS_TAGGED="false"
-              SHOULD_CREATE_TAG="false"  # We'll create a GitHub Release, not just a tag
-              echo "Debug: Release branch - will create GitHub Release ${VERSION}"
+              SHOULD_CREATE_TAG="true"  # Create tag for release detection
+              echo "Debug: Release branch - will package as release ${VERSION}"
               
             else
               # Feature/develop branches - alpha builds
@@ -138,85 +138,29 @@ jobs:
           echo "🏷️  Is Tagged: ${IS_TAGGED}"
           echo "🏷️  Should Create Tag: ${SHOULD_CREATE_TAG}"
           
-      - name: Create GitHub Release from release branch push
-        if: steps.release-type.outputs.RELEASE_TYPE == 'release-creation'
+      - name: Create git tag for release builds  
+        if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.release-type.outputs.VERSION }}"
-          BASE_VERSION=$(echo "${VERSION}" | sed 's/[a-z]*$//')
           TAG_NAME="v${VERSION}"
           
-          echo "🎯 Creating GitHub Release for release branch commit"
+          echo "🏷️ Creating git tag for release build"
           echo "📦 Version: ${VERSION}"
-          echo "📋 Base version for changelog: ${BASE_VERSION}"
+          echo "🏷️ Tag: ${TAG_NAME}"
           
-          # Extract changelog content for the base version
-          awk -v version="$BASE_VERSION" '
-          BEGIN { 
-            found = 0; 
-            content = ""; 
-            in_version = 0;
-          }
-          /^## Version / { 
-            if (found && in_version) {
-              # We hit the next version, stop processing
-              exit;
-            }
-            if ($0 ~ version || gsub(/^## Version /, "") == version) {
-              found = 1; 
-              in_version = 1;
-              next; # Skip the version header itself
-            }
-          }
-          found && in_version { 
-            if (content != "") content = content "\n";
-            content = content $0;
-          }
-          END { 
-            if (content != "") {
-              print content;
-            } else {
-              print "Automatic release from release branch commit.";
-            }
-          }
-          ' CHANGELOG.txt > release_changelog.txt
+          # Check if tag already exists
+          if git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+            echo "⚠️ Tag ${TAG_NAME} already exists, will use existing tag"
+          else
+            # Create and push the tag
+            git tag "${TAG_NAME}"
+            git push origin "${TAG_NAME}"
+            echo "✅ Created and pushed tag: ${TAG_NAME}"
+          fi
           
-          # Create the release using GitHub CLI or API
-          RELEASE_BODY=$(cat release_changelog.txt)
-          
-          echo "📝 Creating GitHub Release: ${TAG_NAME}"
-          echo "📋 Release body preview:"
-          head -5 release_changelog.txt
-          
-          # Use GitHub CLI to create release
-          cat > release_body.txt << 'EOF'
-          ${{ steps.release-type.outputs.VERSION }} - Automatic Release
-          
-          EOF
-          cat release_changelog.txt >> release_body.txt
-          
-          # Create the release (this will create the tag and trigger the release workflow)
-          curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/releases \
-            -d "{
-              \"tag_name\": \"${TAG_NAME}\",
-              \"target_commitish\": \"release\",
-              \"name\": \"Soundboard ${TAG_NAME}\",
-              \"body\": $(jq -n --rawfile body release_body.txt '$body'),
-              \"draft\": false,
-              \"prerelease\": false
-            }"
-          
-          echo "✅ GitHub Release created: ${TAG_NAME}"
-          echo "🔄 This will now trigger the release workflow for packaging"
-          
-          # Skip packaging in this workflow run since the release event will handle it
-          exit 0
+          echo "🚀 Tag created, proceeding with packaging"
           
       - name: Update TOC version for dev builds
         if: steps.release-type.outputs.RELEASE_TYPE == 'alpha' && steps.release-type.outputs.IS_TAGGED == 'false'
@@ -226,7 +170,7 @@ jobs:
           echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
           
       - name: Pre-packaging verification
-        if: steps.release-type.outputs.RELEASE_TYPE != 'release-creation'
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
         run: |
           echo "🔍 Pre-packaging state check:"
           echo "📋 Release Type: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
@@ -244,7 +188,7 @@ jobs:
           echo "🚀 Launching BigWigsMods packager..."
           
       - name: Package addon
-        if: steps.release-type.outputs.RELEASE_TYPE != 'release-creation'
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
         uses: BigWigsMods/packager@v2
         with:
           args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
@@ -274,7 +218,7 @@ jobs:
           echo ""
           echo "ℹ️  Release Process:"
           echo "   - Create GitHub Release → Automatic CurseForge upload (WORKING)"
-          echo "   - Commits to release → Auto-create GitHub Release → Triggers CurseForge upload"
+          echo "   - Commits to release → Direct CurseForge release upload"
           echo "   - Commits to feature branches → Alpha builds"
           echo ""
           echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
@@ -528,9 +472,9 @@ jobs:
           if [[ "${{ github.event_name }}" == "release" ]]; then
             echo "**CurseForge Release Type:** 🟢 Release" >> $GITHUB_STEP_SUMMARY
             echo "*(Triggered by GitHub Release creation)*" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ needs.package.outputs.release-type }}" == "release-creation" ]]; then
-            echo "**CurseForge Release Type:** 🔄 GitHub Release Creation" >> $GITHUB_STEP_SUMMARY
-            echo "*(Creating GitHub Release - will trigger separate packaging workflow)*" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.package.outputs.release-type }}" == "release" && "${{ github.event_name }}" == "push" ]]; then
+            echo "**CurseForge Release Type:** 🟢 Release (from release branch push)" >> $GITHUB_STEP_SUMMARY
+            echo "*(Direct release packaging from release branch)*" >> $GITHUB_STEP_SUMMARY
           elif [[ "${{ github.event_name }}" == "push" ]]; then
             echo "**CurseForge Release Type:** 🟡 Alpha (feature branch)" >> $GITHUB_STEP_SUMMARY
           else
@@ -544,10 +488,10 @@ jobs:
             if [[ "${{ github.event_name }}" == "release" ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "🚀 **Release build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
-            elif [[ "${{ needs.package.outputs.release-type }}" == "release-creation" ]]; then
+            elif [[ "${{ needs.package.outputs.release-type }}" == "release" && "${{ github.event_name }}" == "push" ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🔄 **GitHub Release Created** - Packaging workflow will trigger automatically" >> $GITHUB_STEP_SUMMARY
-              echo "Watch for a new workflow run that will upload to CurseForge" >> $GITHUB_STEP_SUMMARY
+              echo "🚀 **Release build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
+              echo "Uploaded directly from release branch push" >> $GITHUB_STEP_SUMMARY
             else
               echo "" >> $GITHUB_STEP_SUMMARY  
               echo "🧪 **Alpha build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow) for testing" >> $GITHUB_STEP_SUMMARY
