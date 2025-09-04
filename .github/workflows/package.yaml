@@ -170,21 +170,22 @@ jobs:
           fi
           
           echo "✅ Creating new tag: ${TAG_NAME}"
-          echo "⚠️  Using backdated timestamp to prevent 'future tag' detection by packager"
+          echo "⚠️  Using actual commit timestamp to prevent 'future tag' detection by packager"
           
-          # Create and push the tag with a very conservative time offset to prevent "future tag" detection
-          # Use a timestamp that's 6 hours in the past to ensure it's definitely not considered "future"
-          TIMESTAMP=$(date -u -d '6 hours ago' '+%Y-%m-%d %H:%M:%S')
-          echo "🕒 Creating tag with timestamp: ${TIMESTAMP} UTC (6 hours ago)"
+          # Use the actual commit timestamp instead of artificial backdating
+          # This should be inherently "in the past" and more natural
+          COMMIT_TIMESTAMP=$(git log -1 --format="%ct" HEAD)
+          COMMIT_DATE=$(date -u -d "@${COMMIT_TIMESTAMP}" '+%Y-%m-%d %H:%M:%S')
+          echo "🕒 Using commit timestamp: ${COMMIT_DATE} UTC (commit: ${COMMIT_TIMESTAMP})"
           
-          # Set git environment to use the backdated timestamp in UTC
-          # Format: YYYY-MM-DD HH:MM:SS +0000 (explicit UTC timezone)
-          export GIT_COMMITTER_DATE="${TIMESTAMP} +0000"
-          export GIT_AUTHOR_DATE="${TIMESTAMP} +0000"
+          # Set git environment to use the commit timestamp
+          export GIT_COMMITTER_DATE="${COMMIT_DATE} +0000"
+          export GIT_AUTHOR_DATE="${COMMIT_DATE} +0000"
           
           echo "🕒 Git environment timestamps set:"
           echo "   GIT_COMMITTER_DATE=${GIT_COMMITTER_DATE}"
           echo "   GIT_AUTHOR_DATE=${GIT_AUTHOR_DATE}"
+          echo "   Commit epoch: ${COMMIT_TIMESTAMP}"
           
           git tag "${TAG_NAME}" -m "Automatic release tag for ${TAG_NAME}"
           git push origin "${TAG_NAME}"
@@ -254,6 +255,16 @@ jobs:
           echo "   Tag timestamp (epoch): ${TAG_TIMESTAMP}"
           echo "   Current timestamp (epoch): ${CURRENT_TIMESTAMP}" 
           echo "   Difference (seconds): ${DIFF} (negative = future, positive = past)"
+          echo "   Tag human time: $(date -u -d "@${TAG_TIMESTAMP}" '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "   Current human time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          
+          # Check multiple timestamp formats that packager might use
+          echo "🕒 Additional timestamp analysis:"
+          echo "   git show format %%ct: $(git show -s --format='%ct' "${TAG_NAME}")"
+          echo "   git show format %%at: $(git show -s --format='%at' "${TAG_NAME}")"
+          echo "   git log format %%ct: $(git log -1 --format='%ct' "${TAG_NAME}")"
+          echo "   Tag object timestamp: $(git cat-file -p "${TAG_NAME}" | grep '^tagger' | awk '{print $(NF-1)}' || echo 'N/A')"
+          
           if [[ $DIFF -gt 0 ]]; then
             echo "   ✅ Tag is in the past - should be accepted by packager"
           else
