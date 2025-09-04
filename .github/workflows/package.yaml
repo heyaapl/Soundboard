@@ -2,7 +2,7 @@ name: Package and Release
 
 # TRIGGERS:
 # - GitHub Release creation → RELEASE builds and CurseForge uploads (WORKING)
-# - Pushes to main → Automatically create GitHub Release → Triggers CurseForge upload
+# - Pushes to release → Automatically create GitHub Release → Triggers CurseForge upload
 # - Pushes to feature/develop branches → ALPHA builds (WORKING)  
 
 on:
@@ -75,9 +75,9 @@ jobs:
             BRANCH_NAME="${{ github.ref_name }}"
             echo "Debug: Processing push to branch '${BRANCH_NAME}'"
             
-            if [[ "${BRANCH_NAME}" == "main" ]]; then
-              # Main branch push - create GitHub Release (which will trigger packaging)
-              echo "Debug: Main branch push - will create GitHub Release"
+            if [[ "${BRANCH_NAME}" == "release" ]]; then
+              # Release branch push - create GitHub Release (which will trigger packaging)
+              echo "Debug: Release branch push - will create GitHub Release"
               RELEASE_TYPE="release-creation"  # Special type to indicate we're creating a release
               BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
               
@@ -110,7 +110,7 @@ jobs:
               
               IS_TAGGED="false"
               SHOULD_CREATE_TAG="false"  # We'll create a GitHub Release, not just a tag
-              echo "Debug: Main branch - will create GitHub Release ${VERSION}"
+              echo "Debug: Release branch - will create GitHub Release ${VERSION}"
               
             else
               # Feature/develop branches - alpha builds
@@ -138,7 +138,7 @@ jobs:
           echo "🏷️  Is Tagged: ${IS_TAGGED}"
           echo "🏷️  Should Create Tag: ${SHOULD_CREATE_TAG}"
           
-      - name: Create GitHub Release from main branch push
+      - name: Create GitHub Release from release branch push
         if: steps.release-type.outputs.RELEASE_TYPE == 'release-creation'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -147,7 +147,7 @@ jobs:
           BASE_VERSION=$(echo "${VERSION}" | sed 's/[a-z]*$//')
           TAG_NAME="v${VERSION}"
           
-          echo "🎯 Creating GitHub Release for main branch commit"
+          echo "🎯 Creating GitHub Release for release branch commit"
           echo "📦 Version: ${VERSION}"
           echo "📋 Base version for changelog: ${BASE_VERSION}"
           
@@ -177,7 +177,7 @@ jobs:
             if (content != "") {
               print content;
             } else {
-              print "Automatic release from main branch commit.";
+              print "Automatic release from release branch commit.";
             }
           }
           ' CHANGELOG.txt > release_changelog.txt
@@ -205,7 +205,7 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/releases \
             -d "{
               \"tag_name\": \"${TAG_NAME}\",
-              \"target_commitish\": \"main\",
+              \"target_commitish\": \"release\",
               \"name\": \"Soundboard ${TAG_NAME}\",
               \"body\": $(jq -n --rawfile body release_body.txt '$body'),
               \"draft\": false,
@@ -274,7 +274,7 @@ jobs:
           echo ""
           echo "ℹ️  Release Process:"
           echo "   - Create GitHub Release → Automatic CurseForge upload (WORKING)"
-          echo "   - Commits to main → Auto-create GitHub Release → Triggers CurseForge upload"
+          echo "   - Commits to release → Auto-create GitHub Release → Triggers CurseForge upload"
           echo "   - Commits to feature branches → Alpha builds"
           echo ""
           echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
