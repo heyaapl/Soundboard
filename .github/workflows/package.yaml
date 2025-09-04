@@ -1,21 +1,20 @@
 name: Package and Release
 
 # TRIGGERS:
-# - Pushes to main branch → Automatic RELEASE builds (tags created automatically)
-# - Pushes to feature/develop branches → ALPHA builds  
-# - Manual tags (v*) → RELEASE builds (as before)
-# - Pull requests → No builds (only manual PR merges to main trigger releases)
+# - GitHub Release creation → RELEASE builds and CurseForge uploads
+# - Pushes to main → Automatic RELEASE builds with hotfix suffixes (1.3.3a, b, c...)
+# - Pushes to feature/develop branches → ALPHA builds
 
 on:
+  release:
+    types: [published]    # Trigger on manual release creation/publication
   push:
     branches:
-      - main          # ANY commit to main triggers RELEASE build
+      - main              # Automatic hotfix releases (1.3.3a, b, c...)
       - develop
       - 'feature/**'
       - 'hotfix/**' 
       - 'release/**'
-    tags:
-      - 'v*'          # Manual tags also trigger RELEASE builds
 
 env:
   GAME_VERSIONS: "5.5.0,11.2.5,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic and Retail
@@ -42,48 +41,94 @@ jobs:
       - name: Determine release type and version
         id: release-type
         run: |
+          echo "Event: ${{ github.event_name }}"
           echo "Branch/Tag: ${{ github.ref_name }}"
           echo "Ref: ${{ github.ref }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Debug: Checking branch conditions..."
           
-          # Get the branch name for comparison
-          BRANCH_NAME="${{ github.ref_name }}"
-          echo "Debug: BRANCH_NAME='${BRANCH_NAME}'"
-          
-          # Determine release type based on branch and tag
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # Already tagged release
-            echo "Debug: Processing existing tag"
-            if [[ "${{ github.ref_name }}" == *"alpha"* ]]; then
+          # Determine release type based on event type
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            # GitHub Release was created - this is always a RELEASE build
+            echo "Debug: Processing GitHub Release event"
+            RELEASE_TYPE="release"
+            
+            # Extract version from release tag
+            RELEASE_TAG="${{ github.event.release.tag_name }}"
+            VERSION="${RELEASE_TAG#v}"  # Remove v prefix if present
+            IS_TAGGED="true"           # Release creation already created the tag
+            SHOULD_CREATE_TAG="false"  # Tag already exists
+            
+            echo "Debug: Release event - TAG=${RELEASE_TAG}, VERSION=${VERSION}"
+            
+            # Determine release vs pre-release
+            if [[ "${RELEASE_TAG}" == *"alpha"* ]]; then
               RELEASE_TYPE="alpha"
-            elif [[ "${{ github.ref_name }}" == *"beta"* ]]; then
-              RELEASE_TYPE="beta" 
+              echo "Debug: Detected alpha release"
+            elif [[ "${RELEASE_TAG}" == *"beta"* ]]; then
+              RELEASE_TYPE="beta"
+              echo "Debug: Detected beta release"
             else
               RELEASE_TYPE="release"
+              echo "Debug: Detected stable release"
             fi
-            VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"  # Remove v prefix
-            IS_TAGGED="true"
-            SHOULD_CREATE_TAG="false"
-          elif [[ "${BRANCH_NAME}" == "main" ]]; then
-            # Main branch - we'll create a tag to make it a release
-            echo "Debug: Detected main branch - setting up RELEASE build"
-            RELEASE_TYPE="release"
-            BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
-            VERSION="${BASE_VERSION}"  # NO -dev suffix for main branch
-            IS_TAGGED="false"
-            SHOULD_CREATE_TAG="true"
-            echo "Debug: Main branch - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
+            
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            BRANCH_NAME="${{ github.ref_name }}"
+            echo "Debug: Processing push to branch '${BRANCH_NAME}'"
+            
+            if [[ "${BRANCH_NAME}" == "main" ]]; then
+              # Main branch push - automatic release with hotfix suffixes
+              echo "Debug: Main branch push - setting up automatic RELEASE build"
+              RELEASE_TYPE="release"
+              BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+              
+              # Check if base version tag already exists, find next available suffix
+              echo "🏷️ Checking for existing releases of version ${BASE_VERSION}"
+              git fetch --tags origin
+              
+              BASE_TAG_NAME="v${BASE_VERSION}"
+              if git rev-parse --verify "refs/tags/${BASE_TAG_NAME}" >/dev/null 2>&1; then
+                echo "⚠️  Base tag ${BASE_TAG_NAME} exists, finding hotfix suffix..."
+                
+                # Try suffixes a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+                SUFFIX=""
+                for letter in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+                  CANDIDATE_TAG="${BASE_TAG_NAME}${letter}"
+                  if ! git rev-parse --verify "refs/tags/${CANDIDATE_TAG}" >/dev/null 2>&1; then
+                    SUFFIX="${letter}"
+                    VERSION="${BASE_VERSION}${letter}"
+                    break
+                  fi
+                done
+                
+                if [[ -z "${SUFFIX}" ]]; then
+                  echo "❌ Could not find available hotfix suffix after trying a-z"
+                  exit 1
+                fi
+                
+                echo "✅ Using hotfix suffix '${SUFFIX}': ${VERSION}"
+              else
+                echo "✅ Base version ${BASE_VERSION} is available"
+                VERSION="${BASE_VERSION}"
+              fi
+              
+              IS_TAGGED="false"
+              SHOULD_CREATE_TAG="true"
+              echo "Debug: Main branch - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
+              
+            else
+              # Feature/develop branches - alpha builds
+              RELEASE_TYPE="alpha"
+              BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+              VERSION="${BASE_VERSION}-dev-${BRANCH_NAME//\//-}"  # Include branch name for clarity
+              IS_TAGGED="false"
+              SHOULD_CREATE_TAG="false"
+              
+              echo "Debug: Feature branch build - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
+            fi
+            
           else
-            # Feature/develop branches - alpha builds  
-            echo "Debug: Detected feature/develop branch '${BRANCH_NAME}' - setting up ALPHA build"
-            RELEASE_TYPE="alpha"
-            BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
-            VERSION="${BASE_VERSION}-dev"
-            IS_TAGGED="false"  
-            SHOULD_CREATE_TAG="false"
-            echo "Debug: Feature branch - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
+            echo "❌ Unsupported event type: ${{ github.event_name }}"
+            exit 1
           fi
           
           echo "RELEASE_TYPE=${RELEASE_TYPE}" >> $GITHUB_OUTPUT
@@ -96,15 +141,17 @@ jobs:
           echo "🏷️  Is Tagged: ${IS_TAGGED}"
           echo "🏷️  Should Create Tag: ${SHOULD_CREATE_TAG}"
           
-      - name: Create automatic release tag for main branch
+      - name: Create automatic release tag for main branch pushes
         if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BASE_VERSION="${{ steps.release-type.outputs.VERSION }}"
-          BASE_TAG_NAME="v${BASE_VERSION}"
+          VERSION="${{ steps.release-type.outputs.VERSION }}"
+          TAG_NAME="v${VERSION}"
           
-          echo "🏷️ Checking for existing tags for version: ${BASE_VERSION}"
+          echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
+          echo "📝 Event: ${{ github.event_name }}"
+          echo "📝 Branch: ${{ github.ref_name }}"
           
           # Configure git with token authentication
           git config user.name "github-actions[bot]"
@@ -116,36 +163,13 @@ jobs:
           # Fetch all tags to ensure we have the latest
           git fetch --tags origin
           
-          # Check if base tag already exists
-          if git rev-parse --verify "refs/tags/${BASE_TAG_NAME}" >/dev/null 2>&1; then
-            echo "⚠️  Tag ${BASE_TAG_NAME} already exists, finding available suffix..."
-            
-            # Try suffixes a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
-            SUFFIX=""
-            for letter in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
-              CANDIDATE_TAG="${BASE_TAG_NAME}${letter}"
-              if ! git rev-parse --verify "refs/tags/${CANDIDATE_TAG}" >/dev/null 2>&1; then
-                SUFFIX="${letter}"
-                TAG_NAME="${CANDIDATE_TAG}"
-                FINAL_VERSION="${BASE_VERSION}${letter}"
-                break
-              fi
-            done
-            
-            if [[ -z "${SUFFIX}" ]]; then
-              echo "❌ Could not find available suffix after trying a-z"
-              exit 1
-            fi
-            
-            echo "✅ Using suffix '${SUFFIX}': ${TAG_NAME}"
-          else
-            echo "✅ Base tag ${BASE_TAG_NAME} is available"
-            TAG_NAME="${BASE_TAG_NAME}"
-            FINAL_VERSION="${BASE_VERSION}"
+          # Verify tag doesn't already exist (it shouldn't since we checked in the previous step)
+          if git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+            echo "❌ Tag ${TAG_NAME} already exists - this should not happen"
+            exit 1
           fi
           
-          echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
-          echo "📝 This will make BigWigsMods packager treat this as a release build"
+          echo "✅ Creating new tag: ${TAG_NAME}"
           echo "⚠️  Using backdated timestamp to prevent 'future tag' detection by packager"
           
           # Create and push the tag with a slight time offset to prevent "future tag" detection
@@ -165,11 +189,10 @@ jobs:
           unset GIT_AUTHOR_DATE
           
           echo "✅ Created and pushed tag: ${TAG_NAME}"
-          echo "📦 Final version for packaging: ${FINAL_VERSION}"
+          echo "📦 Final version for packaging: ${VERSION}"
           
-          # Update our outputs to reflect that we're now tagged and update version if suffix was added
+          # Update our outputs to reflect that we're now tagged
           echo "IS_TAGGED=true" >> $GITHUB_OUTPUT
-          echo "VERSION=${FINAL_VERSION}" >> $GITHUB_OUTPUT
           
           # Extended pause to ensure tag is fully propagated and avoid "future tag" detection
           echo "⏳ Waiting for tag propagation and timestamp validation..."
@@ -268,10 +291,10 @@ jobs:
           BASE_VERSION=$(echo "${CURRENT_VERSION}" | sed 's/[a-z]*$//')
           git tag --sort=-version:refname | grep -E "^v?${BASE_VERSION}[a-z]*$" | head -5 || echo "No matching tags found"
           echo ""
-          echo "ℹ️  Touchless Release Process:"
-          echo "   - Commits to main → Automatic tag creation → Release builds"
-          echo "   - Commits to feature branches → Alpha builds" 
-          echo "   - Manual tags → Release builds (as before)"
+          echo "ℹ️  Release Process:"
+          echo "   - Create GitHub Release → Automatic CurseForge upload"
+          echo "   - Commits to main → Automatic releases with hotfix suffixes (1.3.3a, b, c...)"
+          echo "   - Commits to feature branches → Alpha builds"
           echo ""
           echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
           echo "📁 Working directory contents:"
@@ -281,7 +304,7 @@ jobs:
           
       - name: Extract changelog for current version
         id: changelog
-        if: steps.release-type.outputs.RELEASE_TYPE == 'release'
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name != 'release'
         run: |
           # Extract the changelog content for the current version
           VERSION="${{ steps.release-type.outputs.VERSION }}"
@@ -328,8 +351,20 @@ jobs:
           echo "Preview:"
           head -10 changelog_content.txt
           
-      - name: Create GitHub Release
-        if: steps.release-type.outputs.RELEASE_TYPE == 'release'
+      - name: Extract release description for release events
+        id: release-description
+        if: github.event_name == 'release'
+        run: |
+          # For release events, use the release body as changelog content
+          echo "📝 Using GitHub Release description as changelog content"
+          {
+            echo 'CHANGELOG_CONTENT<<EOF'
+            echo "${{ github.event.release.body }}"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          
+      - name: Create GitHub Release (not needed for release events)
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name != 'release'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.release-type.outputs.VERSION }}
@@ -337,7 +372,7 @@ jobs:
           body: |
             ## Soundboard v${{ steps.release-type.outputs.VERSION }}
             
-            ${{ steps.changelog.outputs.CHANGELOG_CONTENT }}
+            ${{ steps.changelog.outputs.CHANGELOG_CONTENT || steps.release-description.outputs.CHANGELOG_CONTENT }}
             
             ---
             
@@ -362,7 +397,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Send Discord Notification
-        if: steps.release-type.outputs.RELEASE_TYPE == 'release'
+        if: github.event_name == 'release' || (github.event_name == 'push' && github.ref_name == 'main')
         run: |
           # Extract changelog summary for Discord
           VERSION="${{ steps.release-type.outputs.VERSION }}"
@@ -375,24 +410,33 @@ jobs:
             CHANGELOG_SUMMARY+="\n**🎭 Meme Collection** - 6 new internet classics and viral hits"
             CHANGELOG_SUMMARY+="\n\n**Total: 18 new sounds** across 3 categories!"
           else
-            # Extract the main description line for other versions
-            CHANGELOG_SUMMARY=$(awk -v version="$VERSION" '
-            /^## Version / { 
-              if ($0 ~ version) {
-                found = 1; 
-                getline;
-                if ($0 ~ /^\*\*.*\*\*/) {
-                  gsub(/^\*\*/, "", $0);
-                  gsub(/\*\*.*$/, "", $0);
-                  print $0;
-                  exit;
+            # For release events, extract summary from GitHub release or fallback to changelog
+            if [[ "${{ github.event_name }}" == "release" ]]; then
+              # Use the first line of the release description
+              CHANGELOG_SUMMARY=$(echo "${{ github.event.release.body }}" | head -1 | sed 's/^[*#]*//' | sed 's/^\s*//')
+              if [[ -z "$CHANGELOG_SUMMARY" ]]; then
+                CHANGELOG_SUMMARY="New version released via GitHub Release!"
+              fi
+            else
+              # Extract the main description line for other versions
+              CHANGELOG_SUMMARY=$(awk -v version="$VERSION" '
+              /^## Version / { 
+                if ($0 ~ version) {
+                  found = 1; 
+                  getline;
+                  if ($0 ~ /^\*\*.*\*\*/) {
+                    gsub(/^\*\*/, "", $0);
+                    gsub(/\*\*.*$/, "", $0);
+                    print $0;
+                    exit;
+                  }
                 }
               }
-            }
-            END { 
-              if (!found) print "New version released with improvements and fixes!";
-            }
-            ' CHANGELOG.txt)
+              END { 
+                if (!found) print "New version released with improvements and fixes!";
+              }
+              ' CHANGELOG.txt)
+            fi
           fi
           
           # Get current date and create JSON payload
@@ -483,11 +527,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Explain CurseForge release type
-          if [[ "${{ github.ref_name }}" == "main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          if [[ "${{ github.event_name }}" == "release" ]]; then
             echo "**CurseForge Release Type:** 🟢 Release" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ github.ref_name }}" == "main" ]]; then
-              echo "*(Automatic tag created for main branch)*" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "*(Triggered by GitHub Release creation)*" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main" ]]; then
+            echo "**CurseForge Release Type:** 🟢 Release" >> $GITHUB_STEP_SUMMARY
+            echo "*(Automatic hotfix release from main branch)*" >> $GITHUB_STEP_SUMMARY
           else
             echo "**CurseForge Release Type:** 🟡 Alpha (feature branch)" >> $GITHUB_STEP_SUMMARY
           fi
@@ -496,12 +541,12 @@ jobs:
           if [[ "${{ needs.package.result }}" == "success" ]]; then
             echo "### ✅ Build Status: Success" >> $GITHUB_STEP_SUMMARY
             
-            if [[ "${{ github.ref_name }}" == "main" ]] || [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            if [[ "${{ github.event_name }}" == "release" || ("${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main") ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "🚀 **Release build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
             else
               echo "" >> $GITHUB_STEP_SUMMARY  
-              echo "🧪 **Beta build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow) for testing" >> $GITHUB_STEP_SUMMARY
+              echo "🧪 **Alpha build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow) for testing" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "### ❌ Build Status: Failed" >> $GITHUB_STEP_SUMMARY
