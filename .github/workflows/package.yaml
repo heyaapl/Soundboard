@@ -10,7 +10,7 @@ on:
     types: [published]    # Trigger on release creation - this WORKS
   push:
     branches:
-      - main              # Auto-create GitHub Release (which triggers CurseForge upload)
+      - release              # Auto-create GitHub Release (which triggers CurseForge upload)
       - develop           # Alpha builds
       - 'feature/**'
       - 'hotfix/**' 
