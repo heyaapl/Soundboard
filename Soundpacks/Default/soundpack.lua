@@ -355,6 +355,72 @@ soundboard_data["run-away"] = {
 	["duration"] = 11,
 };
 
+soundboard_data["citywok"] = {
+	["text"] = 		"* City Wok! *",
+	["cmd1"] = "citywok",
+	["msg"] = "is taking your order for City Wok!",
+	["emote"] = "bow",
+	["category"] = "Movies/TV",
+	["subcategory"] = "South Park",
+	["file"] = dir.."citywok.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["goddamn-mongolians"] = {
+	["text"] = 		"* Raises fists! *",
+	["cmd1"] = "goddamn-mongolians",
+	["msg"] = "is raising fists!",
+	["emote"] = "fist",
+	["category"] = "Movies/TV",
+	["subcategory"] = "South Park",
+	["file"] = dir.."goddamn-mongolians.mp3",
+	["duration"] = 6,
+};
+
+soundboard_data["goddamnit-cartman"] = {
+	["text"] = 		"* Raises fists! *",
+	["cmd1"] = "goddamnit-cartman",
+	["msg"] = "is raising fists!",
+	["emote"] = "fist",
+	["category"] = "Movies/TV",
+	["subcategory"] = "South Park",
+	["file"] = dir.."goddamnit-cartman.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["timmy"] = {
+	-- ["text"] = 		"* Raises fists! *",
+	["cmd1"] = "timmy",
+	-- ["msg"] = "is raising fists!",
+	-- ["emote"] = "fist",
+	["category"] = "Movies/TV",
+	["subcategory"] = "South Park",
+	["file"] = dir.."timmy.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["asian-diversity"] = {
+	["text"] = 		"* Learn about asian diversity! *",
+	["cmd1"] = "asian-diversity",
+	["msg"] = "is learning about asian diversity!",
+	["emote"] = "think",
+	["category"] = "Movies/TV",
+	["subcategory"] = "South Park",
+	["file"] = dir.."asian-diversity.mp3",
+	["duration"] = 7,
+};
+
+soundboard_data["theytookourjobs"] = {
+	["text"] = 		"* They took our jobs! *",
+	["cmd1"] = "theytookourjobs",
+	["msg"] = "is taking our jobs!",
+	["emote"] = "angry",
+	["category"] = "Movies/TV",
+	["subcategory"] = "South Park",
+	["file"] = dir.."theytookourjobs.mp3",
+	["duration"] = 7,
+};
+
 soundboard_data["yourfather"] = {
 	["text"] = 		"* Luke, I am your father *",
 	["cmd1"] = "yourfather",
