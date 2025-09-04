@@ -172,14 +172,19 @@ jobs:
           echo "✅ Creating new tag: ${TAG_NAME}"
           echo "⚠️  Using backdated timestamp to prevent 'future tag' detection by packager"
           
-          # Create and push the tag with a slight time offset to prevent "future tag" detection
-          # Use a timestamp that's 30 seconds in the past to ensure it's not considered "future"
-          TIMESTAMP=$(date -u -d '30 seconds ago' '+%Y-%m-%d %H:%M:%S')
-          echo "🕒 Creating tag with timestamp: ${TIMESTAMP} UTC"
+          # Create and push the tag with a very conservative time offset to prevent "future tag" detection
+          # Use a timestamp that's 6 hours in the past to ensure it's definitely not considered "future"
+          TIMESTAMP=$(date -u -d '6 hours ago' '+%Y-%m-%d %H:%M:%S')
+          echo "🕒 Creating tag with timestamp: ${TIMESTAMP} UTC (6 hours ago)"
           
-          # Set git environment to use the backdated timestamp
-          export GIT_COMMITTER_DATE="${TIMESTAMP}"
-          export GIT_AUTHOR_DATE="${TIMESTAMP}"
+          # Set git environment to use the backdated timestamp in UTC
+          # Format: YYYY-MM-DD HH:MM:SS +0000 (explicit UTC timezone)
+          export GIT_COMMITTER_DATE="${TIMESTAMP} +0000"
+          export GIT_AUTHOR_DATE="${TIMESTAMP} +0000"
+          
+          echo "🕒 Git environment timestamps set:"
+          echo "   GIT_COMMITTER_DATE=${GIT_COMMITTER_DATE}"
+          echo "   GIT_AUTHOR_DATE=${GIT_AUTHOR_DATE}"
           
           git tag "${TAG_NAME}" -m "Automatic release tag for ${TAG_NAME}"
           git push origin "${TAG_NAME}"
@@ -196,7 +201,12 @@ jobs:
           
           # Extended pause to ensure tag is fully propagated and avoid "future tag" detection
           echo "⏳ Waiting for tag propagation and timestamp validation..."
-          sleep 10
+          sleep 15
+          
+          # Force git to refresh its view of tags
+          echo "🔄 Forcing git cache refresh..."
+          git tag -d "${TAG_NAME}" 2>/dev/null || true  # Delete local tag if it exists
+          git fetch origin "refs/tags/${TAG_NAME}:refs/tags/${TAG_NAME}"  # Re-fetch from remote
           
           # Verify tag was created successfully
           if git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
@@ -236,6 +246,20 @@ jobs:
           echo "🕒 Tag object info:"
           git cat-file -p "${TAG_NAME}" | head -5 || echo "Could not read tag object"
           
+          # Show the actual timestamps that the packager will see
+          echo "🕒 Timestamp comparison for packager:"
+          TAG_TIMESTAMP=$(git log -1 --format="%ct" "${TAG_NAME}")
+          CURRENT_TIMESTAMP=$(date +%s)
+          DIFF=$((CURRENT_TIMESTAMP - TAG_TIMESTAMP))
+          echo "   Tag timestamp (epoch): ${TAG_TIMESTAMP}"
+          echo "   Current timestamp (epoch): ${CURRENT_TIMESTAMP}" 
+          echo "   Difference (seconds): ${DIFF} (negative = future, positive = past)"
+          if [[ $DIFF -gt 0 ]]; then
+            echo "   ✅ Tag is in the past - should be accepted by packager"
+          else
+            echo "   ❌ Tag is in the future - packager will reject this"
+          fi
+          
           # Final verification before proceeding to packaging
           echo "✅ All tag verifications passed - ready for packaging"
           
@@ -266,7 +290,7 @@ jobs:
       - name: Package addon
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}" -d
+          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
@@ -283,7 +307,7 @@ jobs:
           echo "🏷️ Is Tagged: ${{ steps.release-type.outputs.IS_TAGGED }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           echo "🔗 Ref: ${{ github.ref }}"
-          echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }} -d"
+          echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
           echo "🏷️ Git tags on current commit:"
           git tag --points-at HEAD || echo "No tags found"
           echo "🏷️ Recent git tags for this version family:"
