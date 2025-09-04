@@ -1,20 +1,20 @@
 name: Package and Release
 
 # TRIGGERS:
-# - GitHub Release creation → RELEASE builds and CurseForge uploads
-# - Pushes to main → Automatic RELEASE builds with hotfix suffixes (1.3.3a, b, c...)
-# - Pushes to feature/develop branches → ALPHA builds
+# - GitHub Release creation → RELEASE builds and CurseForge uploads (WORKING)
+# - Pushes to feature/develop branches → ALPHA builds (WORKING)  
+# - Pushes to main → NO automatic builds (create Release manually to avoid timestamp issues)
 
 on:
   release:
-    types: [published]    # Trigger on manual release creation/publication
+    types: [published]    # Trigger on manual release creation - this WORKS
   push:
     branches:
-      - main              # Automatic hotfix releases (1.3.3a, b, c...)
-      - develop
+      - develop           # Alpha builds only
       - 'feature/**'
       - 'hotfix/**' 
       - 'release/**'
+      # main branch removed - BigWigsMods packager rejects our auto-created tags
 
 env:
   GAME_VERSIONS: "5.5.0,11.2.5,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic and Retail
@@ -72,59 +72,18 @@ jobs:
             fi
             
           elif [[ "${{ github.event_name }}" == "push" ]]; then
+            # Push event to feature/develop branches only (main removed from triggers)
             BRANCH_NAME="${{ github.ref_name }}"
             echo "Debug: Processing push to branch '${BRANCH_NAME}'"
             
-            if [[ "${BRANCH_NAME}" == "main" ]]; then
-              # Main branch push - automatic release with hotfix suffixes
-              echo "Debug: Main branch push - setting up automatic RELEASE build"
-              RELEASE_TYPE="release"
-              BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
-              
-              # Check if base version tag already exists, find next available suffix
-              echo "🏷️ Checking for existing releases of version ${BASE_VERSION}"
-              git fetch --tags origin
-              
-              BASE_TAG_NAME="v${BASE_VERSION}"
-              if git rev-parse --verify "refs/tags/${BASE_TAG_NAME}" >/dev/null 2>&1; then
-                echo "⚠️  Base tag ${BASE_TAG_NAME} exists, finding hotfix suffix..."
-                
-                # Try suffixes a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
-                SUFFIX=""
-                for letter in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
-                  CANDIDATE_TAG="${BASE_TAG_NAME}${letter}"
-                  if ! git rev-parse --verify "refs/tags/${CANDIDATE_TAG}" >/dev/null 2>&1; then
-                    SUFFIX="${letter}"
-                    VERSION="${BASE_VERSION}${letter}"
-                    break
-                  fi
-                done
-                
-                if [[ -z "${SUFFIX}" ]]; then
-                  echo "❌ Could not find available hotfix suffix after trying a-z"
-                  exit 1
-                fi
-                
-                echo "✅ Using hotfix suffix '${SUFFIX}': ${VERSION}"
-              else
-                echo "✅ Base version ${BASE_VERSION} is available"
-                VERSION="${BASE_VERSION}"
-              fi
-              
-              IS_TAGGED="false"
-              SHOULD_CREATE_TAG="true"
-              echo "Debug: Main branch - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
-              
-            else
-              # Feature/develop branches - alpha builds
-              RELEASE_TYPE="alpha"
-              BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
-              VERSION="${BASE_VERSION}-dev-${BRANCH_NAME//\//-}"  # Include branch name for clarity
-              IS_TAGGED="false"
-              SHOULD_CREATE_TAG="false"
-              
-              echo "Debug: Feature branch build - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
-            fi
+            # All push events are now alpha builds since main branch was removed from triggers
+            RELEASE_TYPE="alpha"
+            BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
+            VERSION="${BASE_VERSION}-dev-${BRANCH_NAME//\//-}"  # Include branch name for clarity
+            IS_TAGGED="false"
+            SHOULD_CREATE_TAG="false"
+            
+            echo "Debug: Feature branch build - RELEASE_TYPE=${RELEASE_TYPE}, VERSION=${VERSION}"
             
           else
             echo "❌ Unsupported event type: ${{ github.event_name }}"
@@ -141,138 +100,8 @@ jobs:
           echo "🏷️  Is Tagged: ${IS_TAGGED}"
           echo "🏷️  Should Create Tag: ${SHOULD_CREATE_TAG}"
           
-      - name: Create automatic release tag for main branch pushes
-        if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="${{ steps.release-type.outputs.VERSION }}"
-          TAG_NAME="v${VERSION}"
-          
-          echo "🏷️ Creating automatic release tag: ${TAG_NAME}"
-          echo "📝 Event: ${{ github.event_name }}"
-          echo "📝 Branch: ${{ github.ref_name }}"
-          
-          # Configure git with token authentication
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Set up authenticated remote URL
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
-          
-          # Fetch all tags to ensure we have the latest
-          git fetch --tags origin
-          
-          # Verify tag doesn't already exist (it shouldn't since we checked in the previous step)
-          if git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
-            echo "❌ Tag ${TAG_NAME} already exists - this should not happen"
-            exit 1
-          fi
-          
-          echo "✅ Creating new tag: ${TAG_NAME}"
-          echo "⚠️  Using actual commit timestamp to prevent 'future tag' detection by packager"
-          
-          # Use the actual commit timestamp instead of artificial backdating
-          # This should be inherently "in the past" and more natural
-          COMMIT_TIMESTAMP=$(git log -1 --format="%ct" HEAD)
-          COMMIT_DATE=$(date -u -d "@${COMMIT_TIMESTAMP}" '+%Y-%m-%d %H:%M:%S')
-          echo "🕒 Using commit timestamp: ${COMMIT_DATE} UTC (commit: ${COMMIT_TIMESTAMP})"
-          
-          # Set git environment to use the commit timestamp
-          export GIT_COMMITTER_DATE="${COMMIT_DATE} +0000"
-          export GIT_AUTHOR_DATE="${COMMIT_DATE} +0000"
-          
-          echo "🕒 Git environment timestamps set:"
-          echo "   GIT_COMMITTER_DATE=${GIT_COMMITTER_DATE}"
-          echo "   GIT_AUTHOR_DATE=${GIT_AUTHOR_DATE}"
-          echo "   Commit epoch: ${COMMIT_TIMESTAMP}"
-          
-          git tag "${TAG_NAME}" -m "Automatic release tag for ${TAG_NAME}"
-          git push origin "${TAG_NAME}"
-          
-          # Clear the timestamp variables
-          unset GIT_COMMITTER_DATE
-          unset GIT_AUTHOR_DATE
-          
-          echo "✅ Created and pushed tag: ${TAG_NAME}"
-          echo "📦 Final version for packaging: ${VERSION}"
-          
-          # Update our outputs to reflect that we're now tagged
-          echo "IS_TAGGED=true" >> $GITHUB_OUTPUT
-          
-          # Extended pause to ensure tag is fully propagated and avoid "future tag" detection
-          echo "⏳ Waiting for tag propagation and timestamp validation..."
-          sleep 15
-          
-          # Force git to refresh its view of tags
-          echo "🔄 Forcing git cache refresh..."
-          git tag -d "${TAG_NAME}" 2>/dev/null || true  # Delete local tag if it exists
-          git fetch origin "refs/tags/${TAG_NAME}:refs/tags/${TAG_NAME}"  # Re-fetch from remote
-          
-          # Verify tag was created successfully
-          if git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
-            echo "✅ Tag ${TAG_NAME} verified locally"
-          else
-            echo "❌ Tag ${TAG_NAME} not found locally after creation"
-            exit 1
-          fi
-          
-      - name: Refresh git state for packager
-        if: steps.release-type.outputs.SHOULD_CREATE_TAG == 'true'
-        run: |
-          echo "🔄 Refreshing git state to ensure packager sees new tag..."
-          git fetch --tags origin
-          
-          # Additional wait to ensure remote tag is fully propagated
-          echo "⏳ Additional propagation delay for remote systems..."
-          sleep 5
-          
-          echo "🏷️ Tags now visible:"
-          git tag --points-at HEAD
-          echo "🔍 Current commit tagged as:"
-          if git describe --tags --exact-match HEAD 2>/dev/null; then
-            echo "✅ Tag successfully detected by git describe"
-          else
-            echo "❌ No exact tag match found - this may cause packaging issues"
-            exit 1
-          fi
-          
-          # Show tag creation timestamp to help debug future tag issues
-          TAG_NAME="v${{ steps.release-type.outputs.VERSION }}"
-          echo "🕒 Tag timestamp information:"
-          git log -1 --format="Created: %ai" "${TAG_NAME}" || echo "Could not get tag timestamp"
-          
-          # Additional verification that should prevent "future tag" issues
-          echo "🕒 Current system time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          echo "🕒 Tag object info:"
-          git cat-file -p "${TAG_NAME}" | head -5 || echo "Could not read tag object"
-          
-          # Show the actual timestamps that the packager will see
-          echo "🕒 Timestamp comparison for packager:"
-          TAG_TIMESTAMP=$(git log -1 --format="%ct" "${TAG_NAME}")
-          CURRENT_TIMESTAMP=$(date +%s)
-          DIFF=$((CURRENT_TIMESTAMP - TAG_TIMESTAMP))
-          echo "   Tag timestamp (epoch): ${TAG_TIMESTAMP}"
-          echo "   Current timestamp (epoch): ${CURRENT_TIMESTAMP}" 
-          echo "   Difference (seconds): ${DIFF} (negative = future, positive = past)"
-          echo "   Tag human time: $(date -u -d "@${TAG_TIMESTAMP}" '+%Y-%m-%d %H:%M:%S UTC')"
-          echo "   Current human time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          
-          # Check multiple timestamp formats that packager might use
-          echo "🕒 Additional timestamp analysis:"
-          echo "   git show format %%ct: $(git show -s --format='%ct' "${TAG_NAME}")"
-          echo "   git show format %%at: $(git show -s --format='%at' "${TAG_NAME}")"
-          echo "   git log format %%ct: $(git log -1 --format='%ct' "${TAG_NAME}")"
-          echo "   Tag object timestamp: $(git cat-file -p "${TAG_NAME}" | grep '^tagger' | awk '{print $(NF-1)}' || echo 'N/A')"
-          
-          if [[ $DIFF -gt 0 ]]; then
-            echo "   ✅ Tag is in the past - should be accepted by packager"
-          else
-            echo "   ❌ Tag is in the future - packager will reject this"
-          fi
-          
-          # Final verification before proceeding to packaging
-          echo "✅ All tag verifications passed - ready for packaging"
+      # NOTE: Automatic tag creation removed due to BigWigsMods packager "future tag" issues
+      # Use manual GitHub Release creation instead
           
       - name: Update TOC version for dev builds
         if: steps.release-type.outputs.RELEASE_TYPE == 'alpha' && steps.release-type.outputs.IS_TAGGED == 'false'
@@ -327,8 +156,8 @@ jobs:
           git tag --sort=-version:refname | grep -E "^v?${BASE_VERSION}[a-z]*$" | head -5 || echo "No matching tags found"
           echo ""
           echo "ℹ️  Release Process:"
-          echo "   - Create GitHub Release → Automatic CurseForge upload"
-          echo "   - Commits to main → Automatic releases with hotfix suffixes (1.3.3a, b, c...)"
+          echo "   - Create GitHub Release → Automatic CurseForge upload (WORKING)"
+          echo "   - Commits to main → NO automatic builds (create Release manually)"
           echo "   - Commits to feature branches → Alpha builds"
           echo ""
           echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
@@ -342,10 +171,15 @@ jobs:
         if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name != 'release'
         run: |
           # Extract the changelog content for the current version
-          VERSION="${{ steps.release-type.outputs.VERSION }}"
+          RELEASE_VERSION="${{ steps.release-type.outputs.VERSION }}"
           
-          # Read changelog and extract content for the current version
-          awk -v version="$VERSION" '
+          # For hotfix versions (1.3.3a, 1.3.3b, etc.), use the base version (1.3.3) for changelog
+          BASE_VERSION=$(echo "${RELEASE_VERSION}" | sed 's/[a-z]*$//')
+          echo "📝 Release version: ${RELEASE_VERSION}"
+          echo "📝 Using base version for changelog: ${BASE_VERSION}"
+          
+          # Read changelog and extract content for the base version
+          awk -v version="$BASE_VERSION" '
           BEGIN { 
             found = 0; 
             content = ""; 
@@ -382,7 +216,7 @@ jobs:
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           
-          echo "📝 Extracted changelog for version $VERSION"
+          echo "📝 Extracted changelog for release ${RELEASE_VERSION} using base version ${BASE_VERSION}"
           echo "Preview:"
           head -10 changelog_content.txt
           
@@ -432,18 +266,26 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Send Discord Notification
-        if: github.event_name == 'release' || (github.event_name == 'push' && github.ref_name == 'main')
+        if: github.event_name == 'release'
         run: |
           # Extract changelog summary for Discord
           VERSION="${{ steps.release-type.outputs.VERSION }}"
           
           # Create a concise, Discord-friendly changelog summary
-          if [[ "$VERSION" == "1.3.2" ]]; then
+          # For hotfix versions, use base version for lookup
+          BASE_VERSION=$(echo "${VERSION}" | sed 's/[a-z]*$//')
+          
+          if [[ "$BASE_VERSION" == "1.3.2" ]]; then
             CHANGELOG_SUMMARY="**NEW COMEDY GOLD** - Massive collection of The Office, Monty Python, and internet meme classics!"
             CHANGELOG_SUMMARY+="\n\n**📺 The Office Pack** - 6 new sounds including Identity Theft, That's What She Said, and Office Theme"
             CHANGELOG_SUMMARY+="\n**🏰 Monty Python Pack** - 6 new sounds from Holy Grail and Life of Brian"  
             CHANGELOG_SUMMARY+="\n**🎭 Meme Collection** - 6 new internet classics and viral hits"
             CHANGELOG_SUMMARY+="\n\n**Total: 18 new sounds** across 3 categories!"
+          elif [[ "$BASE_VERSION" == "1.3.3" ]]; then
+            CHANGELOG_SUMMARY="**SOUTH PARK EXPANSION** - Three iconic South Park classics join the soundboard!"
+            CHANGELOG_SUMMARY+="\n\n**🏮 South Park Pack** - City Wok, Goddamn Mongolians, and Goddamnit Cartman"
+            CHANGELOG_SUMMARY+="\n**🎭 Comedy Collection Update** - Classic quotes from fan-favorite characters"
+            CHANGELOG_SUMMARY+="\n\n**Perfect for raids** with automatic emotes and instant recognition!"
           else
             # For release events, extract summary from GitHub release or fallback to changelog
             if [[ "${{ github.event_name }}" == "release" ]]; then
@@ -454,7 +296,11 @@ jobs:
               fi
             else
               # Extract the main description line for other versions
-              CHANGELOG_SUMMARY=$(awk -v version="$VERSION" '
+              # For hotfix versions (1.3.3a, 1.3.3b, etc.), use the base version (1.3.3) for changelog
+              DISCORD_BASE_VERSION=$(echo "${VERSION}" | sed 's/[a-z]*$//')
+              echo "🔍 Using base version for Discord summary: ${DISCORD_BASE_VERSION}"
+              
+              CHANGELOG_SUMMARY=$(awk -v version="$DISCORD_BASE_VERSION" '
               /^## Version / { 
                 if ($0 ~ version) {
                   found = 1; 
@@ -565,9 +411,8 @@ jobs:
           if [[ "${{ github.event_name }}" == "release" ]]; then
             echo "**CurseForge Release Type:** 🟢 Release" >> $GITHUB_STEP_SUMMARY
             echo "*(Triggered by GitHub Release creation)*" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main" ]]; then
-            echo "**CurseForge Release Type:** 🟢 Release" >> $GITHUB_STEP_SUMMARY
-            echo "*(Automatic hotfix release from main branch)*" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "**CurseForge Release Type:** 🟡 Alpha (feature branch)" >> $GITHUB_STEP_SUMMARY
           else
             echo "**CurseForge Release Type:** 🟡 Alpha (feature branch)" >> $GITHUB_STEP_SUMMARY
           fi
@@ -576,7 +421,7 @@ jobs:
           if [[ "${{ needs.package.result }}" == "success" ]]; then
             echo "### ✅ Build Status: Success" >> $GITHUB_STEP_SUMMARY
             
-            if [[ "${{ github.event_name }}" == "release" || ("${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main") ]]; then
+            if [[ "${{ github.event_name }}" == "release" ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "🚀 **Release build** - Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)" >> $GITHUB_STEP_SUMMARY
             else
