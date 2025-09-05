@@ -159,9 +159,31 @@ jobs:
             git tag "${TAG_NAME}"
             git push origin "${TAG_NAME}"
             echo "✅ Created and pushed tag: ${TAG_NAME}"
+            
+            # Wait for git sync and verify tag availability
+            echo "⏳ Waiting for git synchronization..."
+            sleep 5
+            
+            # Fetch all tags to ensure sync
+            git fetch --tags --force
+            
+            # Verify tag is available and at correct commit
+            if git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+              TAG_COMMIT=$(git rev-parse "refs/tags/${TAG_NAME}")
+              HEAD_COMMIT=$(git rev-parse HEAD)
+              if [[ "${TAG_COMMIT}" == "${HEAD_COMMIT}" ]]; then
+                echo "✅ Tag ${TAG_NAME} verified at correct commit: ${TAG_COMMIT}"
+              else
+                echo "⚠️ Tag commit (${TAG_COMMIT}) differs from HEAD (${HEAD_COMMIT})"
+                exit 1
+              fi
+            else
+              echo "❌ Tag ${TAG_NAME} verification failed after creation"
+              exit 1
+            fi
           fi
           
-          echo "🚀 Tag created, proceeding with packaging"
+          echo "🚀 Tag verified and ready for packaging"
           
       - name: Update TOC version for dev builds
         if: steps.release-type.outputs.RELEASE_TYPE == 'alpha' && steps.release-type.outputs.IS_TAGGED == 'false'
@@ -169,6 +191,41 @@ jobs:
           # Update version in TOC file for dev builds  
           sed -i "s/## Version: .*/## Version: ${{ steps.release-type.outputs.VERSION }}/" Soundboard.toc
           echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
+          
+      - name: Pre-packaging git synchronization
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
+        run: |
+          echo "🔄 Synchronizing git state for packager..."
+          
+          # Ensure we have the latest tags and refs
+          git fetch --all --tags --force --prune
+          
+          # For release builds, verify tag exists and points to current commit
+          if [[ "${{ steps.release-type.outputs.RELEASE_TYPE }}" == "release" ]]; then
+            EXPECTED_TAG="v${{ steps.release-type.outputs.VERSION }}"
+            echo "🔍 Verifying release tag: ${EXPECTED_TAG}"
+            
+            if git rev-parse --verify "refs/tags/${EXPECTED_TAG}" >/dev/null 2>&1; then
+              TAG_COMMIT=$(git rev-parse "refs/tags/${EXPECTED_TAG}")
+              HEAD_COMMIT=$(git rev-parse HEAD)
+              
+              echo "🏷️ Tag commit: ${TAG_COMMIT}"
+              echo "📍 HEAD commit: ${HEAD_COMMIT}"
+              
+              if [[ "${TAG_COMMIT}" == "${HEAD_COMMIT}" ]]; then
+                echo "✅ Tag points to current commit"
+              else
+                echo "❌ Tag-commit mismatch detected"
+                echo "This may cause 'future tag' errors in the packager"
+                exit 1
+              fi
+            else
+              echo "❌ Expected tag ${EXPECTED_TAG} not found"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Git state synchronized and verified"
           
       - name: Pre-packaging verification
         if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
@@ -184,9 +241,37 @@ jobs:
           git tag --points-at HEAD || echo "❌ No tags found on HEAD"
           echo "🏷️ Tag detection by git describe:"
           git describe --tags --exact-match HEAD 2>/dev/null && echo "✅ Tag detected" || echo "❌ No exact tag match"
+          echo "🏷️ Git status:"
+          git status --porcelain || echo "Working tree clean"
+          echo "🕐 Current system time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           echo "🔑 CF_API_KEY present: ${{ secrets.CF_API_KEY != '' }}"
           echo ""
           echo "🚀 Launching BigWigsMods packager..."
+          
+      - name: Final packager preparation
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
+        run: |
+          echo "🔧 Final preparation for BigWigsMods packager..."
+          
+          # Ensure we're on the correct commit for release builds
+          if [[ "${{ steps.release-type.outputs.RELEASE_TYPE }}" == "release" ]]; then
+            EXPECTED_TAG="v${{ steps.release-type.outputs.VERSION }}"
+            echo "📍 Checking out tag: ${EXPECTED_TAG}"
+            git checkout "${EXPECTED_TAG}"
+            
+            # Verify we're at the expected commit
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            TAG_COMMIT=$(git rev-parse "${EXPECTED_TAG}")
+            
+            if [[ "${CURRENT_COMMIT}" == "${TAG_COMMIT}" ]]; then
+              echo "✅ Successfully checked out tag commit: ${CURRENT_COMMIT}"
+            else
+              echo "❌ Checkout verification failed"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Ready for packaging"
           
       - name: Package addon
         if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
