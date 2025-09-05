@@ -472,42 +472,51 @@ jobs:
           
           # Create Discord-friendly changelog summary using base version
           if [[ "$BASE_VERSION" == "1.3.2" ]]; then
-            CHANGELOG_SUMMARY="**NEW COMEDY GOLD** - Massive collection of The Office, Monty Python, and internet meme classics!"
-            CHANGELOG_SUMMARY+="\n\n**📺 The Office Pack** - 6 new sounds including Identity Theft, That's What She Said, and Office Theme"
-            CHANGELOG_SUMMARY+="\n**🏰 Monty Python Pack** - 6 new sounds from Holy Grail and Life of Brian"  
-            CHANGELOG_SUMMARY+="\n**🎭 Meme Collection** - 6 new internet classics and viral hits"
-            CHANGELOG_SUMMARY+="\n\n**Total: 18 new sounds** across 3 categories!"
+            CHANGELOG_SUMMARY="**NEW COMEDY GOLD** - Massive collection of The Office, Monty Python, and internet meme classics!\n\n**📺 The Office Pack** - 6 new sounds including Identity Theft, That's What She Said, and Office Theme\n**🏰 Monty Python Pack** - 6 new sounds from Holy Grail and Life of Brian\n**🎭 Meme Collection** - 6 new internet classics and viral hits\n\n**Total: 18 new sounds** across 3 categories!"
           elif [[ "$BASE_VERSION" == "1.3.3" ]]; then
-            CHANGELOG_SUMMARY="**SOUTH PARK EXPANSION** - Three iconic South Park classics join the soundboard!"
-            CHANGELOG_SUMMARY+="\n\n**🏮 South Park Pack** - City Wok, Goddamn Mongolians, and Goddamnit Cartman"
-            CHANGELOG_SUMMARY+="\n**🎭 Comedy Collection Update** - Classic quotes from fan-favorite characters"
-            CHANGELOG_SUMMARY+="\n\n**Perfect for raids** with automatic emotes and instant recognition!"
+            CHANGELOG_SUMMARY="**SOUTH PARK EXPANSION** - Three iconic South Park classics join the soundboard!\n\n**🏮 South Park Pack** - City Wok, Goddamn Mongolians, and Goddamnit Cartman\n**🎭 Comedy Collection Update** - Classic quotes from fan-favorite characters\n\n**Perfect for raids** with automatic emotes and instant recognition!"
           else
             # For other versions, extract from changelog using base version
             echo "🔍 Extracting changelog summary for base version: ${BASE_VERSION}"
             
-            # Extract the main description from changelog for base version
+            # Extract multiple lines from changelog for richer content
             CHANGELOG_SUMMARY=$(awk -v version="$BASE_VERSION" '
+            BEGIN { 
+              found = 0; 
+              content = ""; 
+              in_version = 0;
+              line_count = 0;
+            }
             /^## Version / { 
+              if (found && in_version) {
+                exit;
+              }
               if ($0 ~ version) {
                 found = 1; 
-                getline;
-                if ($0 ~ /^\*\*.*\*\*/) {
-                  gsub(/^\*\*/, "", $0);
-                  gsub(/\*\*.*$/, "", $0);
-                  print $0;
-                  exit;
-                }
+                in_version = 1;
+                next;
               }
             }
+            found && in_version && NF > 0 && line_count < 8 { 
+              if (content == "" && $0 ~ /^\s*$/) next;
+              if (content != "") content = content "\n";
+              content = content $0;
+              line_count++;
+            }
             END { 
-              if (!found) print "New version released with improvements and fixes!";
+              if (content != "") {
+                print content;
+              } else {
+                print "New version released with improvements and fixes!";
+              }
             }
             ' CHANGELOG.txt)
             
+            # Clean up the extracted content
+            CHANGELOG_SUMMARY=$(echo "$CHANGELOG_SUMMARY" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+            
             # Fallback if changelog extraction fails
             if [[ -z "$CHANGELOG_SUMMARY" || "$CHANGELOG_SUMMARY" == "New version released with improvements and fixes!" ]]; then
-              # Try extracting from GitHub release body if available
               if [[ "${{ github.event_name }}" == "release" ]]; then
                 RELEASE_BODY_SUMMARY=$(echo "${{ github.event.release.body }}" | head -3 | grep -E '^\*\*.*\*\*' | head -1 | sed 's/^[*#]*//' | sed 's/^\s*//')
                 if [[ -n "$RELEASE_BODY_SUMMARY" ]]; then
@@ -531,8 +540,8 @@ jobs:
           echo "📦 Version: v$VERSION"
           echo "📋 Base version for changelog: $BASE_VERSION"
           echo "🔧 Is hotfix: ${IS_HOTFIX:-false}"
-          echo "📝 Changelog summary:"
-          echo -e "$CHANGELOG_SUMMARY"
+          echo "📝 Changelog summary preview:"
+          printf "%s\n" "$CHANGELOG_SUMMARY" | head -3
           
           # Create version description
           VERSION_DESCRIPTION="A new version of Soundboard has been released!"
@@ -541,16 +550,25 @@ jobs:
             VERSION_DESCRIPTION="Hotfix ${HOTFIX_SUFFIX} released with bug fixes and improvements!"
           fi
           
-          # Create Discord webhook payload using jq to ensure valid JSON
+          # Create field name for changelog
+          if [[ "$IS_HOTFIX" == "true" ]]; then
+            CHANGELOG_FIELD_NAME="📋 Changelog (v${BASE_VERSION} features)"
+          else
+            CHANGELOG_FIELD_NAME="📋 Changelog Summary"
+          fi
+          
+          # Convert \n to actual newlines and write to temp file
+          printf "%s\n" "$CHANGELOG_SUMMARY" > /tmp/changelog_content.txt
+          
+          # Create Discord webhook payload using jq with proper multiline handling
           jq -n \
             --arg title "🎵 Soundboard - New Release Available!" \
             --arg description "$VERSION_DESCRIPTION" \
             --arg version "v$VERSION" \
-            --arg base_version "$BASE_VERSION" \
             --arg date "$CURRENT_DATE" \
-            --arg changelog "$CHANGELOG_SUMMARY" \
+            --arg changelog_field_name "$CHANGELOG_FIELD_NAME" \
+            --rawfile changelog /tmp/changelog_content.txt \
             --arg timestamp "$CURRENT_TIMESTAMP" \
-            --arg is_hotfix "${IS_HOTFIX:-false}" \
             '{
               "embeds": [{
                 "title": $title,
@@ -573,7 +591,7 @@ jobs:
                     "inline": true
                   },
                   {
-                    "name": ("📋 " + (if $is_hotfix == "true" then ("Changelog (v" + $base_version + " features)") else "Changelog Summary" end)),
+                    "name": $changelog_field_name,
                     "value": $changelog,
                     "inline": false
                   }
@@ -585,6 +603,9 @@ jobs:
                 "timestamp": $timestamp
               }]
             }' > discord_payload.json
+          
+          # Clean up temp file
+          rm -f /tmp/changelog_content.txt
           
           echo "📋 Discord payload created:"
           head -10 discord_payload.json
