@@ -82,7 +82,11 @@ jobs:
               RELEASE_TYPE="release"  # Direct release build
               BASE_VERSION=$(grep "## Version:" Soundboard.toc | sed 's/## Version: //' | xargs)
               
-              # Check for existing tags to determine version
+              # For release branch pushes, DON'T create tags during CI
+              # This avoids "future tag" detection by BigWigsMods packager
+              echo "🔍 Release branch push - packaging without tag creation"
+              
+              # Check for existing tags to determine version, but don't create new ones
               git fetch --tags origin
               BASE_TAG_NAME="v${BASE_VERSION}"
               if git rev-parse --verify "refs/tags/${BASE_TAG_NAME}" >/dev/null 2>&1; then
@@ -110,8 +114,8 @@ jobs:
               fi
               
               IS_TAGGED="false"
-              SHOULD_CREATE_TAG="true"  # Create tag for release detection
-              echo "Debug: Release branch - will package as release ${VERSION}"
+              SHOULD_CREATE_TAG="false"  # DON'T create tags during CI for release branch
+              echo "Debug: Release branch - will package as release ${VERSION} WITHOUT tag creation"
               
             else
               # Feature/develop branches - alpha builds
@@ -193,7 +197,7 @@ jobs:
           echo "Updated TOC version to: ${{ steps.release-type.outputs.VERSION }}"
           
       - name: Pre-packaging git synchronization
-        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip' && !(steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release')
         run: |
           echo "🔄 Synchronizing git state for packager..."
           
@@ -228,7 +232,7 @@ jobs:
           echo "✅ Git state synchronized and verified"
           
       - name: Pre-packaging verification
-        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip' && !(steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release')
         run: |
           echo "🔍 Pre-packaging state check:"
           echo "📋 Release Type: ${{ steps.release-type.outputs.RELEASE_TYPE }}"
@@ -249,7 +253,7 @@ jobs:
           echo "🚀 Launching BigWigsMods packager..."
           
       - name: Final packager preparation
-        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip' && !(steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release')
         run: |
           echo "🔧 Final preparation for BigWigsMods packager..."
           
@@ -273,8 +277,16 @@ jobs:
           
           echo "✅ Ready for packaging"
           
+      - name: Skip packaging for release branch (GitHub Release will trigger it)
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release'
+        run: |
+          echo "🔄 Release branch push detected - creating GitHub Release instead of direct packaging"
+          echo "📋 This will trigger a release event that handles packaging with proper tag timing"
+          echo "🚀 GitHub Release creation will follow, triggering the release workflow"
+          echo "✅ This avoids 'future tag' issues with BigWigsMods packager"
+          
       - name: Package addon
-        if: steps.release-type.outputs.RELEASE_TYPE != 'skip'
+        if: steps.release-type.outputs.RELEASE_TYPE != 'skip' && !(steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release')
         uses: BigWigsMods/packager@v2
         with:
           args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
@@ -285,7 +297,6 @@ jobs:
       - name: Debug packaging results
         if: always()
         run: |
-          echo "📦 Packaging completed"
           echo "🔑 CF_API_KEY present: ${{ secrets.CF_API_KEY != '' }}"
           echo "🎯 Game versions: ${{ env.GAME_VERSIONS }}"
           echo "🆔 CurseForge Project ID: 1335953"
@@ -294,24 +305,36 @@ jobs:
           echo "🏷️ Is Tagged: ${{ steps.release-type.outputs.IS_TAGGED }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           echo "🔗 Ref: ${{ github.ref }}"
-          echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
-          echo "🏷️ Git tags on current commit:"
-          git tag --points-at HEAD || echo "No tags found"
-          echo "🏷️ Recent git tags for this version family:"
-          CURRENT_VERSION="${{ steps.release-type.outputs.VERSION }}"
-          BASE_VERSION=$(echo "${CURRENT_VERSION}" | sed 's/[a-z]*$//')
-          git tag --sort=-version:refname | grep -E "^v?${BASE_VERSION}[a-z]*$" | head -5 || echo "No matching tags found"
+          
+          if [[ "${{ steps.release-type.outputs.RELEASE_TYPE }}" == "release" && "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "release" ]]; then
+            echo ""
+            echo "🔄 RELEASE BRANCH WORKFLOW:"
+            echo "   ✅ Created GitHub Release → Will trigger release event"
+            echo "   ⏳ Release event will handle CurseForge packaging"
+            echo "   🎯 This avoids 'future tag' detection issues"
+            echo ""
+            echo "🔗 Check for new GitHub Release at: https://github.com/${{ github.repository }}/releases"
+            echo "🔗 After release event runs, check CurseForge: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
+          else
+            echo "📦 Direct packaging completed"
+            echo "🔧 Packager args used: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+            echo "🏷️ Git tags on current commit:"
+            git tag --points-at HEAD || echo "No tags found"
+            echo "🏷️ Recent git tags for this version family:"
+            CURRENT_VERSION="${{ steps.release-type.outputs.VERSION }}"
+            BASE_VERSION=$(echo "${CURRENT_VERSION}" | sed 's/[a-z]*$//')
+            git tag --sort=-version:refname | grep -E "^v?${BASE_VERSION}[a-z]*$" | head -5 || echo "No matching tags found"
+            echo ""
+            echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
+            echo "📁 Looking for .zip files:"
+            find . -name "*.zip" 2>/dev/null || echo "No zip files found"
+          fi
+          
           echo ""
-          echo "ℹ️  Release Process:"
-          echo "   - Create GitHub Release → Automatic CurseForge upload (WORKING)"
-          echo "   - Commits to release → Direct CurseForge release upload"
-          echo "   - Commits to feature branches → Alpha builds"
-          echo ""
-          echo "🔗 Check uploads at: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
-          echo "📁 Working directory contents:"
-          ls -la || dir
-          echo "📁 Looking for .zip files:"
-          find . -name "*.zip" 2>/dev/null || echo "No zip files found"
+          echo "ℹ️  Release Process Summary:"
+          echo "   - GitHub Release creation → Automatic CurseForge upload via release event"
+          echo "   - Release branch push → Creates GitHub Release → Triggers release event → CurseForge upload"  
+          echo "   - Feature branches → Direct alpha builds to CurseForge"
           
       - name: Extract changelog for current version
         id: changelog
@@ -379,8 +402,8 @@ jobs:
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           
-      - name: Create GitHub Release (not needed for release events or release-creation)
-        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name != 'release' && steps.release-type.outputs.RELEASE_TYPE != 'release-creation'
+      - name: Create GitHub Release for release branch pushes (triggers packaging via release event)
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.release-type.outputs.VERSION }}
