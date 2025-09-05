@@ -462,10 +462,15 @@ jobs:
           # Extract changelog summary for Discord
           VERSION="${{ steps.release-type.outputs.VERSION }}"
           
-          # Create a concise, Discord-friendly changelog summary
-          # For hotfix versions, use base version for lookup
+          # For hotfix versions, always use base version for changelog lookup
           BASE_VERSION=$(echo "${VERSION}" | sed 's/[a-z]*$//')
+          IS_HOTFIX=""
+          if [[ "${VERSION}" != "${BASE_VERSION}" ]]; then
+            IS_HOTFIX="true"
+            echo "🔍 Hotfix detected: ${VERSION} → using base version ${BASE_VERSION} for changelog"
+          fi
           
+          # Create Discord-friendly changelog summary using base version
           if [[ "$BASE_VERSION" == "1.3.2" ]]; then
             CHANGELOG_SUMMARY="**NEW COMEDY GOLD** - Massive collection of The Office, Monty Python, and internet meme classics!"
             CHANGELOG_SUMMARY+="\n\n**📺 The Office Pack** - 6 new sounds including Identity Theft, That's What She Said, and Office Theme"
@@ -478,54 +483,74 @@ jobs:
             CHANGELOG_SUMMARY+="\n**🎭 Comedy Collection Update** - Classic quotes from fan-favorite characters"
             CHANGELOG_SUMMARY+="\n\n**Perfect for raids** with automatic emotes and instant recognition!"
           else
-            # For release events, extract summary from GitHub release or fallback to changelog
-            if [[ "${{ github.event_name }}" == "release" ]]; then
-              # Use the first line of the release description
-              CHANGELOG_SUMMARY=$(echo "${{ github.event.release.body }}" | head -1 | sed 's/^[*#]*//' | sed 's/^\s*//')
-              if [[ -z "$CHANGELOG_SUMMARY" ]]; then
-                CHANGELOG_SUMMARY="New version released via GitHub Release!"
-              fi
-            else
-              # Extract the main description line for other versions
-              # For hotfix versions (1.3.3a, 1.3.3b, etc.), use the base version (1.3.3) for changelog
-              DISCORD_BASE_VERSION=$(echo "${VERSION}" | sed 's/[a-z]*$//')
-              echo "🔍 Using base version for Discord summary: ${DISCORD_BASE_VERSION}"
-              
-              CHANGELOG_SUMMARY=$(awk -v version="$DISCORD_BASE_VERSION" '
-              /^## Version / { 
-                if ($0 ~ version) {
-                  found = 1; 
-                  getline;
-                  if ($0 ~ /^\*\*.*\*\*/) {
-                    gsub(/^\*\*/, "", $0);
-                    gsub(/\*\*.*$/, "", $0);
-                    print $0;
-                    exit;
-                  }
+            # For other versions, extract from changelog using base version
+            echo "🔍 Extracting changelog summary for base version: ${BASE_VERSION}"
+            
+            # Extract the main description from changelog for base version
+            CHANGELOG_SUMMARY=$(awk -v version="$BASE_VERSION" '
+            /^## Version / { 
+              if ($0 ~ version) {
+                found = 1; 
+                getline;
+                if ($0 ~ /^\*\*.*\*\*/) {
+                  gsub(/^\*\*/, "", $0);
+                  gsub(/\*\*.*$/, "", $0);
+                  print $0;
+                  exit;
                 }
               }
-              END { 
-                if (!found) print "New version released with improvements and fixes!";
-              }
-              ' CHANGELOG.txt)
+            }
+            END { 
+              if (!found) print "New version released with improvements and fixes!";
+            }
+            ' CHANGELOG.txt)
+            
+            # Fallback if changelog extraction fails
+            if [[ -z "$CHANGELOG_SUMMARY" || "$CHANGELOG_SUMMARY" == "New version released with improvements and fixes!" ]]; then
+              # Try extracting from GitHub release body if available
+              if [[ "${{ github.event_name }}" == "release" ]]; then
+                RELEASE_BODY_SUMMARY=$(echo "${{ github.event.release.body }}" | head -3 | grep -E '^\*\*.*\*\*' | head -1 | sed 's/^[*#]*//' | sed 's/^\s*//')
+                if [[ -n "$RELEASE_BODY_SUMMARY" ]]; then
+                  CHANGELOG_SUMMARY="$RELEASE_BODY_SUMMARY"
+                fi
+              fi
             fi
+          fi
+          
+          # Add hotfix indicator to summary if this is a hotfix
+          if [[ "$IS_HOTFIX" == "true" ]]; then
+            HOTFIX_SUFFIX=$(echo "${VERSION}" | sed "s/^${BASE_VERSION}//")
+            CHANGELOG_SUMMARY="$CHANGELOG_SUMMARY\n\n🔧 **Hotfix ${HOTFIX_SUFFIX}**: Bug fixes and stability improvements"
           fi
           
           # Get current date and create JSON payload
           CURRENT_DATE=$(date -u '+%B %d, %Y')
           CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
           
-          echo "🔍 Discord changelog summary:"
+          echo "🔍 Discord notification details:"
+          echo "📦 Version: v$VERSION"
+          echo "📋 Base version for changelog: $BASE_VERSION"
+          echo "🔧 Is hotfix: ${IS_HOTFIX:-false}"
+          echo "📝 Changelog summary:"
           echo -e "$CHANGELOG_SUMMARY"
+          
+          # Create version description
+          VERSION_DESCRIPTION="A new version of Soundboard has been released!"
+          if [[ "$IS_HOTFIX" == "true" ]]; then
+            HOTFIX_SUFFIX=$(echo "${VERSION}" | sed "s/^${BASE_VERSION}//")
+            VERSION_DESCRIPTION="Hotfix ${HOTFIX_SUFFIX} released with bug fixes and improvements!"
+          fi
           
           # Create Discord webhook payload using jq to ensure valid JSON
           jq -n \
             --arg title "🎵 Soundboard - New Release Available!" \
-            --arg description "A new version of Soundboard has been released!" \
+            --arg description "$VERSION_DESCRIPTION" \
             --arg version "v$VERSION" \
+            --arg base_version "$BASE_VERSION" \
             --arg date "$CURRENT_DATE" \
             --arg changelog "$CHANGELOG_SUMMARY" \
             --arg timestamp "$CURRENT_TIMESTAMP" \
+            --arg is_hotfix "${IS_HOTFIX:-false}" \
             '{
               "embeds": [{
                 "title": $title,
@@ -538,7 +563,7 @@ jobs:
                     "inline": true
                   },
                   {
-                    "name": "📅 Release Date",
+                    "name": "📅 Release Date", 
                     "value": $date,
                     "inline": true
                   },
@@ -548,7 +573,7 @@ jobs:
                     "inline": true
                   },
                   {
-                    "name": "📋 Changelog Summary",
+                    "name": ("📋 " + (if $is_hotfix == "true" then ("Changelog (v" + $base_version + " features)") else "Changelog Summary" end)),
                     "value": $changelog,
                     "inline": false
                   }
