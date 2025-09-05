@@ -433,7 +433,28 @@ jobs:
           prerelease: false
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          
+      - name: Fallback packaging if PAT_TOKEN not available  
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release'
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Fallback notification
+        if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release'
+        run: |
+          echo "🔧 Direct CurseForge packaging completed"
+          echo "✅ Check CurseForge for upload: https://www.curseforge.com/wow/addons/soundboard-for-wow/files"
+          echo ""
+          echo "💡 For automatic release event triggering, configure PAT_TOKEN:"
+          echo "   1. Go to GitHub → Settings → Developer settings → Personal access tokens"
+          echo "   2. Create token with 'contents:write' and 'metadata:read' permissions"
+          echo "   3. Add as repository secret named 'PAT_TOKEN'"
+          echo "   4. This enables GitHub Release creation to trigger release events"
           
       - name: Send Discord Notification
         if: github.event_name == 'release'
