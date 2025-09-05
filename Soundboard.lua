@@ -1151,15 +1151,34 @@ function SoundboardDropdown:GetFavorites()
 	return favorites
 end
 
--- Check if any favorites exist
+-- Check if any favorites exist (sounds, categories, or subcategories)
 function SoundboardDropdown:HasFavorites()
 	if not Soundboard.db or not Soundboard.db.profile then
 		return false
 	end
 	
+	-- Check for favorited sounds
 	for soundKey, _ in pairs(Soundboard.db.profile.Favorites) do
 		if soundboard_data[soundKey] then
 			return true
+		end
+	end
+	
+	-- Check for favorited categories
+	for categoryName, _ in pairs(Soundboard.db.profile.FavoriteCategories or {}) do
+		if self.categories[categoryName] then
+			return true
+		end
+	end
+	
+	-- Check for favorited subcategories
+	for categoryName, subcategories in pairs(Soundboard.db.profile.FavoriteSubcategories or {}) do
+		if self.categories[categoryName] then
+			for subcategoryName, _ in pairs(subcategories) do
+				if self.categories[categoryName].subcategories[subcategoryName] then
+					return true
+				end
+			end
 		end
 	end
 	
@@ -1766,7 +1785,184 @@ function SoundboardDropdown:ShowFavorites()
 	title:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight - 5
 	
-	-- Get all favorited sounds
+	-- Show favorited categories first
+	local favoritedCategories = {}
+	if Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.FavoriteCategories then
+		for categoryName, _ in pairs(Soundboard.db.profile.FavoriteCategories) do
+			if self.categories[categoryName] then
+				table.insert(favoritedCategories, categoryName)
+			end
+		end
+	end
+	
+	-- Sort favorited categories alphabetically
+	table.sort(favoritedCategories)
+	
+	if #favoritedCategories > 0 then
+		-- Categories header
+		local categoriesHeader = self:CreateButton("Favorite Categories", yOffset, false, true)
+		categoriesHeader:SetScript("OnClick", nil)
+		yOffset = yOffset - 26  -- Secondary header is 26px tall
+		
+		for _, categoryName in ipairs(favoritedCategories) do
+			local categoryData = self.categories[categoryName]
+			local count = #categoryData.sounds
+			-- Add sounds from subcategories
+			for _, sounds in pairs(categoryData.subcategories) do
+				count = count + #sounds
+			end
+			
+			local displayText = categoryName .. " |cFF888888(" .. count .. ")|r"
+			local catBtn = self:CreateButton(displayText, yOffset)
+			
+			-- Add star button (always gold for favorites)
+			local starButton = CreateFrame("Button", nil, catBtn)
+			starButton:SetSize(16, 16)
+			starButton:SetPoint("LEFT", 2, 0)
+			
+			local starTexture = starButton:CreateTexture(nil, "ARTWORK")
+			starTexture:SetAllPoints()
+			starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+			starTexture:SetVertexColor(1, 0.8, 0, 1)  -- Gold (always favorited)
+			
+			-- Star click handler to unfavorite
+			starButton:SetScript("OnClick", function()
+				self:ToggleCategoryFavorite(categoryName)
+				Soundboard:Print("Removed category favorite: " .. categoryName)
+				self:ShowFavorites()  -- Refresh favorites view
+			end)
+			
+			-- Adjust button text positioning to make room for star
+			local fontString = catBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+			fontString:SetPoint("LEFT", 20, 0)  -- Offset for star
+			fontString:SetPoint("RIGHT", -5, 0)
+			fontString:SetJustifyH("LEFT")
+			fontString:SetText(displayText)
+			
+			-- Apply proper theme colors
+			local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+			local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+			fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+			
+			-- Add theme-aware hover effects
+			catBtn:SetScript("OnEnter", function(btn)
+				fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+			end)
+			
+			catBtn:SetScript("OnLeave", function(btn)
+				fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+			end)
+			
+			-- Hide the default text from CreateButton
+			for i = 1, catBtn:GetNumRegions() do
+				local region = select(i, catBtn:GetRegions())
+				if region:GetObjectType() == "FontString" then
+					region:SetText("")
+					break
+				end
+			end
+			
+			catBtn:SetScript("OnClick", function()
+				self:ShowCategory(categoryName)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+		yOffset = yOffset - 5  -- Extra spacing
+	end
+	
+	-- Show favorited subcategories
+	local favoritedSubcategories = {}
+	if Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.FavoriteSubcategories then
+		for categoryName, subcategories in pairs(Soundboard.db.profile.FavoriteSubcategories) do
+			if self.categories[categoryName] then
+				for subcategoryName, _ in pairs(subcategories) do
+					if self.categories[categoryName].subcategories[subcategoryName] then
+						table.insert(favoritedSubcategories, {
+							category = categoryName,
+							subcategory = subcategoryName,
+							sortKey = categoryName .. " > " .. subcategoryName
+						})
+					end
+				end
+			end
+		end
+	end
+	
+	-- Sort favorited subcategories alphabetically by full name
+	table.sort(favoritedSubcategories, function(a, b)
+		return a.sortKey < b.sortKey
+	end)
+	
+	if #favoritedSubcategories > 0 then
+		-- Subcategories header
+		local subcategoriesHeader = self:CreateButton("Favorite Subcategories", yOffset, false, true)
+		subcategoriesHeader:SetScript("OnClick", nil)
+		yOffset = yOffset - 26  -- Secondary header is 26px tall
+		
+		for _, item in ipairs(favoritedSubcategories) do
+			local categoryName = item.category
+			local subcategoryName = item.subcategory
+			local subCategoryCount = #self.categories[categoryName].subcategories[subcategoryName]
+			
+			local displayText = "> " .. categoryName .. " > " .. subcategoryName .. " |cFF888888(" .. subCategoryCount .. ")|r"
+			local subcatBtn = self:CreateButton(displayText, yOffset)
+			
+			-- Add star button (always gold for favorites)
+			local starButton = CreateFrame("Button", nil, subcatBtn)
+			starButton:SetSize(16, 16)
+			starButton:SetPoint("LEFT", 2, 0)
+			
+			local starTexture = starButton:CreateTexture(nil, "ARTWORK")
+			starTexture:SetAllPoints()
+			starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+			starTexture:SetVertexColor(1, 0.8, 0, 1)  -- Gold (always favorited)
+			
+			-- Star click handler to unfavorite
+			starButton:SetScript("OnClick", function()
+				self:ToggleSubcategoryFavorite(categoryName, subcategoryName)
+				Soundboard:Print("Removed subcategory favorite: " .. categoryName .. " > " .. subcategoryName)
+				self:ShowFavorites()  -- Refresh favorites view
+			end)
+			
+			-- Adjust button text positioning to make room for star
+			local fontString = subcatBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+			fontString:SetPoint("LEFT", 20, 0)  -- Offset for star
+			fontString:SetPoint("RIGHT", -5, 0)
+			fontString:SetJustifyH("LEFT")
+			fontString:SetText(displayText)
+			
+			-- Apply proper theme colors
+			local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+			local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+			fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+			
+			-- Add theme-aware hover effects
+			subcatBtn:SetScript("OnEnter", function(btn)
+				fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+			end)
+			
+			subcatBtn:SetScript("OnLeave", function(btn)
+				fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+			end)
+			
+			-- Hide the default text from CreateButton
+			for i = 1, subcatBtn:GetNumRegions() do
+				local region = select(i, subcatBtn:GetRegions())
+				if region:GetObjectType() == "FontString" then
+					region:SetText("")
+					break
+				end
+			end
+			
+			subcatBtn:SetScript("OnClick", function()
+				self:ShowSubcategory(categoryName, subcategoryName)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+		yOffset = yOffset - 5  -- Extra spacing
+	end
+	
+	-- Show individual favorited sounds
 	local favorites = self:GetFavorites()
 	local favoritesList = {}
 	
@@ -1779,17 +1975,25 @@ function SoundboardDropdown:ShowFavorites()
 		return (a.data.text or "") < (b.data.text or "") 
 	end)
 	
-	-- Show favorite sounds with stars
 	if #favoritesList > 0 then
+		-- Individual sounds header (only show if there are individual favorites)
+		if #favoritedCategories > 0 or #favoritedSubcategories > 0 then
+			local soundsHeader = self:CreateButton("Favorite Sounds", yOffset, false, true)
+			soundsHeader:SetScript("OnClick", nil)
+			yOffset = yOffset - 26  -- Secondary header is 26px tall
+		end
+		
 		for _, favorite in ipairs(favoritesList) do
 			local soundBtn = self:CreateSoundButtonWithStar(favorite.key, favorite.data, yOffset)
 			yOffset = yOffset - buttonHeight
 		end
 	else
-		-- This shouldn't happen since HasFavorites() checked first, but just in case
-		local noFavoritesBtn = self:CreateButton("No favorites found", yOffset)
-		noFavoritesBtn:SetScript("OnClick", nil)
-		yOffset = yOffset - buttonHeight
+		-- Show message if no individual sound favorites but categories/subcategories exist
+		if #favoritedCategories == 0 and #favoritedSubcategories == 0 then
+			local noFavoritesBtn = self:CreateButton("No favorites found", yOffset)
+			noFavoritesBtn:SetScript("OnClick", nil)
+			yOffset = yOffset - buttonHeight
+		end
 	end
 	
 	-- Update content size and scrollbar
@@ -3602,6 +3806,11 @@ function SoundboardDropdown:ShowMainMenu()
 				fontString:SetJustifyH("LEFT")
 				fontString:SetText(displayText)
 				
+				-- Apply proper theme colors
+				local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+				local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+				fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+				
 				-- Hide the default text from CreateButton
 				for i = 1, catBtn:GetNumRegions() do
 					local region = select(i, catBtn:GetRegions())
@@ -3610,6 +3819,15 @@ function SoundboardDropdown:ShowMainMenu()
 						break
 					end
 				end
+				
+				-- Add theme-aware hover effects
+				catBtn:SetScript("OnEnter", function(btn)
+					fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+				end)
+				
+				catBtn:SetScript("OnLeave", function(btn)
+					fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+				end)
 			end
 			
 			catBtn:SetScript("OnClick", function()
@@ -3733,6 +3951,11 @@ function SoundboardDropdown:ShowCategory(categoryName)
 		fontString:SetJustifyH("LEFT")
 		fontString:SetText(displayText)
 		
+		-- Apply proper theme colors
+		local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+		local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+		fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		
 		-- Hide the default text from CreateButton
 		for i = 1, subcatBtn:GetNumRegions() do
 			local region = select(i, subcatBtn:GetRegions())
@@ -3741,6 +3964,15 @@ function SoundboardDropdown:ShowCategory(categoryName)
 				break
 			end
 		end
+		
+		-- Add theme-aware hover effects
+		subcatBtn:SetScript("OnEnter", function(btn)
+			fontString:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+		end)
+		
+		subcatBtn:SetScript("OnLeave", function(btn)
+			fontString:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		end)
 		
 		subcatBtn:SetScript("OnClick", function()
 			self:ShowSubcategory(categoryName, subcategory)
