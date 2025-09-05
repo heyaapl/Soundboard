@@ -1166,6 +1166,106 @@ function SoundboardDropdown:HasFavorites()
 	return false
 end
 
+-- ==================== CATEGORY FAVORITES SYSTEM ====================
+
+-- Check if a category is favorited
+function SoundboardDropdown:IsCategoryFavorited(categoryName)
+	if not Soundboard.db or not Soundboard.db.profile or not categoryName then
+		return false
+	end
+	return Soundboard.db.profile.FavoriteCategories[categoryName] == true
+end
+
+-- Toggle favorite status for a category
+function SoundboardDropdown:ToggleCategoryFavorite(categoryName)
+	if not Soundboard.db or not Soundboard.db.profile or not categoryName then
+		DebugPrint("ERROR: Cannot toggle category favorite - database or categoryName not available")
+		return
+	end
+	
+	local currentStatus = self:IsCategoryFavorited(categoryName)
+	local newStatus = not currentStatus
+	
+	if newStatus then
+		Soundboard.db.profile.FavoriteCategories[categoryName] = true
+		DebugPrint("Added category to favorites: " .. categoryName)
+	else
+		Soundboard.db.profile.FavoriteCategories[categoryName] = nil
+		DebugPrint("Removed category from favorites: " .. categoryName)
+	end
+end
+
+-- Check if a subcategory is favorited
+function SoundboardDropdown:IsSubcategoryFavorited(categoryName, subcategoryName)
+	if not Soundboard.db or not Soundboard.db.profile or not categoryName or not subcategoryName then
+		return false
+	end
+	
+	local categoryFavorites = Soundboard.db.profile.FavoriteSubcategories[categoryName]
+	return categoryFavorites and categoryFavorites[subcategoryName] == true
+end
+
+-- Toggle favorite status for a subcategory
+function SoundboardDropdown:ToggleSubcategoryFavorite(categoryName, subcategoryName)
+	if not Soundboard.db or not Soundboard.db.profile or not categoryName or not subcategoryName then
+		DebugPrint("ERROR: Cannot toggle subcategory favorite - database or names not available")
+		return
+	end
+	
+	-- Initialize category table if needed
+	if not Soundboard.db.profile.FavoriteSubcategories[categoryName] then
+		Soundboard.db.profile.FavoriteSubcategories[categoryName] = {}
+	end
+	
+	local currentStatus = self:IsSubcategoryFavorited(categoryName, subcategoryName)
+	local newStatus = not currentStatus
+	
+	if newStatus then
+		Soundboard.db.profile.FavoriteSubcategories[categoryName][subcategoryName] = true
+		DebugPrint("Added subcategory to favorites: " .. categoryName .. " -> " .. subcategoryName)
+	else
+		Soundboard.db.profile.FavoriteSubcategories[categoryName][subcategoryName] = nil
+		DebugPrint("Removed subcategory from favorites: " .. categoryName .. " -> " .. subcategoryName)
+		
+		-- Clean up empty category table
+		local hasAnySubcategories = false
+		for _, _ in pairs(Soundboard.db.profile.FavoriteSubcategories[categoryName]) do
+			hasAnySubcategories = true
+			break
+		end
+		if not hasAnySubcategories then
+			Soundboard.db.profile.FavoriteSubcategories[categoryName] = nil
+		end
+	end
+end
+
+-- Check if any categories or subcategories are favorited
+function SoundboardDropdown:HasFavoritedCategories()
+	if not Soundboard.db or not Soundboard.db.profile then
+		return false
+	end
+	
+	-- Check for favorited categories
+	for categoryName, _ in pairs(Soundboard.db.profile.FavoriteCategories) do
+		if self.categories[categoryName] then
+			return true
+		end
+	end
+	
+	-- Check for favorited subcategories
+	for categoryName, subcategories in pairs(Soundboard.db.profile.FavoriteSubcategories) do
+		if self.categories[categoryName] then
+			for subcategoryName, _ in pairs(subcategories) do
+				if self.categories[categoryName].subcategories[subcategoryName] then
+					return true
+				end
+			end
+		end
+	end
+	
+	return false
+end
+
 -- ==================== BLOCKLIST SYSTEM ====================
 
 -- Toggle blocked status for a sound
@@ -3410,6 +3510,8 @@ function SoundboardDropdown:ShowMainMenu()
 	end
 	
 	tsort(categoryNames, function(a, b)
+		local aIsFavorite = self:IsCategoryFavorited(a)
+		local bIsFavorite = self:IsCategoryFavorited(b)
 		local aIsMisc = isMiscCategory(a)
 		local bIsMisc = isMiscCategory(b)
 		local aIsMissing = isMissingCategory(a)
@@ -3418,6 +3520,13 @@ function SoundboardDropdown:ShowMainMenu()
 		-- Missing Configuration always goes last
 		if aIsMissing ~= bIsMissing then
 			return not aIsMissing
+		end
+		
+		-- Favorites come first (but after special categories)
+		if not aIsMissing and not bIsMissing then
+			if aIsFavorite ~= bIsFavorite then
+				return aIsFavorite
+			end
 		end
 		
 		-- If both are misc or both are not misc, sort alphabetically  
@@ -3448,6 +3557,61 @@ function SoundboardDropdown:ShowMainMenu()
 			end
 			
 			local catBtn = self:CreateButton(displayText, yOffset)
+			
+			-- Add star button for category favorites (skip for special categories)
+			if category ~= "Missing Configuration" then
+				-- Create star button (left side)
+				local starButton = CreateFrame("Button", nil, catBtn)
+				starButton:SetSize(16, 16)
+				starButton:SetPoint("LEFT", 2, 0)
+				
+				-- Star texture
+				local starTexture = starButton:CreateTexture(nil, "ARTWORK")
+				starTexture:SetAllPoints()
+				
+				-- Update star appearance based on favorite status
+				local function updateCategoryStar()
+					local isFavorited = self:IsCategoryFavorited(category)
+					if isFavorited then
+						starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+						starTexture:SetVertexColor(1, 0.8, 0, 1)  -- Gold
+					else
+						starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+						starTexture:SetVertexColor(0.3, 0.3, 0.3, 1)  -- Dark gray
+					end
+				end
+				
+				-- Star click handler
+				starButton:SetScript("OnClick", function()
+					self:ToggleCategoryFavorite(category)
+					updateCategoryStar()
+					local isFavorited = self:IsCategoryFavorited(category)
+					Soundboard:Print((isFavorited and "Added" or "Removed") .. " category favorite: " .. category)
+					
+					-- Refresh the main menu to resort categories
+					self:ShowMainMenu()
+				end)
+				
+				-- Initialize star appearance
+				updateCategoryStar()
+				
+				-- Adjust button text positioning to make room for star
+				local fontString = catBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+				fontString:SetPoint("LEFT", 20, 0)  -- Offset for star
+				fontString:SetPoint("RIGHT", -5, 0)
+				fontString:SetJustifyH("LEFT")
+				fontString:SetText(displayText)
+				
+				-- Hide the default text from CreateButton
+				for i = 1, catBtn:GetNumRegions() do
+					local region = select(i, catBtn:GetRegions())
+					if region:GetObjectType() == "FontString" then
+						region:SetText("")
+						break
+					end
+				end
+			end
+			
 			catBtn:SetScript("OnClick", function()
 				self:ShowCategory(category)
 			end)
@@ -3506,14 +3670,78 @@ function SoundboardDropdown:ShowCategory(categoryName)
 	for subcategory, _ in pairs(categoryData.subcategories) do
 		tinsert(subcategoryNames, subcategory)
 	end
-	tsort(subcategoryNames)
+	
+	-- Sort subcategories with favorites first
+	tsort(subcategoryNames, function(a, b)
+		local aIsFavorite = self:IsSubcategoryFavorited(categoryName, a)
+		local bIsFavorite = self:IsSubcategoryFavorited(categoryName, b)
+		
+		-- Favorites come first
+		if aIsFavorite ~= bIsFavorite then
+			return aIsFavorite
+		end
+		
+		-- Otherwise sort alphabetically
+		return a < b
+	end)
 	
 	for _, subcategory in ipairs(subcategoryNames) do
 		local subCategoryCount = #categoryData.subcategories[subcategory]
-		local subcatBtn = self:CreateButton(
-			"> " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r", 
-			yOffset
-		)
+		local displayText = "> " .. subcategory .. " |cFF888888(" .. subCategoryCount .. ")|r"
+		local subcatBtn = self:CreateButton(displayText, yOffset)
+		
+		-- Add star button for subcategory favorites
+		-- Create star button (left side)
+		local starButton = CreateFrame("Button", nil, subcatBtn)
+		starButton:SetSize(16, 16)
+		starButton:SetPoint("LEFT", 2, 0)
+		
+		-- Star texture
+		local starTexture = starButton:CreateTexture(nil, "ARTWORK")
+		starTexture:SetAllPoints()
+		
+		-- Update star appearance based on favorite status
+		local function updateSubcategoryStar()
+			local isFavorited = self:IsSubcategoryFavorited(categoryName, subcategory)
+			if isFavorited then
+				starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+				starTexture:SetVertexColor(1, 0.8, 0, 1)  -- Gold
+			else
+				starTexture:SetTexture("Interface\\Common\\FavoritesIcon")
+				starTexture:SetVertexColor(0.3, 0.3, 0.3, 1)  -- Dark gray
+			end
+		end
+		
+		-- Star click handler
+		starButton:SetScript("OnClick", function()
+			self:ToggleSubcategoryFavorite(categoryName, subcategory)
+			updateSubcategoryStar()
+			local isFavorited = self:IsSubcategoryFavorited(categoryName, subcategory)
+			Soundboard:Print((isFavorited and "Added" or "Removed") .. " subcategory favorite: " .. categoryName .. " -> " .. subcategory)
+			
+			-- Refresh the category view to resort subcategories
+			self:ShowCategory(categoryName)
+		end)
+		
+		-- Initialize star appearance
+		updateSubcategoryStar()
+		
+		-- Adjust button text positioning to make room for star
+		local fontString = subcatBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		fontString:SetPoint("LEFT", 20, 0)  -- Offset for star
+		fontString:SetPoint("RIGHT", -5, 0)
+		fontString:SetJustifyH("LEFT")
+		fontString:SetText(displayText)
+		
+		-- Hide the default text from CreateButton
+		for i = 1, subcatBtn:GetNumRegions() do
+			local region = select(i, subcatBtn:GetRegions())
+			if region:GetObjectType() == "FontString" then
+				region:SetText("")
+				break
+			end
+		end
+		
 		subcatBtn:SetScript("OnClick", function()
 			self:ShowSubcategory(categoryName, subcategory)
 		end)
@@ -4307,6 +4535,8 @@ local soundboard_data_sorted_keys = {};
 			GroupBroadcast = true,     -- true/false
 			-- Favorites System (Account-wide)
 			Favorites = {},            -- Table of favorited sound keys {soundKey = true}
+			FavoriteCategories = {},   -- Table of favorited categories {categoryName = true}
+			FavoriteSubcategories = {}, -- Table of favorited subcategories {categoryName = {subcategoryName = true}}
 			-- Blocklist System (Account-wide)
 			Blocklist = {},           -- Table of blocked sound keys {soundKey = true}
 			-- Dynamic Sound Duration Learning
