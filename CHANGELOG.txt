@@ -1,4 +1,14 @@
 # Soundboard Changelog
+## Version 1.4.0
+**ORGANIZATION REVOLUTION** - Comprehensive favorites system for categories and subcategories!
+
+### ⭐ Enhanced Favorites System
+- **Category Favorites**: Click stars next to any category name to favorite entire categories
+- **Subcategory Favorites**: Click stars next to subcategory names for targeted favoriting
+- **Smart Sorting**: Favorited categories and subcategories automatically appear at the top of their lists
+- **Unified Favorites Menu**: View all your favorites in one place - categories, subcategories, and individual sounds
+- **Theme Integration**: All star buttons and text properly respect your chosen UI theme (Default/Transparent/ClassColor)
+
 ## Version 1.3.4
 **Auto Normalization** - Normalized all sound files to have consistent volume levels
 
