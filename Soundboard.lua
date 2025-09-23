@@ -698,12 +698,22 @@ local function QueueSound(soundFile, volume, key, sender)
 	-- Check if sound is blocked
 	local isBlocked = false
 	if key then
+		-- Auto-block by duration threshold
+		local threshold = (Soundboard and Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.AutoBlockDurationThreshold) or 0
+		if threshold and threshold > 0 then
+			local duration = GetSoundDuration(soundFile, key)
+			if duration and duration >= threshold then
+				isBlocked = true
+				DebugPrint("Auto-blocked by duration threshold (" .. tostring(threshold) .. "): " .. tostring(key) .. " duration=" .. tostring(duration))
+			end
+		end
+
 		if SoundboardDropdown and SoundboardDropdown.IsBlocked then
 			-- Use dropdown method if available
-			isBlocked = SoundboardDropdown:IsBlocked(key)
+			isBlocked = isBlocked or SoundboardDropdown:IsBlocked(key)
 		elseif Soundboard and Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.Blocklist then
 			-- Fallback: check directly from database
-			isBlocked = Soundboard.db.profile.Blocklist[key] == true
+			isBlocked = isBlocked or Soundboard.db.profile.Blocklist[key] == true
 		end
 		
 		if isBlocked then
@@ -2022,6 +2032,28 @@ function SoundboardDropdown:ShowBlockedSounds()
 	-- Blocked sounds title with red X icon
 	local title = self:CreateButtonWithIcon("Blocked Sounds", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_7", true)
 	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+
+	-- Duration filter dropdown-style button
+	local thresholds = {0, 30, 45, 60}
+	local function thresholdToLabel(sec)
+		if not sec or sec <= 0 then return "Duration Filter: Off" end
+		return "Duration Filter: " .. tostring(sec) .. "+ sec"
+	end
+	local current = (Soundboard and Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.AutoBlockDurationThreshold) or 0
+	-- Find current index
+	local currentIndex = 1
+	for i, v in ipairs(thresholds) do if v == current then currentIndex = i break end end
+
+	local filterBtn = self:CreateButton(thresholdToLabel(current), yOffset)
+	filterBtn:SetScript("OnClick", function()
+		currentIndex = currentIndex % #thresholds + 1
+		local newValue = thresholds[currentIndex]
+		Soundboard.db.profile.AutoBlockDurationThreshold = newValue
+		filterBtn.text:SetText(thresholdToLabel(newValue))
+		-- Refresh list to reflect filter label only; we still show all blocked sounds
+		-- but the filter affects auto-blocking during playback.
+	end)
 	yOffset = yOffset - buttonHeight - 5
 	
 	-- Get all blocked sounds
@@ -3679,8 +3711,9 @@ function SoundboardDropdown:ShowMainMenu()
 		yOffset = yOffset - buttonHeight
 	end
 	
-	-- Blocked Sounds category (only show if blocked sounds exist)
-	if self:HasBlockedSounds() then
+	-- Blocked Sounds category (show if blocked sounds exist or auto-block threshold is enabled)
+	local hasAutoBlock = Soundboard and Soundboard.db and Soundboard.db.profile and (Soundboard.db.profile.AutoBlockDurationThreshold or 0) > 0
+	if self:HasBlockedSounds() or hasAutoBlock then
 		local blockedBtn = self:CreateButtonWithIcon("Blocked Sounds", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_7")
 		blockedBtn:SetScript("OnClick", function()
 			self:ShowBlockedSounds()
@@ -4771,6 +4804,8 @@ local soundboard_data_sorted_keys = {};
 			FavoriteSubcategories = {}, -- Table of favorited subcategories {categoryName = {subcategoryName = true}}
 			-- Blocklist System (Account-wide)
 			Blocklist = {},           -- Table of blocked sound keys {soundKey = true}
+			-- Auto-block long sounds (seconds). 0 disables auto-blocking.
+			AutoBlockDurationThreshold = 0,
 			-- Dynamic Sound Duration Learning
 			LearnedSoundDurations = {},-- Learned actual durations for sound files
 			-- Advanced Settings
@@ -7289,6 +7324,3 @@ function Soundboard:UNIT_AURA(event, unitTarget)
 		end
 	end
 end
-
--- Old dropdown function removed - replaced with simple dropdown system
--- Old dropdown function removed - replaced with simple dropdown system

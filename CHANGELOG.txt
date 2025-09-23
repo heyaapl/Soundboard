@@ -1,4 +1,20 @@
 # Soundboard Changelog
+## Version 1.5.0
+**DURATION AUTO-BLOCK** - Automatically block long sounds while preserving queue timing
+
+### ⏱️ Duration-Based Blocking
+- **Auto-Block Threshold**: New setting to auto-block long sounds by duration (Off/30/45/60 sec). Default is Off (0).
+- **Queue-Safe**: Auto-blocked sounds still honor their timing in the queue, preventing gaps or overlaps.
+- **Learned Durations**: Uses estimated/learned durations for accurate filtering as the addon learns each sound.
+
+### 🧭 UI & Navigation
+- **Blocked Sounds Menu**: Now always shown when the auto-block filter is enabled, even if the manual blocklist is empty.
+- **Quick Selector**: New top-of-list button in Blocked Sounds cycles threshold values and updates immediately.
+
+### 🔧 Notes
+- Works alongside the manual blocklist; either condition will block playback (with timing preserved).
+- Debug output notes when a sound is auto-blocked by the duration threshold.
+
 ## Version 1.4.0
 **ORGANIZATION REVOLUTION** - Comprehensive favorites system for categories and subcategories!
 
