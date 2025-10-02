@@ -1,4 +1,14 @@
 # Soundboard Changelog
+## Version 1.5.5
+### 🎮 Events
+- Same-event spam protection: When multiple players trigger the same event (e.g., Heroism/Bloodlust/Time Warp) at the same time, only the first trigger plays and broadcasts; duplicates are ignored for 2 seconds.
+
+### 🧭 UI & Navigation
+- Blocked Sounds always available: Open Blocked Sounds even with zero blocked sounds so you can set the Duration Filter right away.
+
+### 🔧 Bug Fixes
+- Fixed an issue where Blocked Sounds didn’t appear when no sounds were blocked.
+
 ## Version 1.5.0
 **DURATION AUTO-BLOCK** - Automatically block long sounds while preserving queue timing
 
