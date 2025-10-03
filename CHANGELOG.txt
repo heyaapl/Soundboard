@@ -5,6 +5,7 @@
 
 ### 🧭 UI & Navigation
 - Blocked Sounds always available: Open Blocked Sounds even with zero blocked sounds so you can set the Duration Filter right away.
+- Press Escape to close the Soundboard menu when it’s open.
 
 ### 🔧 Bug Fixes
 - Fixed an issue where Blocked Sounds didn’t appear when no sounds were blocked.

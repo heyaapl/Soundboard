@@ -902,6 +902,20 @@ function SoundboardDropdown:Initialize()
 	self.frame:SetScript("OnHide", function() 
 		self.isOpen = false 
 	end)
+
+	-- Allow closing with Escape key via UISpecialFrames
+	if UISpecialFrames then
+		local exists = false
+		for i = 1, #UISpecialFrames do
+			if UISpecialFrames[i] == "SoundboardDropdownFrame" then
+				exists = true
+				break
+			end
+		end
+		if not exists then
+			tinsert(UISpecialFrames, "SoundboardDropdownFrame")
+		end
+	end
 	
 	-- Apply ElvUI-style backdrop using selected template from settings
 	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
