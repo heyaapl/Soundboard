@@ -5,6 +5,10 @@
 	Check if IsInRaid() works in Battleground.
 ]]
 Soundboard = LibStub("AceAddon-3.0"):NewAddon("Soundboard", "AceConsole-3.0", "AceEvent-3.0", "AceComm-3.0")
+
+-- Recent event trigger deduplication (per event type)
+Soundboard.recentEventTriggers = Soundboard.recentEventTriggers or {}
+Soundboard.EVENT_DEDUPE_WINDOW_SECONDS = 2
 -- GLOBALS: Soundboard, soundboard_data
 
 -- Debug system
@@ -898,6 +902,20 @@ function SoundboardDropdown:Initialize()
 	self.frame:SetScript("OnHide", function() 
 		self.isOpen = false 
 	end)
+
+	-- Allow closing with Escape key via UISpecialFrames
+	if UISpecialFrames then
+		local exists = false
+		for i = 1, #UISpecialFrames do
+			if UISpecialFrames[i] == "SoundboardDropdownFrame" then
+				exists = true
+				break
+			end
+		end
+		if not exists then
+			tinsert(UISpecialFrames, "SoundboardDropdownFrame")
+		end
+	end
 	
 	-- Apply ElvUI-style backdrop using selected template from settings
 	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
@@ -3711,15 +3729,12 @@ function SoundboardDropdown:ShowMainMenu()
 		yOffset = yOffset - buttonHeight
 	end
 	
-	-- Blocked Sounds category (show if blocked sounds exist or auto-block threshold is enabled)
-	local hasAutoBlock = Soundboard and Soundboard.db and Soundboard.db.profile and (Soundboard.db.profile.AutoBlockDurationThreshold or 0) > 0
-	if self:HasBlockedSounds() or hasAutoBlock then
-		local blockedBtn = self:CreateButtonWithIcon("Blocked Sounds", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_7")
-		blockedBtn:SetScript("OnClick", function()
-			self:ShowBlockedSounds()
-		end)
-		yOffset = yOffset - buttonHeight
-	end
+	-- Blocked Sounds category (always show to allow configuring duration filter)
+	local blockedBtn = self:CreateButtonWithIcon("Blocked Sounds", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_7")
+	blockedBtn:SetScript("OnClick", function()
+		self:ShowBlockedSounds()
+	end)
+	yOffset = yOffset - buttonHeight
 	
 	-- Events category (always show)
 	local eventsBtn = self:CreateButtonWithIcon("Events", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_3")
@@ -6481,7 +6496,22 @@ function Soundboard:OnCommReceived(prefix, msg, distri, sender)
 			end
 			
 			if shouldProcess then
-				Soundboard:DoEmote(msg, false, sender)
+				-- Event dedupe: if payload is tagged with eventType, drop duplicates within window
+				local evType, evKey = string.match(msg, "^EV:([^:]+):(.+)$")
+				if evType and evKey then
+					local nowTs = time()
+					local lastTs = self.recentEventTriggers and self.recentEventTriggers[evType]
+					if lastTs and (nowTs - lastTs) < (self.EVENT_DEDUPE_WINDOW_SECONDS or 2) then
+						DebugPrint("[Events] Dropping duplicate remote event '" .. tostring(evType) .. "' within dedupe window from " .. tostring(sender))
+						return
+					end
+					-- Mark dedupe and process the sound key
+					self.recentEventTriggers[evType] = nowTs
+					Soundboard:DoEmote(evKey, false, sender)
+				else
+					-- Backwards compatibility: untagged messages proceed as before
+					Soundboard:DoEmote(msg, false, sender)
+				end
 			end
 		end
 	end
@@ -6665,8 +6695,36 @@ function Soundboard:ShowPingResults()
 end
 
 -- Events System Functions
+
 function Soundboard:HandleEventTrigger(eventType)
 	DebugPrint("[Events] HandleEventTrigger called for: " .. tostring(eventType))
+
+	-- Determine if this eventType has any broadcast-capable configuration (non-playerOnly)
+	local nowTs = time()
+	local hasBroadcastForType = false
+	if self.db and self.db.profile and self.db.profile.Events then
+		for _, eventData in pairs(self.db.profile.Events) do
+			if eventData.eventType == eventType and not eventData.playerOnly then
+				local broadcastToGroup = eventData.broadcastToGroup
+				if broadcastToGroup == nil then broadcastToGroup = true end
+				local broadcastToGuild = eventData.broadcastToGuild
+				if broadcastToGuild == nil then broadcastToGuild = true end
+				if broadcastToGroup or broadcastToGuild then
+					hasBroadcastForType = true
+					break
+				end
+			end
+		end
+	end
+
+	-- Dedupe: suppress repeated triggers of the same broadcast-capable eventType for a short window
+	if hasBroadcastForType then
+		local lastTs = self.recentEventTriggers and self.recentEventTriggers[eventType]
+		if lastTs and (nowTs - lastTs) < (self.EVENT_DEDUPE_WINDOW_SECONDS or 2) then
+			DebugPrint("[Events] Suppressing duplicate event trigger for '" .. tostring(eventType) .. "' within dedupe window")
+			return
+		end
+	end
 	
 	-- Check if Events system is enabled
 	if not self.db or not self.db.profile or not self.db.profile.EventsEnabled then
@@ -6714,8 +6772,9 @@ function Soundboard:HandleEventTrigger(eventType)
 					
 					DebugPrint("[Events] Broadcasting sound with routing - Group: " .. tostring(broadcastToGroup) .. ", Guild: " .. tostring(broadcastToGuild))
 					
-					-- Call custom broadcast function instead of SaySoundboardKey
-					self:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild)
+					-- Mark dedupe for this event type and call custom broadcast
+					self.recentEventTriggers[eventType] = nowTs
+					self:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild, eventType)
 				end
 			else
 				DebugPrint("[Events] ERROR: Sound not found in soundboard_data: " .. tostring(soundKey))
@@ -6754,8 +6813,8 @@ function Soundboard:PlaySoundForPlayer(soundFile, soundKey)
 	DebugPrint(soundName .. " triggered by event (player only)")
 end
 
-function Soundboard:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild)
-	DebugPrint("BroadcastSoundForEvent called for: " .. tostring(soundKey) .. " (Group: " .. tostring(broadcastToGroup) .. ", Guild: " .. tostring(broadcastToGuild) .. ")")
+function Soundboard:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild, eventType)
+    DebugPrint("BroadcastSoundForEvent called for: " .. tostring(soundKey) .. " (Group: " .. tostring(broadcastToGroup) .. ", Guild: " .. tostring(broadcastToGuild) .. ") eventType=" .. tostring(eventType))
 	
 	if not soundKey then
 		DebugPrint("ERROR: No sound key provided for event broadcast")
@@ -6800,13 +6859,16 @@ function Soundboard:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcast
 	end
 	
 	-- Perform actual broadcasts
-	if actualGroupBroadcast then
-		self:Send(soundKey, "PARTY")
+    if actualGroupBroadcast then
+        -- Include eventType tag for dedupe on receivers when available
+        local payload = eventType and ("EV:" .. tostring(eventType) .. ":" .. tostring(soundKey)) or soundKey
+        self:Send(payload, "PARTY")
 		DebugPrint("[Events] Broadcasted to group: " .. soundKey)
 	end
 	
-	if actualGuildBroadcast and IsInGuild() then
-		self:Send(soundKey, "GUILD")
+    if actualGuildBroadcast and IsInGuild() then
+        local payload = eventType and ("EV:" .. tostring(eventType) .. ":" .. tostring(soundKey)) or soundKey
+        self:Send(payload, "GUILD")
 		DebugPrint("[Events] Broadcasted to guild: " .. soundKey)
 	elseif actualGuildBroadcast and not IsInGuild() then
 		DebugPrint("[Events] Wanted to broadcast to guild but not in guild: " .. soundKey)
