@@ -1,4 +1,8 @@
 # Soundboard Changelog
+## Version 1.5.6
+### 🎵 New Content
+- Added new sounds to the Default soundpack.
+
 ## Version 1.5.5
 ### 🎮 Events
 - Same-event spam protection: When multiple players trigger the same event (e.g., Heroism/Bloodlust/Time Warp) at the same time, only the first trigger plays and broadcasts; duplicates are ignored for 2 seconds.
