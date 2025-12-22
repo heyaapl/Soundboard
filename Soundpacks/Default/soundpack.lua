@@ -30,9 +30,9 @@ soundboard_data["finalfantasy"] = {
 	["duration"] = 45,
 };
 
-soundboard_data["finalfantasy"] = {
+soundboard_data["directed"] = {
 	["text"] = 		"* directeed by Robert B. Weide! *",
-	["cmd1"] = "ff",
+	["cmd1"] = "directed",
 	["msg"] = "directeed by Robert B. Weide!",
 	["category"] = "Memes",
 	["file"] = dir.."directed.mp3",
