@@ -31,9 +31,9 @@ soundboard_data["finalfantasy"] = {
 };
 
 soundboard_data["directed"] = {
-	["text"] = 		"* directeed by Robert B. Weide! *",
+	["text"] = 		"* directed by Robert B. Weide! *",
 	["cmd1"] = "directed",
-	["msg"] = "directeed by Robert B. Weide!",
+	["msg"] = "directed by Robert B. Weide!",
 	["category"] = "Memes",
 	["file"] = dir.."directed.mp3",
 	["duration"] = 8,
