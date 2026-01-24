@@ -1,4 +1,12 @@
 # Soundboard Changelog
+## Version 1.6.0
+### 🎵 New Sounds
+- Added 55 new sounds to the Default soundpack.
+- New sound bite additions courtesy of **Gabvrielle** and **Amelydia**.
+
+### 🎚️ Audio Quality Improvements
+- Loudness-matched the new additions to other Soundboard audio levels for consistent volume.
+
 ## Version 1.5.6
 ### 🎵 New Content
 - Added new sounds to the Default soundpack.

@@ -6,10 +6,9 @@
 ## Interface-Cata: 40400
 ## Interface-MoP: 55000
 ## Interface-SoD: 55000
-## Interface-Retail: 110205
 ## Notes: Play sound emotes for yourself and anyone else who has the addon!
 ## Title: Soundboard
-## Version: 1.5.6
+## Version: 1.6.0
 ## SavedVariables: SoundboardDB
 embeds.xml
 Soundpacks\Default\soundpack.lua
