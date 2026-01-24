@@ -4677,3 +4677,529 @@ soundboard_data["allDay"] = {
 	["emote"] = "Flex",
 	["duration"] = 21,
 };
+
+-- 1.6.0 - New sound bite additions (Gabvrielle, Amelydia)
+
+soundboard_data["james-bond-sneaky"] = {
+	["text"] = 		"* 007 Sneaky *",
+	["cmd1"] = "007",
+	["msg"] = "goes full secret agent!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "James Bond",
+	["file"] = dir.."james-bond-sneaky.mp3",
+	["duration"] = 20,
+};
+
+soundboard_data["few-moments-later"] = {
+	["text"] = 		"* A few moments later... *",
+	["cmd1"] = "fewmoments",
+	["msg"] = "waits a few moments...",
+	["category"] = "Movies/TV",
+	["subcategory"] = "SpongeBob",
+	["file"] = dir.."few-moments-later.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["anime-wow"] = {
+	["text"] = 		"* WOW *",
+	["cmd1"] = "animewow",
+	["msg"] = "reacts dramatically!",
+	["category"] = "Memes",
+	["subcategory"] = "Anime",
+	["file"] = dir.."anime-wow.mp3",
+	["duration"] = 4,
+};
+
+soundboard_data["arthas-foul-knave"] = {
+	["text"] = 		"* Foul knave! *",
+	["cmd1"] = "foulknave",
+	["msg"] = "calls you a foul knave!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Arthas",
+	["file"] = dir.."arthas-foul-knave.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["batman-transition"] = {
+	["text"] = 		"* Batman transition *",
+	["cmd1"] = "batman",
+	["msg"] = "makes a dramatic transition!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Batman",
+	["file"] = dir.."batman-transition.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["boy-if-you-dont"] = {
+	["text"] = 		"* Boy, if you don't... *",
+	["cmd1"] = "boyifyoudont",
+	["msg"] = "throws shade!",
+	["category"] = "Memes",
+	["file"] = dir.."boy-if-you-dont.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["bruh"] = {
+	["text"] = 		"* Bruh *",
+	["cmd1"] = "bruh",
+	["msg"] = "says bruh.",
+	["category"] = "Memes",
+	["file"] = dir.."bruh.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["cotton-eye-joe"] = {
+	["text"] = 		"* Cotton Eye Joe *",
+	["cmd1"] = "cotton",
+	["msg"] = "breaks into Cotton Eye Joe!",
+	["category"] = "Music",
+	["subcategory"] = "Cotton Eye Joe",
+	["file"] = dir.."cotton-eye-joe.mp3",
+	["duration"] = 10,
+};
+
+soundboard_data["cringe-anime-girl"] = {
+	["text"] = 		"* Cringe... *",
+	["cmd1"] = "cringe",
+	["msg"] = "cringes hard.",
+	["category"] = "Memes",
+	["subcategory"] = "Anime",
+	["file"] = dir.."cringe-anime-girl.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["fnf-cute-and-funny"] = {
+	["text"] = 		"* Cute and funny *",
+	["cmd1"] = "fnf",
+	["msg"] = "is cute and funny.",
+	["category"] = "Video Games",
+	["subcategory"] = "Friday Night Funkin'",
+	["file"] = dir.."fnf-cute-and-funny.mp3",
+	["duration"] = 7,
+};
+
+soundboard_data["daddy-chill"] = {
+	["text"] = 		"* Daddy chill *",
+	["cmd1"] = "daddychill",
+	["msg"] = "tells you to chill.",
+	["category"] = "Memes",
+	["file"] = dir.."daddy-chill.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["harder-better-faster-stronger"] = {
+	["text"] = 		"* Harder Better Faster Stronger *",
+	["cmd1"] = "daftpunk",
+	["msg"] = "gets robotic.",
+	["category"] = "Music",
+	["subcategory"] = "Daft Punk",
+	["file"] = dir.."harder-better-faster-stronger.mp3",
+	["duration"] = 19,
+};
+
+soundboard_data["discord-disconnect"] = {
+	["text"] = 		"* Discord disconnect *",
+	["cmd1"] = "dc",
+	["msg"] = "disconnects.",
+	["category"] = "Memes",
+	["subcategory"] = "Discord",
+	["file"] = dir.."discord-disconnect.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["duck-toy"] = {
+	["text"] = 		"* Squeak *",
+	["cmd1"] = "duck",
+	["msg"] = "squeaks.",
+	["category"] = "Memes",
+	["subcategory"] = "SFX",
+	["file"] = dir.."duck-toy.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["dun-dun-dun"] = {
+	["text"] = 		"* Dun dun dun! *",
+	["cmd1"] = "dun",
+	["msg"] = "builds suspense...",
+	["category"] = "Memes",
+	["subcategory"] = "SFX",
+	["file"] = dir.."dun-dun-dun.mp3",
+	["duration"] = 5,
+};
+
+soundboard_data["emotional-damage"] = {
+	["text"] = 		"* Emotional damage! *",
+	["cmd1"] = "damage",
+	["msg"] = "inflicts emotional damage!",
+	["category"] = "Memes",
+	["file"] = dir.."emotional-damage.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["final"] = {
+	["text"] = 		"* Final *",
+	["cmd1"] = "final",
+	["msg"] = "hits the finale.",
+	["category"] = "Memes",
+	["file"] = dir.."final.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["funny"] = {
+	["text"] = 		"* Funny *",
+	["cmd1"] = "funny",
+	["msg"] = "finds it funny.",
+	["category"] = "Memes",
+	["file"] = dir.."funny.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["gnome-death"] = {
+	["text"] = 		"* Gnome death *",
+	["cmd1"] = "gnomedeath",
+	["msg"] = "dies dramatically.",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Death Sounds",
+	["file"] = dir.."gnome-death.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["goblin-zeppelin"] = {
+	["text"] = 		"* Goblin zeppelin *",
+	["cmd1"] = "zeppelin",
+	["msg"] = "summons goblin vibes.",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Goblin",
+	["file"] = dir.."goblin-zeppelin.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["mw3-freakout"] = {
+	["text"] = 		"* MW3 freakout *",
+	["cmd1"] = "mw3",
+	["msg"] = "freaks out!",
+	["category"] = "Video Games",
+	["subcategory"] = "Call of Duty",
+	["file"] = dir.."mw3-freakout.mp3",
+	["duration"] = 4,
+};
+
+soundboard_data["hank-about-to-buss"] = {
+	["text"] = 		"* About to buss *",
+	["cmd1"] = "buss",
+	["msg"] = "is about to buss.",
+	["category"] = "Memes",
+	["file"] = dir.."hank-about-to-buss.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["harro"] = {
+	["text"] = 		"* Harro *",
+	["cmd1"] = "harro",
+	["msg"] = "says harro!",
+	["category"] = "Memes",
+	["file"] = dir.."harro.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["hes-dead-jim"] = {
+	["text"] = 		"* He's dead, Jim *",
+	["cmd1"] = "deadjim",
+	["msg"] = "delivers bad news.",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Star Trek",
+	["file"] = dir.."hes-dead-jim.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["want-some-candy"] = {
+	["text"] = 		"* Want some candy? *",
+	["cmd1"] = "candy",
+	["msg"] = "offers candy...",
+	["category"] = "Memes",
+	["file"] = dir.."want-some-candy.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["home-improvement-huh"] = {
+	["text"] = 		"* Huh? *",
+	["cmd1"] = "huh",
+	["msg"] = "is confused.",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Home Improvement",
+	["file"] = dir.."home-improvement-huh.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["homer-scream"] = {
+	["text"] = 		"* Homer scream *",
+	["cmd1"] = "homerscream",
+	["msg"] = "screams.",
+	["category"] = "Movies/TV",
+	["subcategory"] = "The Simpsons",
+	["file"] = dir.."homer-scream.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["huh-cat"] = {
+	["text"] = 		"* Huh? *",
+	["cmd1"] = "huhcat",
+	["msg"] = "is puzzled.",
+	["category"] = "Memes",
+	["file"] = dir.."huh-cat.mp3",
+	["duration"] = 1,
+};
+
+soundboard_data["i-am-disgusted"] = {
+	["text"] = 		"* I am disgusted *",
+	["cmd1"] = "disgusted",
+	["msg"] = "is disgusted.",
+	["category"] = "Memes",
+	["file"] = dir.."i-am-disgusted.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["dont-give-a-sheten"] = {
+	["text"] = 		"* I don't give a sheten *",
+	["cmd1"] = "sheten",
+	["msg"] = "doesn't care.",
+	["category"] = "Memes",
+	["file"] = dir.."dont-give-a-sheten.mp3",
+	["duration"] = 14,
+};
+
+soundboard_data["i-love-you"] = {
+	["text"] = 		"* I love you *",
+	["cmd1"] = "iloveyou",
+	["msg"] = "says I love you.",
+	["category"] = "Memes",
+	["file"] = dir.."i-love-you.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["i-can-do-that"] = {
+	["text"] = 		"* I can do that *",
+	["cmd1"] = "icandothat",
+	["msg"] = "can do that.",
+	["category"] = "Memes",
+	["file"] = dir.."i-can-do-that.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["initial-d"] = {
+	["text"] = 		"* Initial D *",
+	["cmd1"] = "initiald",
+	["msg"] = "starts drifting.",
+	["category"] = "Music",
+	["subcategory"] = "Initial D",
+	["file"] = dir.."initial-d.mp3",
+	["duration"] = 12,
+};
+
+soundboard_data["its-very-nice"] = {
+	["text"] = 		"* It's a very nice... *",
+	["cmd1"] = "verynice",
+	["msg"] = "approves.",
+	["category"] = "Memes",
+	["file"] = dir.."its-very-nice.mp3",
+	["duration"] = 7,
+};
+
+soundboard_data["its-alive"] = {
+	["text"] = 		"* It's alive! *",
+	["cmd1"] = "itsalive",
+	["msg"] = "brings it to life!",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Classics",
+	["file"] = dir.."its-alive.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["i-feel-good"] = {
+	["text"] = 		"* I Feel Good *",
+	["cmd1"] = "feelgood",
+	["msg"] = "feels good!",
+	["category"] = "Music",
+	["subcategory"] = "James Brown",
+	["file"] = dir.."i-feel-good.mp3",
+	["duration"] = 8,
+};
+
+soundboard_data["law-order"] = {
+	["text"] = 		"* Law & Order *",
+	["cmd1"] = "laworder",
+	["msg"] = "lays down the law.",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Law & Order",
+	["file"] = dir.."law-order.mp3",
+	["duration"] = 16,
+};
+
+soundboard_data["loading"] = {
+	["text"] = 		"* Loading... *",
+	["cmd1"] = "loading",
+	["msg"] = "is loading...",
+	["category"] = "Memes",
+	["file"] = dir.."loading.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["man-screaming"] = {
+	["text"] = 		"* AAAAAH! *",
+	["cmd1"] = "aaaah",
+	["msg"] = "screams.",
+	["category"] = "Memes",
+	["file"] = dir.."man-screaming.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["medic-bulldozer"] = {
+	["text"] = 		"* Medic Bulldozer *",
+	["cmd1"] = "bulldozer",
+	["msg"] = "brings heavy reinforcements!",
+	["category"] = "Video Games",
+	["subcategory"] = "PAYDAY 2",
+	["file"] = dir.."medic-bulldozer.mp3",
+	["duration"] = 4,
+};
+
+soundboard_data["noob"] = {
+	["text"] = 		"* Noob *",
+	["cmd1"] = "noob",
+	["msg"] = "calls you a noob.",
+	["category"] = "Memes",
+	["file"] = dir.."noob.mp3",
+	["duration"] = 4,
+};
+
+soundboard_data["this-is-the-end"] = {
+	["text"] = 		"* This is the end *",
+	["cmd1"] = "theend",
+	["msg"] = "says this is the end.",
+	["category"] = "Memes",
+	["file"] = dir.."this-is-the-end.mp3",
+	["duration"] = 8,
+};
+
+soundboard_data["oh-my-god"] = {
+	["text"] = 		"* Oh my god *",
+	["cmd1"] = "omg",
+	["msg"] = "gasps.",
+	["category"] = "Memes",
+	["file"] = dir.."oh-my-god.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["omg-thats-funny"] = {
+	["text"] = 		"* Oh my god that's funny *",
+	["cmd1"] = "omgfunny",
+	["msg"] = "laughs uncontrollably.",
+	["category"] = "Memes",
+	["file"] = dir.."omg-thats-funny.mp3",
+	["duration"] = 4,
+};
+
+soundboard_data["rizzbot-laugh"] = {
+	["text"] = 		"* Rizzbot laugh *",
+	["cmd1"] = "rizz",
+	["msg"] = "laughs.",
+	["category"] = "Memes",
+	["file"] = dir.."rizzbot-laugh.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["shame"] = {
+	["text"] = 		"* Shame *",
+	["cmd1"] = "shame",
+	["msg"] = "rings the bell of shame.",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Game of Thrones",
+	["file"] = dir.."shame.mp3",
+	["duration"] = 8,
+};
+
+soundboard_data["player-eliminated"] = {
+	["text"] = 		"* Player eliminated *",
+	["cmd1"] = "eliminated",
+	["msg"] = "eliminates a player.",
+	["category"] = "Movies/TV",
+	["subcategory"] = "Squid Game",
+	["file"] = dir.."player-eliminated.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["taco-bell-bong"] = {
+	["text"] = 		"* Taco Bell bong *",
+	["cmd1"] = "tacobell",
+	["msg"] = "rings the bell.",
+	["category"] = "Memes",
+	["subcategory"] = "SFX",
+	["file"] = dir.."taco-bell-bong.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["trifling"] = {
+	["text"] = 		"* Trifling *",
+	["cmd1"] = "trifling",
+	["msg"] = "calls that trifling.",
+	["category"] = "Memes",
+	["file"] = dir.."trifling.mp3",
+	["duration"] = 5,
+};
+
+soundboard_data["trollface"] = {
+	["text"] = 		"* Trollface *",
+	["cmd1"] = "troll",
+	["msg"] = "trolls.",
+	["category"] = "Memes",
+	["file"] = dir.."trollface.mp3",
+	["duration"] = 6,
+};
+
+soundboard_data["work-work"] = {
+	["text"] = 		"* Work work *",
+	["cmd1"] = "workwork",
+	["msg"] = "gets to work.",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Peon",
+	["file"] = dir.."work-work.mp3",
+	["duration"] = 2,
+};
+
+soundboard_data["my-name-is-jim"] = {
+	["text"] = 		"* My name is Jim *",
+	["cmd1"] = "jim",
+	["msg"] = "introduces themselves.",
+	["category"] = "Memes",
+	["file"] = dir.."my-name-is-jim.mp3",
+	["duration"] = 11,
+};
+
+soundboard_data["wow-congratulations"] = {
+	["text"] = 		"* Congratulations! *",
+	["cmd1"] = "congrats",
+	["msg"] = "congratulates you!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Generic",
+	["file"] = dir.."wow-congratulations.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["human-death"] = {
+	["text"] = 		"* Human death *",
+	["cmd1"] = "humandeath",
+	["msg"] = "dies dramatically.",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Death Sounds",
+	["file"] = dir.."human-death.mp3",
+	["duration"] = 3,
+};
+
+soundboard_data["yoooo"] = {
+	["text"] = 		"* Yoooo *",
+	["cmd1"] = "yoooo",
+	["msg"] = "yells yoooo!",
+	["category"] = "Memes",
+	["file"] = dir.."yoooo.mp3",
+	["duration"] = 3,
+};

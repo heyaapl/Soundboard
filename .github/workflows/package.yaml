@@ -18,8 +18,7 @@ on:
       - '*'
 
 env:
-  GAME_VERSIONS: "5.5.0,11.2.5,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic and Retail
-
+  GAME_VERSIONS: "5.5.0,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic
 jobs:
   package:
     runs-on: ubuntu-latest
@@ -598,7 +597,7 @@ jobs:
                 ],
                 "footer": {
                   "text": "Soundboard for World of Warcraft",
-                  "icon_url": "https://media.forgecdn.net/avatars/thumbnails/644/825/64/64/638204664364552055.png"
+                  "icon_url": "https://media.forgecdn.net/avatars/thumbnails/1418/615/64/64/638919088009093306.png"
                 },
                 "timestamp": $timestamp
               }]
