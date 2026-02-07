@@ -1,4 +1,8 @@
 # Soundboard Changelog
+## Version 1.6.1
+### 🔧 The Burning Crusade Classic - Anniversary
+- Added support for BCC Anniversary to Soundboard!
+
 ## Version 1.6.0
 ### 🎵 New Sounds
 - Added 55 new sounds to the Default soundpack.

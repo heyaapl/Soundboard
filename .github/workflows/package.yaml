@@ -18,7 +18,7 @@ on:
       - '*'
 
 env:
-  GAME_VERSIONS: "5.5.0,1.15.7,3.4.5,4.4.2,2.5.4"  # MOP Classic
+  GAME_VERSIONS: "5.5.0,1.15.7,3.4.5,4.4.2,2.5.4,2.5.5"  # MOP Classic
 jobs:
   package:
     runs-on: ubuntu-latest
@@ -421,7 +421,7 @@ jobs:
             
             ### 🎮 Supported Versions
             - **Mists of Pandaria Classic** (5.5.0) 
-            - **World of Warcraft Retail** (11.2.5+)
+            - **The Burning Crusade Classic - Anniversary** (2.5.5)
             
             ### 📥 Download
             Available on [CurseForge](https://www.curseforge.com/wow/addons/soundboard-for-wow)
