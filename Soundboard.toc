@@ -2,7 +2,6 @@
 ## Interface: 120001
 ## Interface-Classic: 11508
 ## Interface-BCC: 20505
-## Interface-Wrath: 38000
 ## Interface-Cata: 40402
 ## Interface-MoP: 50503
 ## Interface-Retail: 120001
