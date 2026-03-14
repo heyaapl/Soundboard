@@ -1,4 +1,25 @@
 # Soundboard Changelog
+## Version 1.7.0
+**MULTI-CLIENT COMPATIBILITY** - Full support for Midnight, TBCC Anniversary, and Mists Classic
+
+### 🎵 New Content
+- **Oxhorn Pack**: Added classic Oxhorn WoW machinima songs to the World of Warcraft category
+  - **Tank, Tank, Heal, Tank!** (`/tanktankhealtank`)
+  - **Blame the Gnome (Long)** (`/blamethegnome-long`)
+  - **Blame the Gnome (Short)** (`/blamethegnome-short`)
+  - **Raid's Not Gonna Happen** (`/raidnothappen`)
+  - **Brand Medley (Long)** (`/brandmedley-long`) - 3½ minutes of LOLOMGWTGDAIRYQUEENLOLOMGBBTHEQ
+  - **Brand Medley (Short)** (`/brandmedley-short`)
+
+### 🔧 Bug Fixes
+- **Rick Roll Fix**: Fixed the Rick Roll sound file so it plays properly again.
+
+### 🔧 Client Compatibility
+- **Midnight (12.0.1)**: Full compatibility with the retail Midnight client.
+- **TBCC Anniversary (2.5.5)**: Resolved Lua errors caused by API differences in the anniversary client.
+- **UnitBuff API Fix**: Buff/aura detection (heroism, shapeshift, stealth) now works correctly across all client versions using a compatibility wrapper for the 10.2.5+ AuraData table change.
+- **Loading Screen Events**: Safely handled on older clients that lack `LOADING_SCREEN_ENABLED/DISABLED` events.
+
 ## Version 1.6.1
 ### 🔧 The Burning Crusade Classic - Anniversary
 - Added support for BCC Anniversary to Soundboard!

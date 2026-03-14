@@ -2713,10 +2713,10 @@ soundboard_data["picardlong"] = {
 soundboard_data["rickroll"] = {
 	["text"] = "* RICKROLLED! *",
 	["emote"] = "dance",
-	["msg"] = "rickrolls you!",
+	["msg"] = "is never gonna give you up!",
 	["category"] = "Music",
 	["file"] = dir.."rickroll.mp3",
-	["duration"] = 31.0,
+	["duration"] = 45.0,
 };
 
 soundboard_data["portal"] = {
@@ -3456,6 +3456,72 @@ soundboard_data["youplay"] = {
 	["subcategory"] = "Oxhorn",
 	["file"] = dir.."youplay.mp3",
 	["duration"] = 43,
+};
+
+soundboard_data["tanktankhealtank"] = {
+	["text"] = 		"* Tank, Tank, Heal, Tank! *",
+	["emote"] = "dance",
+	["cmd1"] = "tanktankhealtank",
+	["msg"] = "plays online until 3am!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
+	["file"] = dir.."tanktankhealtank.mp3",
+	["duration"] = 42,
+};
+
+soundboard_data["blamethegnome-long"] = {
+	["text"] = 		"* Lets all stone the gnome! *",
+	["emote"] = "dance",
+	["cmd1"] = "blamethegnome-long",
+	["msg"] = "blames the gnome!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
+	["file"] = dir.."blamethegnome-long.mp3",
+	["duration"] = 30,
+};
+
+soundboard_data["blamethegnome-short"] = {
+	["text"] = 		"* Lets all stone the gnome! *",
+	["emote"] = "dance",
+	["cmd1"] = "blamethegnome-short",
+	["msg"] = "blames the gnome!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
+	["file"] = dir.."blamethegnome-short.mp3",
+	["duration"] = 10,
+};
+
+soundboard_data["raidnothappen"] = {
+	["text"] = 		"* Its beginning to look like this raid isnt going to happen! *",
+	["emote"] = "cry",
+	["cmd1"] = "raidnothappen",
+	["msg"] = "blames the warlock!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
+	["file"] = dir.."raidnothappen.mp3",
+	["duration"] = 21,
+};
+
+soundboard_data["brandmedley-long"] = {
+	["text"] = 		"* EXTREMELY LONG - 3 1/2 minutes! *",
+	["emote"] = "sing",
+	["cmd1"] = "brandmedley-long",
+	["msg"] = "LOLOMGWTGDAIRYQUEENLOLOMGBBTHEQ!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
+	["file"] = dir.."brandmedley-long.mp3",
+	["duration"] = 206,
+};
+
+soundboard_data["brandmedley-short"] = {
+	["text"] = 		"* LOLOMGWTGDAIRYQUEENLOLOMGBBTHEQ! *",
+	["emote"] = "sing",
+	["cmd1"] = "brandmedley-short",
+	["msg"] = "LOLOMGWTGDAIRYQUEENLOLOMGBBTHEQ!",
+	["category"] = "World of Warcraft",
+	["subcategory"] = "Oxhorn",
+	["file"] = dir.."brandmedley-short.mp3",
+	["duration"] = 19,
 };
 
 soundboard_data["waffles"] = {

@@ -413,6 +413,27 @@ local UnitIsGroupLeader = UnitIsGroupLeader
 local IsInRaid = IsInRaid
 local IsInGroup = IsInGroup
 
+-- Compatibility wrapper for UnitBuff across client versions.
+-- In 10.2.5+ / 4.4.0+ / 1.15.1+, UnitBuff returns an AuraData table instead
+-- of individual values.  Detect once at load time and provide a uniform
+-- (name, icon, count, dispelType, duration, expirationTime, source,
+--  isStealable, nameplateShowPersonal, spellId) return signature everywhere.
+local SafeUnitBuff
+do
+	local useNewAPI = (C_UnitAuras and C_UnitAuras.GetBuffDataByIndex) and true or false
+	if useNewAPI then
+		SafeUnitBuff = function(unit, index, filter)
+			local aura = C_UnitAuras.GetBuffDataByIndex(unit, index, filter)
+			if not aura then return nil end
+			return aura.name, aura.icon, aura.applications, aura.dispelName,
+			       aura.duration, aura.expirationTime, aura.sourceUnit,
+			       aura.isStealable, aura.nameplateShowPersonal, aura.spellId
+		end
+	else
+		SafeUnitBuff = UnitBuff
+	end
+end
+
 -- Sound Queue System
 local SoundQueue = {
 	queue = {},                    -- Queue of pending sounds
@@ -4789,8 +4810,8 @@ local soundboard_data_sorted_keys = {};
 	self:RegisterEvent("PLAYER_ALIVE");
 	self:RegisterEvent("UNIT_AURA"); -- For mount/dismount, shapeshift, and buff detection
 	self:RegisterEvent("PLAYER_ENTERING_WORLD"); -- Track loading screens
-	self:RegisterEvent("LOADING_SCREEN_ENABLED"); -- Loading screen starts
-	self:RegisterEvent("LOADING_SCREEN_DISABLED"); -- Loading screen ends
+	pcall(function() self:RegisterEvent("LOADING_SCREEN_ENABLED") end) -- 10.0.2+; safe no-op on older clients
+	pcall(function() self:RegisterEvent("LOADING_SCREEN_DISABLED") end)
 	DebugPrint("Events registered: PLAYER_LOGIN/LOGOUT, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA, LOADING_SCREEN events")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
@@ -5110,9 +5131,14 @@ local soundboard_data_sorted_keys = {};
 	
 	-- Add settings command
 	_G.SlashCmdList["SOUNDBOARDCONFIG"] = function(msg)
-		-- Open the Interface Options to Soundboard panel
-		InterfaceOptionsFrame_OpenToCategory("Soundboard")
-		InterfaceOptionsFrame_OpenToCategory("Soundboard") -- Call twice for reliability
+		if Settings and Settings.OpenToCategory then
+			Settings.OpenToCategory("Soundboard")
+		elseif InterfaceOptionsFrame_OpenToCategory then
+			InterfaceOptionsFrame_OpenToCategory("Soundboard")
+			InterfaceOptionsFrame_OpenToCategory("Soundboard")
+		else
+			Soundboard:Print("Settings panel is not available in this client. Use /soundboard to configure.")
+		end
 	end
 	_G["SLASH_SOUNDBOARDCONFIG1"] = "/soundboardconfig"
 	_G["SLASH_SOUNDBOARDCONFIG2"] = "/soundboardsettings"
@@ -5625,7 +5651,7 @@ local soundboard_data_sorted_keys = {};
 		Soundboard:Print("Scanning for shapeshift buffs...")
 		local foundShapeshift = false
 		for i = 1, 40 do
-			local name = UnitBuff("player", i)
+			local name = SafeUnitBuff("player", i)
 			if name then
 				for _, shapeshiftBuff in ipairs(shapeshiftBuffs) do
 					if string.lower(name) == string.lower(shapeshiftBuff) then
@@ -5686,7 +5712,7 @@ local soundboard_data_sorted_keys = {};
 		
 		local buffCount = 0
 		for i = 1, 40 do
-			local name, icon, count, dispelType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId = UnitBuff("player", i)
+			local name, icon, count, dispelType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId = SafeUnitBuff("player", i)
 			if name then
 				buffCount = buffCount + 1
 				Soundboard:Print(buffCount .. ". " .. name .. " (ID: " .. tostring(spellId) .. ")")
@@ -7139,7 +7165,7 @@ function Soundboard:CheckShapeshiftStatus()
 		}
 		
 		for i = 1, 40 do
-			local name = UnitBuff("player", i)
+			local name = SafeUnitBuff("player", i)
 			if name then
 				for _, shapeshiftBuff in ipairs(shapeshiftBuffs) do
 					if string.lower(name) == string.lower(shapeshiftBuff) then
@@ -7188,7 +7214,7 @@ function Soundboard:CheckForStealthAuras()
 	}
 	
 	for i = 1, 40 do
-		local name = UnitBuff("player", i)
+		local name = SafeUnitBuff("player", i)
 		if not name then break end
 		
 		for _, stealthBuff in ipairs(stealthBuffs) do
@@ -7347,7 +7373,7 @@ function Soundboard:UNIT_AURA(event, unitTarget)
 	}
 	
 	for i = 1, 40 do
-		local name, _, _, _, _, _, _, _, _, spellId = UnitBuff("player", i)
+		local name, _, _, _, _, _, _, _, _, spellId = SafeUnitBuff("player", i)
 		if spellId then
 			-- Check by spell ID
 			for _, heroismId in ipairs(heroismSpells) do
