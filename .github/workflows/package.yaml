@@ -18,7 +18,7 @@ on:
       - '*'
 
 env:
-  GAME_VERSIONS: "5.5.0,1.15.7,3.4.5,4.4.2,2.5.4,2.5.5"  # MOP Classic
+  GAME_VERSIONS: "5.5.0,1.15.7,3.4.5,4.4.2,2.5.4,2.5.5,12.0.1,12.0.5"
 jobs:
   package:
     runs-on: ubuntu-latest
@@ -528,7 +528,7 @@ jobs:
           # Add hotfix indicator to summary if this is a hotfix
           if [[ "$IS_HOTFIX" == "true" ]]; then
             HOTFIX_SUFFIX=$(echo "${VERSION}" | sed "s/^${BASE_VERSION}//")
-            CHANGELOG_SUMMARY="$CHANGELOG_SUMMARY\n\n🔧 **Hotfix ${HOTFIX_SUFFIX}**: Bug fixes and stability improvements"
+            CHANGELOG_SUMMARY="${CHANGELOG_SUMMARY}"$'\n\n'"🔧 **Hotfix ${HOTFIX_SUFFIX}**: Bug fixes and stability improvements"
           fi
           
           # Get current date and create JSON payload
