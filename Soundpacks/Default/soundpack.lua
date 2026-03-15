@@ -3448,7 +3448,6 @@ soundboard_data["z"] = {
 };
 
 soundboard_data["youplay"] = {
-	["text"] = 		"* That's the World of Warcraft that you play! *",
 	["emote"] = "dance",
 	["cmd1"] = "youplay",
 	["msg"] = "plays World of Warcraft.",
@@ -3458,10 +3457,10 @@ soundboard_data["youplay"] = {
 	["duration"] = 43,
 };
 
-soundboard_data["tanktankhealtank"] = {
-	["text"] = 		"* Tank, Tank, Heal, Tank! *",
+soundboard_data["tanktank"] = {
+	["text"] = 		"Tank, Tank, Heal, Tank!",
 	["emote"] = "dance",
-	["cmd1"] = "tanktankhealtank",
+	["cmd1"] = "tanktank",
 	["msg"] = "plays online until 3am!",
 	["category"] = "World of Warcraft",
 	["subcategory"] = "Oxhorn",
@@ -3470,7 +3469,7 @@ soundboard_data["tanktankhealtank"] = {
 };
 
 soundboard_data["blamethegnome-long"] = {
-	["text"] = 		"* Lets all stone the gnome! *",
+	["text"] = 		"Blame the gnome!",
 	["emote"] = "dance",
 	["cmd1"] = "blamethegnome-long",
 	["msg"] = "blames the gnome!",
@@ -3481,7 +3480,7 @@ soundboard_data["blamethegnome-long"] = {
 };
 
 soundboard_data["blamethegnome-short"] = {
-	["text"] = 		"* Lets all stone the gnome! *",
+	["text"] = 		"Blame the gnome!",
 	["emote"] = "dance",
 	["cmd1"] = "blamethegnome-short",
 	["msg"] = "blames the gnome!",
@@ -3492,7 +3491,7 @@ soundboard_data["blamethegnome-short"] = {
 };
 
 soundboard_data["raidnothappen"] = {
-	["text"] = 		"* Its beginning to look like this raid isnt going to happen! *",
+	-- ["text"] = 		"* Its beginning to look like this raid isnt going to happen! *",
 	["emote"] = "cry",
 	["cmd1"] = "raidnothappen",
 	["msg"] = "blames the warlock!",
@@ -3503,7 +3502,7 @@ soundboard_data["raidnothappen"] = {
 };
 
 soundboard_data["brandmedley-long"] = {
-	["text"] = 		"* EXTREMELY LONG - 3 1/2 minutes! *",
+	["text"] = 		"LONG - 3 1/2 minutes!",
 	["emote"] = "sing",
 	["cmd1"] = "brandmedley-long",
 	["msg"] = "LOLOMGWTGDAIRYQUEENLOLOMGBBTHEQ!",
@@ -3514,7 +3513,6 @@ soundboard_data["brandmedley-long"] = {
 };
 
 soundboard_data["brandmedley-short"] = {
-	["text"] = 		"* LOLOMGWTGDAIRYQUEENLOLOMGBBTHEQ! *",
 	["emote"] = "sing",
 	["cmd1"] = "brandmedley-short",
 	["msg"] = "LOLOMGWTGDAIRYQUEENLOLOMGBBTHEQ!",
