@@ -1,4 +1,22 @@
 # Soundboard Changelog
+## Version 2.0.0
+**DYNAMIC EVENTS** - Play sounds when bosses cast abilities in dungeons and raids
+
+### 🎯 Dynamic Events System
+- **Boss Ability Triggers**: Configure sounds to play when specific boss abilities are cast during dungeon and raid encounters
+- **Expansion-Aware**: Content automatically filtered to your game version — Classic only sees Classic content, TBC Classic sees Classic and TBC, Retail sees everything
+- **Comprehensive Boss Data**: Hundreds of boss abilities across Classic, The Burning Crusade, Wrath of the Lich King, Cataclysm, and Mists of Pandaria — with expansion stubs ready for future content
+- **Smart Detection**: Automatically listens for the right combat log event per ability (cast start for cast-bar spells, cast success for instant abilities, aura applied for debuffs)
+- **5-Step Creation Wizard**: Raid or Dungeon → Pick Instance → Pick Boss → Pick Ability → Pick Sound & Broadcast Mode
+- **Broadcast Support**: Play sounds for yourself only, or broadcast to group, guild, or both — same flexible routing as regular Events
+
+### 🧭 UI Improvements
+- **Settings Menu**: All toggle settings (Soundboard, Emotes, Guild/Group Broadcast, Events, Dynamic Events) moved to a dedicated Settings submenu, decluttering the main menu
+
+### 🔧 Under the Hood
+- **Combat Log Integration**: Registers `COMBAT_LOG_EVENT_UNFILTERED` with an O(1) spell lookup table for minimal performance impact during combat
+- **Future-Proof Data Structure**: Each expansion's dungeons and raids are organized as discrete lists, making it trivial to add Warlords of Draenor Classic, Legion Classic, and beyond
+
 ## Version 1.7.0
 **MULTI-CLIENT COMPATIBILITY** - Full support for Midnight, TBCC Anniversary, and Mists Classic
 

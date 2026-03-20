@@ -434,6 +434,55 @@ do
 	end
 end
 
+-- Expansion Detection for Dynamic Events
+local SoundboardExpansion = {}
+function SoundboardExpansion:GetCurrentExpansionIndex()
+	local _, _, _, tocVersion = GetBuildInfo()
+	tocVersion = tonumber(tocVersion) or 0
+	if tocVersion >= 120000 then return 11 end -- Midnight
+	if tocVersion >= 110000 then return 10 end -- The War Within
+	if tocVersion >= 100000 then return 9  end -- Dragonflight
+	if tocVersion >= 90000  then return 8  end -- Shadowlands
+	if tocVersion >= 80000  then return 7  end -- Battle for Azeroth
+	if tocVersion >= 70000  then return 6  end -- Legion
+	if tocVersion >= 60000  then return 5  end -- Warlords of Draenor
+	if tocVersion >= 50000  then return 4  end -- Mists of Pandaria
+	if tocVersion >= 40000  then return 3  end -- Cataclysm
+	if tocVersion >= 30000  then return 2  end -- Wrath of the Lich King
+	if tocVersion >= 20000  then return 1  end -- The Burning Crusade
+	return 0                                    -- Classic
+end
+
+function SoundboardExpansion:GetAvailableExpansions()
+	if not SoundboardDynamicData then return {} end
+	local maxExp = self:GetCurrentExpansionIndex()
+	local available = {}
+	for _, expIndex in ipairs(SoundboardDynamicData.expansionOrder) do
+		if expIndex <= maxExp and SoundboardDynamicData.expansions[expIndex] then
+			table.insert(available, expIndex)
+		end
+	end
+	return available
+end
+
+function SoundboardExpansion:GetFilteredInstances(instanceType)
+	if not SoundboardDynamicData then return {} end
+	local available = self:GetAvailableExpansions()
+	local results = {}
+	for _, expIndex in ipairs(available) do
+		local expData = SoundboardDynamicData.expansions[expIndex]
+		local instances = expData[instanceType] or {}
+		if #instances > 0 then
+			table.insert(results, {
+				expansionIndex = expIndex,
+				expansionName = expData.name,
+				instances = instances,
+			})
+		end
+	end
+	return results
+end
+
 -- Sound Queue System
 local SoundQueue = {
 	queue = {},                    -- Queue of pending sounds
@@ -3530,6 +3579,941 @@ function SoundboardDropdown:CountCategories()
 	return count
 end
 
+------------------------------------------------------------------------
+-- DYNAMIC EVENTS WINDOW (Standalone popup for boss ability triggers)
+------------------------------------------------------------------------
+local DynamicEventsWindow = {}
+DynamicEventsWindow.buttons = {}
+DynamicEventsWindow.wizardState = {}
+
+function DynamicEventsWindow:Toggle()
+	local f = _G["SoundboardDynamicEventsFrame"]
+	if f and f:IsShown() then
+		f:Hide()
+	else
+		self:Show()
+	end
+end
+
+function DynamicEventsWindow:Show()
+	if not _G["SoundboardDynamicEventsFrame"] then
+		self:BuildFrame()
+	end
+	local f = _G["SoundboardDynamicEventsFrame"]
+	if not f then return end
+
+	f:Show()
+	f:Raise()
+
+	if self.content then
+		local ok, err = pcall(function() self:ShowHome() end)
+		if not ok then
+			print("|cFFFF0000[DynEvt] " .. tostring(err) .. "|r")
+		end
+	end
+end
+
+function DynamicEventsWindow:Hide()
+	local f = _G["SoundboardDynamicEventsFrame"]
+	if f then f:Hide() end
+end
+
+function DynamicEventsWindow:BuildFrame()
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+
+	local f = CreateFrame("Frame", "SoundboardDynamicEventsFrame", UIParent, "BackdropTemplate")
+	self.frame = f
+	tinsert(UISpecialFrames, "SoundboardDynamicEventsFrame")
+
+	f:SetSize(420, 500)
+	f:SetPoint("CENTER")
+	f:SetFrameStrata("DIALOG")
+	f:SetFrameLevel(100)
+	f:SetClampedToScreen(true)
+	f:SetMovable(true)
+	f:EnableMouse(true)
+	f:RegisterForDrag("LeftButton")
+	f:SetScript("OnDragStart", f.StartMoving)
+	f:SetScript("OnDragStop", f.StopMovingOrSizing)
+	f:Hide()
+
+	local scrollFrame = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
+	scrollFrame:SetPoint("TOPLEFT", SoundboardUI.Scale(4), -SoundboardUI.Scale(28))
+	scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(15), SoundboardUI.Scale(4))
+	self.scrollFrame = scrollFrame
+
+	local content = CreateFrame("Frame", nil, scrollFrame)
+	content:SetSize(1, 1)
+	scrollFrame:SetScrollChild(content)
+	self.content = content
+
+	f:EnableMouseWheel(false)
+	f:SetScript("OnMouseWheel", function(_, delta)
+		local sb = DynamicEventsWindow.scrollbar
+		if sb and sb:IsShown() then
+			local cur = sb:GetValue()
+			local mn, mx = sb:GetMinMaxValues()
+			sb:SetValue(delta > 0 and math.max(mn, cur - 30) or math.min(mx, cur + 30))
+		end
+	end)
+
+	SoundboardUI.SetTemplate(f, selectedTemplate)
+
+	local titleText = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	titleText:SetPoint("TOP", f, "TOP", 0, -8)
+	titleText:SetText("Dynamic Events")
+	local tc = SoundboardUI.colors.text
+	if tc then titleText:SetTextColor(tc[1], tc[2], tc[3], tc[4] or 1) end
+
+	local closeBtn = CreateFrame("Button", nil, f)
+	closeBtn:SetSize(20, 20)
+	closeBtn:SetPoint("TOPRIGHT", -4, -4)
+	closeBtn:SetNormalTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Up")
+	closeBtn:SetPushedTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Down")
+	closeBtn:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight", "ADD")
+	closeBtn:SetScript("OnClick", function() f:Hide() end)
+
+	local scrollBar = scrollFrame.ScrollBar or scrollFrame.scrollBar
+	if scrollBar then
+		SoundboardUI.HandleScrollBar(scrollBar, selectedTemplate)
+		self.scrollbar = scrollBar
+
+		local scrollbarColor = SoundboardUI.colors.scrollbar or {1, 0.82, 0, 1}
+		local r, g, b = scrollbarColor[1], scrollbarColor[2], scrollbarColor[3]
+
+		local thumb = scrollBar.ThumbTexture or (scrollBar.GetThumbTexture and scrollBar:GetThumbTexture())
+		if thumb then
+			if thumb.SetColorTexture then
+				thumb:SetColorTexture(r, g, b, 0.8)
+			else
+				thumb:SetTexture("Interface\\Buttons\\WHITE8x8")
+				thumb:SetVertexColor(r, g, b, 0.8)
+			end
+		end
+	end
+end
+
+function DynamicEventsWindow:ClearContent()
+	if self.content then
+		local children = { self.content:GetChildren() }
+		for _, child in ipairs(children) do
+			child:Hide()
+			child:SetParent(nil)
+		end
+		local regions = { self.content:GetRegions() }
+		for _, region in ipairs(regions) do
+			region:Hide()
+			region:SetParent(nil)
+		end
+	end
+	self.buttons = {}
+end
+
+function DynamicEventsWindow:CreateButton(text, yOffset, isTitle, isSecondaryHeader)
+	local btn = CreateFrame("Button", nil, self.content)
+	local buttonWidth = 370
+	local buttonHeight = isSecondaryHeader and 26 or 20
+	btn:SetSize(buttonWidth, buttonHeight)
+	btn:SetPoint("TOPLEFT", SoundboardUI.Scale(4), yOffset)
+
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+
+	if not isTitle and not isSecondaryHeader then
+		SoundboardUI.StyleButton(btn, selectedTemplate)
+	end
+
+	local fs = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fs:SetPoint("LEFT", SoundboardUI.Scale(4), 0)
+	fs:SetPoint("RIGHT", -SoundboardUI.Scale(4), 0)
+	fs:SetJustifyH("LEFT")
+	fs:SetText(text)
+	btn.text = fs
+
+	if isTitle then
+		fs:SetJustifyH("CENTER")
+		fs:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+		fs:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		fs:SetPoint("LEFT", 0, 0)
+		fs:SetPoint("RIGHT", 0, 0)
+	elseif isSecondaryHeader then
+		fs:SetJustifyH("LEFT")
+		fs:SetJustifyV("TOP")
+		fs:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
+		fs:SetWordWrap(true)
+		fs:SetNonSpaceWrap(true)
+		fs:SetPoint("TOP", 0, -2)
+		fs:SetPoint("BOTTOM", 0, 2)
+		fs:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	else
+		fs:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		local originalEnter = btn:GetScript("OnEnter")
+		local originalLeave = btn:GetScript("OnLeave")
+		btn:SetScript("OnEnter", function(b)
+			if originalEnter then originalEnter(b) end
+			fs:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+		end)
+		btn:SetScript("OnLeave", function(b)
+			if originalLeave then originalLeave(b) end
+			fs:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+		end)
+	end
+
+	table.insert(self.buttons, btn)
+	return btn
+end
+
+function DynamicEventsWindow:UpdateButtonWidths()
+	if not self.content then return end
+	local buttonWidth = 370
+	local buttons = { self.content:GetChildren() }
+	for _, button in ipairs(buttons) do
+		if button:GetObjectType() == "Button" then
+			local _, currentHeight = button:GetSize()
+			button:SetSize(buttonWidth, currentHeight)
+		end
+	end
+end
+
+function DynamicEventsWindow:UpdateScrollbar()
+	if not self.scrollFrame or not self.content then return end
+	local contentHeight = self.content:GetHeight()
+	local frameHeight = self.scrollFrame:GetHeight()
+
+	if self.scrollbar then
+		local needsScrolling = contentHeight > (frameHeight + 20)
+		if needsScrolling then
+			self.scrollbar:Show()
+			self.scrollbar:SetMinMaxValues(0, math.max(0, contentHeight - frameHeight))
+			self.scrollbar:SetValue(0)
+			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(15), SoundboardUI.Scale(4))
+			if self.frame then self.frame:EnableMouseWheel(true) end
+		else
+			self.scrollbar:Hide()
+			self.scrollFrame:SetVerticalScroll(0)
+			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(5), SoundboardUI.Scale(4))
+			if self.frame then self.frame:EnableMouseWheel(false) end
+		end
+	end
+	self:UpdateButtonWidths()
+end
+
+function DynamicEventsWindow:ShowHome()
+	self:ClearContent()
+	self.currentStep = "home"
+	self.wizardState = {}
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local addBtn = self:CreateButton("|cFF00FF00+ Create New Dynamic Event|r", yOffset)
+	addBtn:SetScript("OnClick", function()
+		self:WizardStep1()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local dynEvents = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.DynamicEvents) or {}
+	local eventsList = {}
+	for eventId, eventData in pairs(dynEvents) do
+		table.insert(eventsList, { id = eventId, data = eventData })
+	end
+
+	table.sort(eventsList, function(a, b)
+		local aName = (a.data.instanceName or "") .. (a.data.bossName or "") .. (a.data.spellName or "")
+		local bName = (b.data.instanceName or "") .. (b.data.bossName or "") .. (b.data.spellName or "")
+		return aName < bName
+	end)
+
+	if #eventsList > 0 then
+		local configuredHeader = self:CreateButton("Configured Dynamic Events", yOffset, false, true)
+		configuredHeader:SetScript("OnClick", nil)
+		yOffset = yOffset - 24 - 2
+
+		for _, event in ipairs(eventsList) do
+			local d = event.data
+			local label = (d.bossName or "?") .. ": " .. (d.spellName or "?") .. " (" .. (d.spellId or "?") .. ")"
+			local modeText
+			if d.playerOnly then
+				modeText = "Player Only"
+			else
+				local parts = {}
+				if d.broadcastToGroup ~= false then table.insert(parts, "Group") end
+				if d.broadcastToGuild ~= false then table.insert(parts, "Guild") end
+				modeText = "Broadcast: " .. (#parts > 0 and table.concat(parts, "+") or "None")
+			end
+			local soundDisplay = "/" .. (d.soundKey or "?")
+
+			local lineBtn = self:CreateButton(label, yOffset)
+			lineBtn.text:SetText(label)
+			lineBtn:SetScript("OnClick", function()
+				self:ShowEditDynamic(event.id, event.data)
+			end)
+			yOffset = yOffset - buttonHeight
+
+			local detailBtn = self:CreateButton("  |cFF888888" .. soundDisplay .. " - " .. modeText .. "|r", yOffset)
+			detailBtn:SetScript("OnClick", function()
+				self:ShowEditDynamic(event.id, event.data)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+	else
+		yOffset = yOffset - 5
+		local whatHeader = self:CreateButton("What are Dynamic Events?", yOffset, false, true)
+		whatHeader:SetScript("OnClick", nil)
+		yOffset = yOffset - 26
+
+		local descFS = self.content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		descFS:SetPoint("TOPLEFT", self.content, "TOPLEFT", SoundboardUI.Scale(8), yOffset)
+		descFS:SetWidth(360)
+		descFS:SetJustifyH("LEFT")
+		descFS:SetJustifyV("TOP")
+		descFS:SetWordWrap(true)
+		descFS:SetSpacing(2)
+		descFS:SetText(
+			"|cFFCCCCCCDynamic Events let you play sounds when bosses use specific abilities in dungeons and raids.|r\n\n" ..
+			"|cFFCCCCCCUnlike regular Events (which trigger on player actions like dying, mounting, or popping Heroism), Dynamic Events listen for boss spell casts in the combat log.|r\n\n" ..
+			"|cFFCCCCCCExamples:|r\n" ..
+			"|cFFCCCCCC- Play an air horn when Ragnaros summons his Sons of Flame|r\n" ..
+			"|cFFCCCCCC- Play a warning sound when the Lich King casts Defile|r\n" ..
+			"|cFFCCCCCC- Broadcast a sound to your group when a boss starts an important cast|r\n\n" ..
+			"|cFFCCCCCCClick |cFF00FF00+ Create New Dynamic Event|r |cFFCCCCCCabove to get started.|r"
+		)
+
+		local textHeight = descFS:GetStringHeight()
+		if textHeight < 20 then textHeight = 280 end
+		yOffset = yOffset - textHeight - 10
+	end
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+function DynamicEventsWindow:ShowEditDynamic(eventId, eventData)
+	self:ClearContent()
+	self.currentStep = "edit"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Dynamic Events", yOffset)
+	backBtn:SetScript("OnClick", function() self:ShowHome() end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local titleBtn = self:CreateButton("Edit Dynamic Event", yOffset, false, true)
+	titleBtn:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 5
+
+	local infoLines = {
+		"Instance: " .. (eventData.instanceName or "?"),
+		"Boss: " .. (eventData.bossName or "?"),
+		"Ability: " .. (eventData.spellName or "?") .. " (" .. (eventData.spellId or "?") .. ")",
+		"Trigger: " .. (eventData.cleuEvent or "?"),
+		"Sound: /" .. (eventData.soundKey or "?"),
+	}
+	for _, line in ipairs(infoLines) do
+		local lb = self:CreateButton("|cFFCCCCCC" .. line .. "|r", yOffset)
+		lb:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	yOffset = yOffset - 5
+
+	local modeHeader = self:CreateButton("Play Mode:", yOffset, false, true)
+	modeHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - 24
+
+	local function setMode(playerOnly, toGroup, toGuild, label)
+		local b = self:CreateButton(label, yOffset)
+		b:SetScript("OnClick", function()
+			eventData.playerOnly = playerOnly
+			eventData.broadcastToGroup = toGroup
+			eventData.broadcastToGuild = toGuild
+			Soundboard.db.profile.DynamicEvents[eventId] = eventData
+			Soundboard:RebuildDynamicSpellLookup()
+			Soundboard:Print("Dynamic event updated: " .. label)
+			self:ShowEditDynamic(eventId, eventData)
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+
+	setMode(true, false, false, "Player Only")
+	setMode(false, true, true, "Broadcast to Group + Guild")
+	setMode(false, true, false, "Broadcast to Group only")
+	setMode(false, false, true, "Broadcast to Guild only")
+
+	yOffset = yOffset - 5
+
+	local changeSoundBtn = self:CreateButton("|cFF00CCFFChange Sound|r", yOffset)
+	changeSoundBtn:SetScript("OnClick", function()
+		self.wizardState = {
+			instanceType = eventData.instanceType,
+			instanceName = eventData.instanceName,
+			bossName = eventData.bossName,
+			spellId = eventData.spellId,
+			spellName = eventData.spellName,
+			cleuEvent = eventData.cleuEvent,
+			editingEventId = eventId,
+		}
+		self:WizardStep5()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local deleteBtn = self:CreateButton("|cFFFF0000Delete Event|r", yOffset)
+	deleteBtn:SetScript("OnClick", function()
+		self:ShowDeleteDynamicConfirm(eventId, eventData)
+	end)
+	yOffset = yOffset - buttonHeight
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+function DynamicEventsWindow:ShowDeleteDynamicConfirm(eventId, eventData)
+	self:ClearContent()
+	self.currentStep = "delete_confirm"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local cancelBtn = self:CreateButton("< Cancel", yOffset)
+	cancelBtn:SetScript("OnClick", function() self:ShowEditDynamic(eventId, eventData) end)
+	yOffset = yOffset - buttonHeight - 10
+
+	local warnBtn = self:CreateButton("|cFFFF8800Delete: " .. (eventData.bossName or "?") .. " - " .. (eventData.spellName or "?") .. "?|r", yOffset)
+	warnBtn:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 10
+
+	local yesBtn = self:CreateButton("|cFFFF0000YES - Delete|r", yOffset)
+	yesBtn:SetScript("OnClick", function()
+		Soundboard.db.profile.DynamicEvents[eventId] = nil
+		Soundboard:RebuildDynamicSpellLookup()
+		Soundboard:Print("Dynamic event deleted: " .. (eventData.bossName or "") .. " - " .. (eventData.spellName or ""))
+		self:ShowHome()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local noBtn = self:CreateButton("|cFF00FF00NO - Keep|r", yOffset)
+	noBtn:SetScript("OnClick", function() self:ShowEditDynamic(eventId, eventData) end)
+	yOffset = yOffset - buttonHeight
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+------------------------------------------------------------------------
+-- 5-STEP WIZARD
+------------------------------------------------------------------------
+
+-- Step 1: Raid or Dungeon?
+function DynamicEventsWindow:WizardStep1()
+	self:ClearContent()
+	self.currentStep = "wizard_step1"
+	self.wizardState = {}
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Dynamic Events", yOffset)
+	backBtn:SetScript("OnClick", function() self:ShowHome() end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local title = self:CreateButton("Step 1: Choose Instance Type", yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 10
+
+	local raidBtn = self:CreateButton("Raids", yOffset)
+	raidBtn:SetScript("OnClick", function()
+		self.wizardState.instanceType = "raids"
+		self:WizardStep2()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local dungeonBtn = self:CreateButton("Dungeons", yOffset)
+	dungeonBtn:SetScript("OnClick", function()
+		self.wizardState.instanceType = "dungeons"
+		self:WizardStep2()
+	end)
+	yOffset = yOffset - buttonHeight
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+-- Step 2: Pick Instance (grouped by expansion)
+function DynamicEventsWindow:WizardStep2()
+	self:ClearContent()
+	self.currentStep = "wizard_step2"
+
+	local instanceType = self.wizardState.instanceType
+	local typeLabel = instanceType == "raids" and "Raid" or "Dungeon"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Instance Type", yOffset)
+	backBtn:SetScript("OnClick", function() self:WizardStep1() end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local title = self:CreateButton("Step 2: Choose " .. typeLabel, yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 5
+
+	local grouped = SoundboardExpansion:GetFilteredInstances(instanceType)
+
+	if #grouped == 0 then
+		local noneBtn = self:CreateButton("|cFF888888No " .. instanceType .. " data available for your game version.|r", yOffset)
+		noneBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	else
+		for _, group in ipairs(grouped) do
+			local expHeader = self:CreateButton("|cFFFFCC00" .. group.expansionName .. "|r", yOffset, false, true)
+			expHeader:SetScript("OnClick", nil)
+			yOffset = yOffset - 24
+
+			for _, instance in ipairs(group.instances) do
+				local bossCount = instance.bosses and #instance.bosses or 0
+				local instBtn = self:CreateButton(instance.name .. " |cFF888888(" .. bossCount .. " bosses)|r", yOffset)
+				instBtn:SetScript("OnClick", function()
+					self.wizardState.instance = instance
+					self.wizardState.instanceName = instance.name
+					self:WizardStep3()
+				end)
+				yOffset = yOffset - buttonHeight
+			end
+			yOffset = yOffset - 3
+		end
+	end
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+-- Step 3: Pick Boss
+function DynamicEventsWindow:WizardStep3()
+	self:ClearContent()
+	self.currentStep = "wizard_step3"
+
+	local instance = self.wizardState.instance
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to " .. (self.wizardState.instanceType == "raids" and "Raids" or "Dungeons"), yOffset)
+	backBtn:SetScript("OnClick", function() self:WizardStep2() end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local title = self:CreateButton("Step 3: Choose Boss in " .. (instance.name or "?"), yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 5
+
+	local bosses = instance.bosses or {}
+	if #bosses == 0 then
+		local noneBtn = self:CreateButton("|cFF888888No bosses listed for this instance.|r", yOffset)
+		noneBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	else
+		for _, boss in ipairs(bosses) do
+			local abilityCount = boss.abilities and #boss.abilities or 0
+			local bossBtn = self:CreateButton(boss.name .. " |cFF888888(" .. abilityCount .. " abilities)|r", yOffset)
+			bossBtn:SetScript("OnClick", function()
+				self.wizardState.boss = boss
+				self.wizardState.bossName = boss.name
+				self:WizardStep4()
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+	end
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+-- Step 4: Pick Ability (shows "Spell Name (SpellID) [Event Type]")
+function DynamicEventsWindow:WizardStep4()
+	self:ClearContent()
+	self.currentStep = "wizard_step4"
+
+	local boss = self.wizardState.boss
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Bosses", yOffset)
+	backBtn:SetScript("OnClick", function() self:WizardStep3() end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local title = self:CreateButton("Step 4: Choose Ability for " .. (boss.name or "?"), yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 5
+
+	local cleuShortNames = {
+		SPELL_CAST_START = "Cast Start",
+		SPELL_CAST_SUCCESS = "Cast",
+		SPELL_AURA_APPLIED = "Aura",
+		SPELL_DAMAGE = "Damage",
+	}
+
+	local abilities = boss.abilities or {}
+	if #abilities == 0 then
+		local noneBtn = self:CreateButton("|cFF888888No abilities listed for this boss.|r", yOffset)
+		noneBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	else
+		for _, ability in ipairs(abilities) do
+			local shortEvent = cleuShortNames[ability.cleuEvent] or ability.cleuEvent or "?"
+			local label = ability.name .. " (" .. ability.spellId .. ") |cFF888888[" .. shortEvent .. "]|r"
+			local abilBtn = self:CreateButton(label, yOffset)
+			abilBtn:SetScript("OnClick", function()
+				self.wizardState.spellId = ability.spellId
+				self.wizardState.spellName = ability.name
+				self.wizardState.cleuEvent = ability.cleuEvent
+				self:WizardStep5()
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+	end
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+-- Step 5: Pick Sound + Who hears it
+function DynamicEventsWindow:WizardStep5()
+	self:ClearContent()
+	self.currentStep = "wizard_step5"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backLabel = self.wizardState.editingEventId and "< Cancel" or "< Back to Abilities"
+	local backBtn = self:CreateButton(backLabel, yOffset)
+	backBtn:SetScript("OnClick", function()
+		if self.wizardState.editingEventId then
+			local ed = Soundboard.db.profile.DynamicEvents[self.wizardState.editingEventId]
+			if ed then
+				self:ShowEditDynamic(self.wizardState.editingEventId, ed)
+			else
+				self:ShowHome()
+			end
+		else
+			self:WizardStep4()
+		end
+	end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local spellLabel = (self.wizardState.spellName or "?") .. " (" .. (self.wizardState.spellId or "?") .. ")"
+	local title = self:CreateButton("Step 5: Choose Sound for " .. spellLabel, yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 5
+
+	local searchBox = CreateFrame("EditBox", nil, self.content)
+	searchBox:SetSize(360, 20)
+	searchBox:SetPoint("TOPLEFT", SoundboardUI.Scale(8), yOffset)
+	searchBox:SetAutoFocus(false)
+	searchBox:SetFontObject("GameFontNormal")
+	searchBox:SetText("")
+	searchBox:SetMaxLetters(50)
+
+	local searchBg = searchBox:CreateTexture(nil, "BACKGROUND")
+	searchBg:SetAllPoints()
+	searchBg:SetColorTexture(0.1, 0.1, 0.1, 0.8)
+
+	local tc = SoundboardUI.colors.text
+	if tc then searchBox:SetTextColor(tc[1], tc[2], tc[3]) end
+
+	searchBox:SetScript("OnTextChanged", function(editBox, userInput)
+		if userInput then
+			local query = editBox:GetText()
+			if query and #query > 0 then
+				self:ShowSoundSearchResults(query)
+			else
+				self:ShowSoundCategories()
+			end
+		end
+	end)
+	searchBox:SetScript("OnEscapePressed", function(editBox)
+		editBox:ClearFocus()
+	end)
+
+	yOffset = yOffset - 25
+	self._soundListYStart = yOffset
+	self._searchBox = searchBox
+
+	self:ShowSoundCategories()
+end
+
+function DynamicEventsWindow:ShowSoundCategories()
+	local children = { self.content:GetChildren() }
+	for _, child in ipairs(children) do
+		if child ~= self._searchBox then
+			local yPos = select(5, child:GetPoint(1))
+			if yPos and yPos < self._soundListYStart then
+				child:Hide()
+				child:SetParent(nil)
+			end
+		end
+	end
+
+	local yOffset = self._soundListYStart
+	local buttonHeight = 22
+
+	if not soundboard_data then
+		local noBtn = self:CreateButton("|cFF888888No sounds available|r", yOffset)
+		noBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	else
+		if not SoundboardDropdown.categoriesBuilt then
+			SoundboardDropdown:BuildCategories()
+		end
+
+		if SoundboardDropdown:HasFavorites() then
+			local favBtn = self:CreateButton("Favorites", yOffset)
+			favBtn:SetScript("OnClick", function()
+				self:ShowSoundCategoryContents("Favorites")
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+
+		local categoryNames = {}
+		for category, _ in pairs(SoundboardDropdown.categories) do
+			tinsert(categoryNames, category)
+		end
+		tsort(categoryNames)
+
+		for _, category in ipairs(categoryNames) do
+			if category ~= "Missing Configuration" or (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.DebugMode) then
+				local catData = SoundboardDropdown.categories[category]
+				local count = #catData.sounds
+				for _, sounds in pairs(catData.subcategories) do
+					count = count + #sounds
+				end
+				local catBtn = self:CreateButton(category .. " |cFF888888(" .. count .. ")|r", yOffset)
+				catBtn:SetScript("OnClick", function()
+					self:ShowSoundCategoryContents(category)
+				end)
+				yOffset = yOffset - buttonHeight
+			end
+		end
+	end
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+function DynamicEventsWindow:ShowSoundCategoryContents(categoryName)
+	self:ClearContent()
+	self.currentStep = "wizard_step5_category"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Sound Selection", yOffset)
+	backBtn:SetScript("OnClick", function() self:WizardStep5() end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local title = self:CreateButton("Category: " .. categoryName, yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 5
+
+	local sounds = {}
+	if categoryName == "Favorites" then
+		for key, data in pairs(soundboard_data) do
+			if SoundboardDropdown:IsFavorite(key) then
+				table.insert(sounds, { key = key, data = data })
+			end
+		end
+	else
+		local catData = SoundboardDropdown.categories[categoryName]
+		if catData then
+			for _, soundInfo in ipairs(catData.sounds) do
+				table.insert(sounds, soundInfo)
+			end
+			for subName, subSounds in pairs(catData.subcategories) do
+				for _, soundInfo in ipairs(subSounds) do
+					table.insert(sounds, soundInfo)
+				end
+			end
+		end
+	end
+
+	table.sort(sounds, function(a, b)
+		local aText = a.data and a.data.text or a.key or ""
+		local bText = b.data and b.data.text or b.key or ""
+		return aText < bText
+	end)
+
+	for _, soundInfo in ipairs(sounds) do
+		local key = soundInfo.key
+		local data = soundInfo.data or soundboard_data[key]
+		if data then
+			local displayText = (data.text or key):gsub("%*", "")
+			local soundBtn = self:CreateButton(displayText .. " |cFF888888(/" .. key .. ")|r", yOffset)
+			soundBtn:SetScript("OnClick", function()
+				self:SoundSelected(key)
+			end)
+			yOffset = yOffset - buttonHeight
+		end
+	end
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+function DynamicEventsWindow:ShowSoundSearchResults(query)
+	local children = { self.content:GetChildren() }
+	for _, child in ipairs(children) do
+		if child ~= self._searchBox then
+			local yPos = select(5, child:GetPoint(1))
+			if yPos and yPos < self._soundListYStart then
+				child:Hide()
+				child:SetParent(nil)
+			end
+		end
+	end
+
+	local yOffset = self._soundListYStart
+	local buttonHeight = 22
+	local lowerQuery = strlower(query)
+	local results = {}
+
+	if soundboard_data then
+		for key, data in pairs(soundboard_data) do
+			local searchableText = strlower((data.text or "") .. " " .. key)
+			if searchableText:find(lowerQuery, 1, true) then
+				table.insert(results, { key = key, data = data })
+			end
+		end
+	end
+
+	table.sort(results, function(a, b)
+		local aText = a.data and a.data.text or a.key or ""
+		local bText = b.data and b.data.text or b.key or ""
+		return aText < bText
+	end)
+
+	local shown = 0
+	for _, soundInfo in ipairs(results) do
+		if shown >= 50 then break end
+		local key = soundInfo.key
+		local data = soundInfo.data
+		local displayText = (data.text or key):gsub("%*", "")
+		local soundBtn = self:CreateButton(displayText .. " |cFF888888(/" .. key .. ")|r", yOffset)
+		soundBtn:SetScript("OnClick", function()
+			self:SoundSelected(key)
+		end)
+		yOffset = yOffset - buttonHeight
+		shown = shown + 1
+	end
+
+	if shown == 0 then
+		local noneBtn = self:CreateButton("|cFF888888No results for '" .. query .. "'|r", yOffset)
+		noneBtn:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+function DynamicEventsWindow:SoundSelected(soundKey)
+	self:ClearContent()
+	self.currentStep = "wizard_step5_mode"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Sound Selection", yOffset)
+	backBtn:SetScript("OnClick", function() self:WizardStep5() end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local spellLabel = (self.wizardState.spellName or "?") .. " (" .. (self.wizardState.spellId or "?") .. ")"
+	local soundData = soundboard_data and soundboard_data[soundKey]
+	local soundDisplay = soundData and (soundData.text or soundKey):gsub("%*", "") or soundKey
+
+	local summaryTitle = self:CreateButton("Summary:", yOffset, false, true)
+	summaryTitle:SetScript("OnClick", nil)
+	yOffset = yOffset - 24
+
+	local lines = {
+		"Ability: " .. spellLabel,
+		"Boss: " .. (self.wizardState.bossName or "?"),
+		"Instance: " .. (self.wizardState.instanceName or "?"),
+		"Sound: " .. soundDisplay .. " (/" .. soundKey .. ")",
+	}
+	for _, line in ipairs(lines) do
+		local lb = self:CreateButton("|cFFCCCCCC" .. line .. "|r", yOffset)
+		lb:SetScript("OnClick", nil)
+		yOffset = yOffset - buttonHeight
+	end
+	yOffset = yOffset - 5
+
+	local modeTitle = self:CreateButton("Who should hear the sound?", yOffset, false, true)
+	modeTitle:SetScript("OnClick", nil)
+	yOffset = yOffset - 24
+
+	local function saveWithMode(playerOnly, broadcastToGroup, broadcastToGuild, label)
+		local modeBtn = self:CreateButton(label, yOffset)
+		modeBtn:SetScript("OnClick", function()
+			self:SaveDynamicEvent(soundKey, playerOnly, broadcastToGroup, broadcastToGuild)
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+
+	saveWithMode(true, false, false, "Player Only - Only you hear the sound")
+	saveWithMode(false, true, true, "Broadcast to Group + Guild")
+	saveWithMode(false, true, false, "Broadcast to Group only")
+	saveWithMode(false, false, true, "Broadcast to Guild only")
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
+
+function DynamicEventsWindow:SaveDynamicEvent(soundKey, playerOnly, broadcastToGroup, broadcastToGuild)
+	if not Soundboard.db or not Soundboard.db.profile then
+		Soundboard:Print("Error: Database not available")
+		return
+	end
+
+	local ws = self.wizardState
+
+	if ws.editingEventId then
+		local existing = Soundboard.db.profile.DynamicEvents[ws.editingEventId]
+		if existing then
+			existing.soundKey = soundKey
+			existing.playerOnly = playerOnly
+			existing.broadcastToGroup = broadcastToGroup
+			existing.broadcastToGuild = broadcastToGuild
+			Soundboard:RebuildDynamicSpellLookup()
+			Soundboard:Print("Dynamic event updated: " .. (ws.spellName or "?") .. " -> /" .. soundKey)
+			self:ShowHome()
+			return
+		end
+	end
+
+	local eventId = "dyn_" .. (ws.spellId or 0) .. "_" .. (ws.cleuEvent or "UNKNOWN") .. "_" .. time()
+	Soundboard.db.profile.DynamicEvents[eventId] = {
+		instanceType = ws.instanceType,
+		instanceName = ws.instanceName,
+		bossName = ws.bossName,
+		spellId = ws.spellId,
+		spellName = ws.spellName,
+		cleuEvent = ws.cleuEvent,
+		soundKey = soundKey,
+		playerOnly = playerOnly,
+		broadcastToGroup = broadcastToGroup,
+		broadcastToGuild = broadcastToGuild,
+	}
+
+	Soundboard:RebuildDynamicSpellLookup()
+
+	local modeText = playerOnly and "Player Only" or ("Broadcast: " .. (broadcastToGroup and "Group" or "") .. (broadcastToGroup and broadcastToGuild and "+" or "") .. (broadcastToGuild and "Guild" or ""))
+	Soundboard:Print("Dynamic event added: " .. (ws.bossName or "?") .. " - " .. (ws.spellName or "?") .. " (" .. (ws.spellId or "?") .. ") -> /" .. soundKey .. " (" .. modeText .. ")")
+
+	self:ShowHome()
+end
+
+-- Make DynamicEventsWindow accessible globally for menu integration
+SoundboardDynamicEventsWindow = DynamicEventsWindow
+
 function SoundboardDropdown:ShowMainMenu()
 	DebugPrint("ShowMainMenu called")
 	DebugPrint("STACK TRACE - ShowMainMenu called from:")
@@ -3569,166 +4553,12 @@ function SoundboardDropdown:ShowMainMenu()
 	local buttonHeight = 22
 	DebugPrint("Initial setup complete")
 	
-	-- Safe access to db with fallbacks
-	DebugPrint("Checking db access...")
-	local addonDB = Soundboard.db and Soundboard.db.profile
-	DebugPrint("Soundboard.db exists: " .. tostring(Soundboard.db ~= nil))
-	DebugPrint("addonDB exists: " .. tostring(addonDB ~= nil))
-	local emoteEnabled = (addonDB and addonDB.EmoteEnabled) or false
-	local groupEnabled = (addonDB and addonDB.GroupEnabled) or false  
-	local soundboardEnabled = (addonDB and addonDB.IsEnabled) or false
-	local guildEnabled = (addonDB and addonDB.GuildBroadcast) or false
-	local groupBroadcastEnabled = (addonDB and addonDB.GroupBroadcast) or false
-	DebugPrint("DB values retrieved")
-	
 	-- Title
 	DebugPrint("Creating title button...")
 	local title = self:CreateButton("Soundboard Menu", yOffset, true)
 	title:SetScript("OnClick", nil)
 	yOffset = yOffset - buttonHeight
 	DebugPrint("Title button created")
-	
-	-- Settings Toggle Header
-	local settingsHeader = self:CreateButton("Settings Toggle", yOffset, false, true) -- Secondary header: not title, but is secondary header
-	settingsHeader:SetScript("OnClick", nil)
-	yOffset = yOffset - 26  -- Secondary header is 26px tall
-	
-	-- Options with simple colors
-	local emoteBtn = self:CreateButton(
-		emoteEnabled and "Emotes: |cFF00FF00ON|r" or "Emotes: |cFFFF0000OFF|r", 
-		yOffset
-	)
-	emoteBtn:SetScript("OnClick", function()
-		local currentDB = Soundboard.db and Soundboard.db.profile
-		DebugPrint("Emote button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
-		if currentDB then
-			local oldValue = currentDB.EmoteEnabled
-			currentDB.EmoteEnabled = not currentDB.EmoteEnabled
-			DebugPrint("EmoteEnabled changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.EmoteEnabled))
-			if currentDB.EmoteEnabled then
-				Soundboard:Print("Personal emotes |cFF00FF00enabled|r")
-			else
-				Soundboard:Print("Personal emotes |cFFFF0000disabled|r")
-			end
-			self:ShowMainMenu()
-		else
-			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking emote button!")
-			Soundboard:Print("Error: Database not available")
-		end
-	end)
-	yOffset = yOffset - buttonHeight
-	
-	if UnitIsGroupLeader("player") then
-		local groupBtn = self:CreateButton(
-			groupEnabled and "Group: |cFF00FF00ON|r" or "Group: |cFFFF0000OFF|r", 
-			yOffset
-		)
-		groupBtn:SetScript("OnClick", function()
-			Soundboard:ToggleGroup()
-			self:ShowMainMenu()
-		end)
-		yOffset = yOffset - buttonHeight
-	end
-	
-	local soundboardBtn = self:CreateButton(
-		soundboardEnabled and "Soundboard: |cFF00FF00ON|r" or "Soundboard: |cFFFF0000OFF|r", 
-		yOffset
-	)
-	soundboardBtn:SetScript("OnClick", function()
-		local currentDB = Soundboard.db and Soundboard.db.profile
-		DebugPrint("Soundboard button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
-		if currentDB then
-			local oldValue = currentDB.IsEnabled
-			currentDB.IsEnabled = not currentDB.IsEnabled
-			DebugPrint("IsEnabled changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.IsEnabled))
-			if currentDB.IsEnabled then
-				Soundboard:Print("Soundboard |cFF00FF00enabled|r")
-			else
-				Soundboard:Print("Soundboard |cFFFF0000disabled|r")
-			end
-			self:ShowMainMenu()
-		else
-			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking soundboard button!")
-			Soundboard:Print("Error: Database not available")
-		end
-	end)
-	yOffset = yOffset - buttonHeight
-	
-	-- Guild broadcast option
-	local guildBtn = self:CreateButton(
-		guildEnabled and "Guild: |cFF00FF00ON|r" or "Guild: |cFFFF0000OFF|r",
-		yOffset
-	)
-	guildBtn:SetScript("OnClick", function()
-		local currentDB = Soundboard.db and Soundboard.db.profile
-		DebugPrint("Guild button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
-		if currentDB then
-			local oldValue = currentDB.GuildBroadcast
-			currentDB.GuildBroadcast = not currentDB.GuildBroadcast
-			DebugPrint("GuildBroadcast changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.GuildBroadcast))
-			if currentDB.GuildBroadcast then
-				Soundboard:Print("Guild broadcast |cFF00FF00enabled|r")
-			else
-				Soundboard:Print("Guild broadcast |cFFFF0000disabled|r")
-			end
-			self:ShowMainMenu()
-		else
-			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking guild button!")
-			Soundboard:Print("Error: Database not available")
-		end
-	end)
-	yOffset = yOffset - buttonHeight
-	
-	-- Group broadcast option
-	local groupBroadcastBtn = self:CreateButton(
-		groupBroadcastEnabled and "Group: |cFF00FF00ON|r" or "Group: |cFFFF0000OFF|r",
-		yOffset
-	)
-	groupBroadcastBtn:SetScript("OnClick", function()
-		local currentDB = Soundboard.db and Soundboard.db.profile
-		DebugPrint("Group broadcast button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
-		if currentDB then
-			local oldValue = currentDB.GroupBroadcast
-			currentDB.GroupBroadcast = not currentDB.GroupBroadcast
-			DebugPrint("GroupBroadcast changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.GroupBroadcast))
-			if currentDB.GroupBroadcast then
-				Soundboard:Print("Group broadcast |cFF00FF00enabled|r")
-			else
-				Soundboard:Print("Group broadcast |cFFFF0000disabled|r")
-			end
-			self:ShowMainMenu()
-		else
-			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking group broadcast button!")
-			Soundboard:Print("Error: Database not available")
-		end
-	end)
-	yOffset = yOffset - buttonHeight
-	
-	-- Events toggle option
-	local eventsEnabled = (addonDB and addonDB.EventsEnabled) or false
-	local eventsBtn = self:CreateButton(
-		eventsEnabled and "Events: |cFF00FF00ON|r" or "Events: |cFFFF0000OFF|r",
-		yOffset
-	)
-	eventsBtn:SetScript("OnClick", function()
-		local currentDB = Soundboard.db and Soundboard.db.profile
-		DebugPrint("Events button clicked, currentDB exists: " .. tostring(currentDB ~= nil))
-		if currentDB then
-			local oldValue = currentDB.EventsEnabled
-			currentDB.EventsEnabled = not currentDB.EventsEnabled
-			DebugPrint("EventsEnabled changed from " .. tostring(oldValue) .. " to " .. tostring(currentDB.EventsEnabled))
-			if currentDB.EventsEnabled then
-				Soundboard:Print("Events system |cFF00FF00enabled|r")
-			else
-				Soundboard:Print("Events system |cFFFF0000disabled|r")
-			end
-			self:ShowMainMenu()
-		else
-			DebugPrint("ERROR: Soundboard.db.profile is nil when clicking events button!")
-			Soundboard:Print("Error: Database not available")
-		end
-	end)
-	yOffset = yOffset - buttonHeight
 	
 	-- Categories Header
 	local categoriesHeader = self:CreateButton("Categories", yOffset, false, true) -- Secondary header: not title, but is secondary header
@@ -3763,7 +4593,14 @@ function SoundboardDropdown:ShowMainMenu()
 		self:ShowEvents()
 	end)
 	yOffset = yOffset - buttonHeight
-	
+
+	-- Dynamic Events category (boss abilities)
+	local dynEventsBtn = self:CreateButtonWithIcon("Dynamic Events", yOffset, "Interface\\TargetingFrame\\UI-RaidTargetingIcon_4")
+	dynEventsBtn:SetScript("OnClick", function()
+		SoundboardDynamicEventsWindow:Toggle()
+	end)
+	yOffset = yOffset - buttonHeight
+
 	-- Categories with simple styling
 	local categoryNames = {}
 	for category, _ in pairs(self.categories) do
@@ -3906,9 +4743,89 @@ function SoundboardDropdown:ShowMainMenu()
 		end
 	end
 	
+	-- Settings menu (at the very bottom)
+	yOffset = yOffset - 5
+	local settingsBtn = self:CreateButtonWithIcon("Settings", yOffset, "Interface\\GossipFrame\\BinderGossipIcon")
+	settingsBtn:SetScript("OnClick", function()
+		self:ShowSettings()
+	end)
+	yOffset = yOffset - buttonHeight
+
 	-- Update content size and scrollbar
 	self.content:SetHeight(math.abs(yOffset) + 10)
 	self:UpdateScrollbar()
+end
+
+function SoundboardDropdown:ShowSettings()
+	self:ClearContent()
+	self.currentView = "settings"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Menu", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self.currentView = nil
+		self:ShowMainMenu()
+	end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local title = self:CreateButton("Settings", yOffset, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - buttonHeight - 5
+
+	local addonDB = Soundboard.db and Soundboard.db.profile
+
+	local function createToggle(label, dbKey, printLabel)
+		local enabled = (addonDB and addonDB[dbKey]) or false
+		local btn = self:CreateButton(
+			label .. ": " .. (enabled and "|cFF00FF00ON|r" or "|cFFFF0000OFF|r"),
+			yOffset
+		)
+		btn:SetScript("OnClick", function()
+			local currentDB = Soundboard.db and Soundboard.db.profile
+			if currentDB then
+				currentDB[dbKey] = not currentDB[dbKey]
+				if currentDB[dbKey] then
+					Soundboard:Print(printLabel .. " |cFF00FF00enabled|r")
+				else
+					Soundboard:Print(printLabel .. " |cFFFF0000disabled|r")
+				end
+				self:ShowSettings()
+			end
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+
+	createToggle("Soundboard", "IsEnabled", "Soundboard")
+	createToggle("Emotes", "EmoteEnabled", "Personal emotes")
+	createToggle("Guild Broadcast", "GuildBroadcast", "Guild broadcast")
+	createToggle("Group Broadcast", "GroupBroadcast", "Group broadcast")
+
+	if UnitIsGroupLeader("player") then
+		local groupEnabled = (addonDB and addonDB.GroupEnabled) or false
+		local groupBtn = self:CreateButton(
+			"Group (Leader): " .. (groupEnabled and "|cFF00FF00ON|r" or "|cFFFF0000OFF|r"),
+			yOffset
+		)
+		groupBtn:SetScript("OnClick", function()
+			Soundboard:ToggleGroup()
+			self:ShowSettings()
+		end)
+		yOffset = yOffset - buttonHeight
+	end
+
+	yOffset = yOffset - 5
+	local eventsHeader = self:CreateButton("Event Systems", yOffset, false, true)
+	eventsHeader:SetScript("OnClick", nil)
+	yOffset = yOffset - 26
+
+	createToggle("Events", "EventsEnabled", "Events system")
+	createToggle("Dynamic Events", "DynamicEventsEnabled", "Dynamic Events")
+
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+	self:UpdateButtonWidths()
 end
 
 function SoundboardDropdown:ShowCategory(categoryName)
@@ -4812,7 +5729,8 @@ local soundboard_data_sorted_keys = {};
 	self:RegisterEvent("PLAYER_ENTERING_WORLD"); -- Track loading screens
 	pcall(function() self:RegisterEvent("LOADING_SCREEN_ENABLED") end) -- 10.0.2+; safe no-op on older clients
 	pcall(function() self:RegisterEvent("LOADING_SCREEN_DISABLED") end)
-	DebugPrint("Events registered: PLAYER_LOGIN/LOGOUT, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA, LOADING_SCREEN events")
+	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+	DebugPrint("Events registered: PLAYER_LOGIN/LOGOUT, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA, LOADING_SCREEN, CLEU events")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
 	-- Register with Interface Options
@@ -4850,6 +5768,9 @@ local soundboard_data_sorted_keys = {};
 		EventsEnabled = true,      -- Global toggle for events system
 		Events = {},               -- Table of configured events {eventId = {eventType, soundKey, playerOnly}}
 		LastSessionEnd = nil,      -- Timestamp of last session end (for login detection)
+		-- Dynamic Events System (boss ability triggers)
+		DynamicEventsEnabled = true,
+		DynamicEvents = {},        -- Table of dynamic events {eventId = {spellId, cleuEvent, soundKey, ...}}
 		}
 	 }
 	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", defaults, true)
@@ -4897,6 +5818,17 @@ local soundboard_data_sorted_keys = {};
 		db.LastSessionEnd = nil  -- Will be set on first logout/disable
 		DebugPrint("Migrated LastSessionEnd to default: nil")
 	end
+	if db.DynamicEventsEnabled == nil then
+		db.DynamicEventsEnabled = true
+		DebugPrint("Migrated DynamicEventsEnabled to default: true")
+	end
+	if db.DynamicEvents == nil then
+		db.DynamicEvents = {}
+		DebugPrint("Migrated DynamicEvents to default: empty table")
+	end
+
+	self:RebuildDynamicSpellLookup()
+
 	-- Remove old settings if they exist
 	if db.SayEnabled ~= nil then
 		db.SayEnabled = nil
@@ -5311,6 +6243,16 @@ local soundboard_data_sorted_keys = {};
 		end
 	end
 	_G["SLASH_SOUNDBOARDVOLUME1"] = "/soundboardvolume"
+
+	_G.SlashCmdList["SOUNDBOARDDYNAMIC"] = function(msg)
+		if SoundboardDynamicEventsWindow then
+			SoundboardDynamicEventsWindow:Toggle()
+		else
+			Soundboard:Print("Dynamic Events window not available")
+		end
+	end
+	_G["SLASH_SOUNDBOARDDYNAMIC1"] = "/soundboarddynamic"
+	_G["SLASH_SOUNDBOARDDYNAMIC2"] = "/sbdynamic"
 	
 	-- Add database debug command
 	_G.SlashCmdList["SOUNDBOARDDB"] = function(msg)
@@ -6817,6 +7759,80 @@ function Soundboard:HandleEventTrigger(eventType)
 		DebugPrint("[Events] No events configured for: " .. tostring(eventType))
 	else
 		DebugPrint("[Events] Processed " .. matchCount .. " matching event(s)")
+	end
+end
+
+-- Dynamic Events: O(1) spell lookup table for COMBAT_LOG_EVENT_UNFILTERED
+Soundboard.activeDynamicSpells = {}
+Soundboard.recentDynamicTriggers = {}
+Soundboard.DYNAMIC_EVENT_DEDUPE_WINDOW = 2
+
+function Soundboard:RebuildDynamicSpellLookup()
+	wipe(self.activeDynamicSpells)
+	if not self.db or not self.db.profile then return end
+	local dynEvents = self.db.profile.DynamicEvents or {}
+	for eventId, eventData in pairs(dynEvents) do
+		if eventData.spellId and eventData.cleuEvent then
+			local key = eventData.spellId .. "_" .. eventData.cleuEvent
+			self.activeDynamicSpells[key] = eventData
+			self.activeDynamicSpells[key].eventId = eventId
+		end
+	end
+	DebugPrint("[DynamicEvents] Rebuilt spell lookup table, entries: " .. tostring(self:CountDynamicSpells()))
+end
+
+function Soundboard:CountDynamicSpells()
+	local count = 0
+	for _ in pairs(self.activeDynamicSpells) do count = count + 1 end
+	return count
+end
+
+function Soundboard:COMBAT_LOG_EVENT_UNFILTERED()
+	if not self.db or not self.db.profile or not self.db.profile.DynamicEventsEnabled then
+		return
+	end
+	if not next(self.activeDynamicSpells) then return end
+
+	local timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, _,
+	      destGUID, destName, destFlags, _, spellId, spellName = CombatLogGetCurrentEventInfo()
+	if not spellId then return end
+
+	local key = spellId .. "_" .. subevent
+	local dynEvent = self.activeDynamicSpells[key]
+	if not dynEvent then return end
+
+	DebugPrint("[DynamicEvents] Matched spell: " .. tostring(spellName) .. " (" .. tostring(spellId) .. ") subevent=" .. subevent)
+	self:HandleDynamicEventTrigger(dynEvent, sourceName, destName)
+end
+
+function Soundboard:HandleDynamicEventTrigger(dynEvent, sourceName, destName)
+	local soundKey = dynEvent.soundKey
+	if not soundKey or not soundboard_data or not soundboard_data[soundKey] then
+		DebugPrint("[DynamicEvents] Sound not found: " .. tostring(soundKey))
+		return
+	end
+
+	local dedupeKey = (dynEvent.spellId or 0) .. "_" .. (dynEvent.cleuEvent or "")
+	local now = GetTime()
+	if self.recentDynamicTriggers[dedupeKey] and (now - self.recentDynamicTriggers[dedupeKey]) < self.DYNAMIC_EVENT_DEDUPE_WINDOW then
+		DebugPrint("[DynamicEvents] Suppressing duplicate trigger for " .. dedupeKey)
+		return
+	end
+	self.recentDynamicTriggers[dedupeKey] = now
+
+	local soundData = soundboard_data[soundKey]
+
+	if dynEvent.playerOnly then
+		DebugPrint("[DynamicEvents] Playing sound for player only: /" .. soundKey)
+		self:PlaySoundForPlayer(soundData.file, soundKey)
+	else
+		local broadcastToGroup = dynEvent.broadcastToGroup
+		if broadcastToGroup == nil then broadcastToGroup = true end
+		local broadcastToGuild = dynEvent.broadcastToGuild
+		if broadcastToGuild == nil then broadcastToGuild = true end
+
+		DebugPrint("[DynamicEvents] Broadcasting sound - Group: " .. tostring(broadcastToGroup) .. ", Guild: " .. tostring(broadcastToGuild))
+		self:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcastToGuild, "DYNAMIC_" .. (dynEvent.spellId or 0))
 	end
 end
 
