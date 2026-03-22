@@ -3231,7 +3231,7 @@ soundboard_data["shun"] = {
 	["duration"] = 9,
 };
 
-soundboard_data["suf"] = {
+soundboard_data["shutupfool"] = {
 	["text"] = "* Shut up, fool! *",
 	["category"] = "Internet",
 	["file"] = dir.."shutupfool.mp3",
