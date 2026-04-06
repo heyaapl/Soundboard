@@ -177,6 +177,9 @@ local function HandleScrollBar(scrollBar, template)
 	
 	template = template or "Default"
 	UpdateTemplateColors(template) -- Ensure colors are updated
+
+	-- Save the user's theme scrollbar color BEFORE CreateBackdrop overwrites globals
+	local themeScrollbarColor = {unpack(SoundboardUI.colors.scrollbar or {1, 0.82, 0, 1})}
 	
 	-- Find buttons - ElvUI method
 	local upButton = scrollBar.ScrollUpButton or scrollBar.UpButton
@@ -191,7 +194,7 @@ local function HandleScrollBar(scrollBar, template)
 	if scrollBar.ScrollUpBorder then scrollBar.ScrollUpBorder:Hide() end
 	if scrollBar.ScrollDownBorder then scrollBar.ScrollDownBorder:Hide() end
 	
-	-- Create main backdrop exactly like ElvUI (between buttons, not covering them)
+	-- Create main backdrop (this overwrites SoundboardUI.colors with Transparent template)
 	CreateBackdrop(scrollBar, "Transparent")
 	
 	-- Position backdrop to fill full height (not just between buttons)
@@ -223,41 +226,35 @@ local function HandleScrollBar(scrollBar, template)
 		local pushed = upButton:GetPushedTexture()
 		local disabled = upButton:GetDisabledTexture()
 		
-		-- Get template colors for arrows
-		local scrollbarColor = SoundboardUI.colors.scrollbar
-		
 		if normal then
 			normal:SetAllPoints()
 			normal:SetTexCoord(0, 1, 0, 1)
-			normal:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
+			normal:SetVertexColor(unpack(themeScrollbarColor))
 		end
 		if pushed then
 			pushed:SetAllPoints()
 			pushed:SetTexCoord(0, 1, 0, 1)
-			pushed:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
+			pushed:SetVertexColor(unpack(themeScrollbarColor))
 		end
 		if disabled then
 			disabled:SetAllPoints()
 			disabled:SetTexCoord(0, 1, 0, 1)
-			disabled:SetVertexColor(0.3, 0.3, 0.3) -- Keep disabled as gray
+			disabled:SetVertexColor(0.3, 0.3, 0.3)
 		end
 	end
 	
-	-- Style down button exactly like ElvUI's HandleNextPrevButton
+	-- Style down button
 	if downButton then
-		-- Strip textures
 		downButton:SetNormalTexture("")
 		downButton:SetPushedTexture("")
 		downButton:SetDisabledTexture("")
 		downButton:SetHighlightTexture("")
 		if downButton.Texture then downButton.Texture:SetAlpha(0) end
 		
-		-- Create button backdrop with minimal/no border
-		CreateBackdrop(downButton, "Transparent") -- Use transparent template for minimal borders
-		downButton:SetFrameLevel(frameLevel + 3) -- Above scrollbar backdrop  
-		downButton:SetSize(18, 18) -- ElvUI standard size
+		CreateBackdrop(downButton, "Transparent")
+		downButton:SetFrameLevel(frameLevel + 3)
+		downButton:SetSize(18, 18)
 		
-		-- Use ElvUI arrow texture approach with rotation
 		downButton:SetNormalTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
 		downButton:SetPushedTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp") 
 		downButton:SetDisabledTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
@@ -266,71 +263,64 @@ local function HandleScrollBar(scrollBar, template)
 		local pushed = downButton:GetPushedTexture()
 		local disabled = downButton:GetDisabledTexture()
 		
-		-- Get template colors for arrows
-		local scrollbarColor = SoundboardUI.colors.scrollbar
-		
 		if normal then
 			normal:SetAllPoints()
 			normal:SetTexCoord(0, 1, 0, 1)
-			normal:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
-			normal:SetRotation(math.pi) -- Rotate for down arrow
+			normal:SetVertexColor(unpack(themeScrollbarColor))
+			normal:SetRotation(math.pi)
 		end
 		if pushed then
 			pushed:SetAllPoints()
 			pushed:SetTexCoord(0, 1, 0, 1)
-			pushed:SetVertexColor(unpack(scrollbarColor)) -- Use theme color
+			pushed:SetVertexColor(unpack(themeScrollbarColor))
 			pushed:SetRotation(math.pi)
 		end
 		if disabled then
 			disabled:SetAllPoints()
 			disabled:SetTexCoord(0, 1, 0, 1)
-			disabled:SetVertexColor(0.3, 0.3, 0.3) -- Keep disabled as gray
+			disabled:SetVertexColor(0.3, 0.3, 0.3)
 			disabled:SetRotation(math.pi)
 		end
 	end
 	
-	-- Style thumb exactly like ElvUI
+	-- Color the thumb with the user's theme color (not the Transparent template's white)
 	if thumb then
-		thumb:SetTexture() -- Remove default texture
-		
-		-- Always recreate backdrop for template changes (remove existing first)
-		if thumb.backdrop then
-			thumb.backdrop:Hide()
-			thumb.backdrop = nil
-		end
-		
-		CreateBackdrop(thumb, template)
-		
 		if not scrollBar.Thumb then
 			scrollBar.Thumb = thumb
 		end
-		
-		if thumb.backdrop then
-			-- ElvUI thumb positioning with offsets
-			local thumbX, thumbY = 0, 0
-			thumb.backdrop:SetPoint('TOPLEFT', thumb, thumbX, -thumbY)
-			thumb.backdrop:SetPoint('BOTTOMRIGHT', thumb, -thumbX, thumbY)
-			thumb.backdrop:SetFrameLevel(frameLevel + 1)
-			
-			-- Use template-specific scrollbar color with some transparency for better visibility
-			local scrollbarColor = SoundboardUI.colors.scrollbar
-			local backgroundColor = {scrollbarColor[1], scrollbarColor[2], scrollbarColor[3], 0.8} -- 80% alpha for thumb background
-			thumb.backdrop:SetBackdropColor(unpack(backgroundColor))
-			thumb.backdrop:SetBackdropBorderColor(unpack(SoundboardUI.colors.border))
-			
-			-- Add hover effects for better interactivity
-			thumb:SetScript("OnEnter", function()
-				if thumb.backdrop then
-					thumb.backdrop:SetBackdropColor(scrollbarColor[1], scrollbarColor[2], scrollbarColor[3], 0.9) -- Brighter on hover
-				end
-			end)
-			
-			thumb:SetScript("OnLeave", function()
-				if thumb.backdrop then
-					thumb.backdrop:SetBackdropColor(scrollbarColor[1], scrollbarColor[2], scrollbarColor[3], 0.8) -- Back to normal
-				end
-			end)
+
+		-- Hide the default grey thumb texture
+		thumb:SetAlpha(0)
+
+		local r, g, b = themeScrollbarColor[1], themeScrollbarColor[2], themeScrollbarColor[3]
+
+		-- Remove old overlay if it exists from previous styling
+		if scrollBar._sbOverlay then
+			scrollBar._sbOverlay:Hide()
+			scrollBar._sbOverlay = nil
 		end
+
+		-- Create overlay texture that sits on top of the default white thumb
+		local overlay = scrollBar:CreateTexture(nil, "OVERLAY")
+		overlay:SetTexture("Interface\\Buttons\\WHITE8x8")
+		overlay:SetVertexColor(r, g, b, 0.9)
+		scrollBar._sbOverlay = overlay
+		scrollBar._sbOverlayR = r
+		scrollBar._sbOverlayG = g
+		scrollBar._sbOverlayB = b
+
+		-- Track the thumb position every frame
+		scrollBar:HookScript("OnUpdate", function(self)
+			local t = self.ThumbTexture or (self.GetThumbTexture and self:GetThumbTexture())
+			if t and self._sbOverlay then
+				local w = self:GetWidth() - 4
+				if w < 4 then w = 12 end
+				self._sbOverlay:ClearAllPoints()
+				self._sbOverlay:SetPoint("CENTER", t, "CENTER", 0, 0)
+				self._sbOverlay:SetSize(w, t:GetHeight())
+				self._sbOverlay:SetVertexColor(self._sbOverlayR or 1, self._sbOverlayG or 0.82, self._sbOverlayB or 0, 0.9)
+			end
+		end)
 	end
 end
 
@@ -347,11 +337,17 @@ local function StyleButton(button, template)
 	button:SetDisabledTexture("")
 	
 	-- Add hover effects
-	local originalColor = SoundboardUI.colors.backdrop
+	local originalColor = SoundboardUI.colors.backdrop or {0, 0, 0, 1}
+	local hoverColor = {
+		math.min(1, (originalColor[1] or 0) + 0.15),
+		math.min(1, (originalColor[2] or 0) + 0.15),
+		math.min(1, (originalColor[3] or 0) + 0.15),
+		originalColor[4] or 1,
+	}
 	
 	button:HookScript("OnEnter", function()
 		if button.backdrop then
-			button.backdrop:SetBackdropColor(unpack(SoundboardUI.colors.highlight))
+			button.backdrop:SetBackdropColor(unpack(hoverColor))
 		end
 	end)
 	
@@ -995,7 +991,7 @@ function SoundboardDropdown:Initialize()
 	-- Create scroll frame with proper template - ensure scrollbar stays within bounds
 	local scrollFrame = CreateFrame("ScrollFrame", nil, self.frame, "UIPanelScrollFrameTemplate")
 	scrollFrame:SetPoint("TOPLEFT", SoundboardUI.Scale(4), -SoundboardUI.Scale(4))
-	scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(10), SoundboardUI.Scale(4)) -- Scrollbar stays in original position
+	scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(15), SoundboardUI.Scale(4))
 	self.scrollFrame = scrollFrame
 	DebugPrint("Scroll frame created with scrollbar in original position")
 	
@@ -3677,19 +3673,6 @@ function DynamicEventsWindow:BuildFrame()
 	if scrollBar then
 		SoundboardUI.HandleScrollBar(scrollBar, selectedTemplate)
 		self.scrollbar = scrollBar
-
-		local scrollbarColor = SoundboardUI.colors.scrollbar or {1, 0.82, 0, 1}
-		local r, g, b = scrollbarColor[1], scrollbarColor[2], scrollbarColor[3]
-
-		local thumb = scrollBar.ThumbTexture or (scrollBar.GetThumbTexture and scrollBar:GetThumbTexture())
-		if thumb then
-			if thumb.SetColorTexture then
-				thumb:SetColorTexture(r, g, b, 0.8)
-			else
-				thumb:SetTexture("Interface\\Buttons\\WHITE8x8")
-				thumb:SetVertexColor(r, g, b, 0.8)
-			end
-		end
 	end
 end
 
@@ -3705,6 +3688,10 @@ function DynamicEventsWindow:ClearContent()
 			region:Hide()
 			region:SetParent(nil)
 		end
+	end
+	if self.scrollFrame then
+		self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(15), SoundboardUI.Scale(4))
+		self.scrollFrame:SetVerticalScroll(0)
 	end
 	self.buttons = {}
 end
@@ -3786,12 +3773,10 @@ function DynamicEventsWindow:UpdateScrollbar()
 			self.scrollbar:Show()
 			self.scrollbar:SetMinMaxValues(0, math.max(0, contentHeight - frameHeight))
 			self.scrollbar:SetValue(0)
-			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(15), SoundboardUI.Scale(4))
 			if self.frame then self.frame:EnableMouseWheel(true) end
 		else
 			self.scrollbar:Hide()
 			self.scrollFrame:SetVerticalScroll(0)
-			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(5), SoundboardUI.Scale(4))
 			if self.frame then self.frame:EnableMouseWheel(false) end
 		end
 	end
@@ -4220,6 +4205,20 @@ function DynamicEventsWindow:WizardStep5()
 	local tc = SoundboardUI.colors.text
 	if tc then searchBox:SetTextColor(tc[1], tc[2], tc[3]) end
 
+	searchBox:SetScript("OnEscapePressed", function(editBox)
+		editBox:ClearFocus()
+	end)
+
+	yOffset = yOffset - 25
+
+	-- Container frame for the sound list area (below the search box)
+	local listContainer = CreateFrame("Frame", nil, self.content)
+	listContainer:SetPoint("TOPLEFT", self.content, "TOPLEFT", 0, yOffset)
+	listContainer:SetPoint("TOPRIGHT", self.content, "TOPRIGHT", 0, yOffset)
+	listContainer:SetHeight(1)
+	self._soundListContainer = listContainer
+	self._soundListYStart = yOffset
+
 	searchBox:SetScript("OnTextChanged", function(editBox, userInput)
 		if userInput then
 			local query = editBox:GetText()
@@ -4230,35 +4229,65 @@ function DynamicEventsWindow:WizardStep5()
 			end
 		end
 	end)
-	searchBox:SetScript("OnEscapePressed", function(editBox)
-		editBox:ClearFocus()
-	end)
-
-	yOffset = yOffset - 25
-	self._soundListYStart = yOffset
-	self._searchBox = searchBox
 
 	self:ShowSoundCategories()
 end
 
-function DynamicEventsWindow:ShowSoundCategories()
-	local children = { self.content:GetChildren() }
-	for _, child in ipairs(children) do
-		if child ~= self._searchBox then
-			local yPos = select(5, child:GetPoint(1))
-			if yPos and yPos < self._soundListYStart then
-				child:Hide()
-				child:SetParent(nil)
-			end
+function DynamicEventsWindow:ClearSoundList()
+	if self._soundListContainer then
+		local children = { self._soundListContainer:GetChildren() }
+		for _, child in ipairs(children) do
+			child:Hide()
+			child:SetParent(nil)
 		end
 	end
+end
 
-	local yOffset = self._soundListYStart
+function DynamicEventsWindow:CreateSoundListButton(text, yOffset)
+	local container = self._soundListContainer
+	if not container then return nil end
+
+	local btn = CreateFrame("Button", nil, container)
+	local buttonWidth = 370
+	btn:SetSize(buttonWidth, 20)
+	btn:SetPoint("TOPLEFT", container, "TOPLEFT", SoundboardUI.Scale(4), yOffset)
+
+	local selectedTemplate = (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.UITemplate) or "Default"
+	local templateColors = SoundboardUI.templates[selectedTemplate] or SoundboardUI.templates.Default
+
+	SoundboardUI.StyleButton(btn, selectedTemplate)
+
+	local fs = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	fs:SetPoint("LEFT", SoundboardUI.Scale(4), 0)
+	fs:SetPoint("RIGHT", -SoundboardUI.Scale(4), 0)
+	fs:SetJustifyH("LEFT")
+	fs:SetText(text)
+	btn.text = fs
+
+	fs:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	local originalEnter = btn:GetScript("OnEnter")
+	local originalLeave = btn:GetScript("OnLeave")
+	btn:SetScript("OnEnter", function(b)
+		if originalEnter then originalEnter(b) end
+		fs:SetTextColor(templateColors.textHover[1], templateColors.textHover[2], templateColors.textHover[3], templateColors.textHover[4])
+	end)
+	btn:SetScript("OnLeave", function(b)
+		if originalLeave then originalLeave(b) end
+		fs:SetTextColor(templateColors.text[1], templateColors.text[2], templateColors.text[3], templateColors.text[4])
+	end)
+
+	return btn
+end
+
+function DynamicEventsWindow:ShowSoundCategories()
+	self:ClearSoundList()
+
+	local yOffset = 0
 	local buttonHeight = 22
 
 	if not soundboard_data then
-		local noBtn = self:CreateButton("|cFF888888No sounds available|r", yOffset)
-		noBtn:SetScript("OnClick", nil)
+		local noBtn = self:CreateSoundListButton("|cFF888888No sounds available|r", yOffset)
+		if noBtn then noBtn:SetScript("OnClick", nil) end
 		yOffset = yOffset - buttonHeight
 	else
 		if not SoundboardDropdown.categoriesBuilt then
@@ -4266,10 +4295,12 @@ function DynamicEventsWindow:ShowSoundCategories()
 		end
 
 		if SoundboardDropdown:HasFavorites() then
-			local favBtn = self:CreateButton("Favorites", yOffset)
-			favBtn:SetScript("OnClick", function()
-				self:ShowSoundCategoryContents("Favorites")
-			end)
+			local favBtn = self:CreateSoundListButton("Favorites", yOffset)
+			if favBtn then
+				favBtn:SetScript("OnClick", function()
+					self:ShowSoundCategoryContents("Favorites")
+				end)
+			end
 			yOffset = yOffset - buttonHeight
 		end
 
@@ -4277,7 +4308,24 @@ function DynamicEventsWindow:ShowSoundCategories()
 		for category, _ in pairs(SoundboardDropdown.categories) do
 			tinsert(categoryNames, category)
 		end
-		tsort(categoryNames)
+
+		local function isMiscCategory(name)
+			local l = strlower(name)
+			return l == "misc" or l == "miscellaneous" or l == "etc" or l == "other" or l == "uncategorized"
+		end
+
+		tsort(categoryNames, function(a, b)
+			local aFav = SoundboardDropdown:IsCategoryFavorited(a)
+			local bFav = SoundboardDropdown:IsCategoryFavorited(b)
+			local aMissing = (a == "Missing Configuration")
+			local bMissing = (b == "Missing Configuration")
+			local aMisc = isMiscCategory(a)
+			local bMisc = isMiscCategory(b)
+			if aMissing ~= bMissing then return not aMissing end
+			if aFav ~= bFav then return aFav end
+			if aMisc ~= bMisc then return not aMisc end
+			return a < b
+		end)
 
 		for _, category in ipairs(categoryNames) do
 			if category ~= "Missing Configuration" or (Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.DebugMode) then
@@ -4286,16 +4334,23 @@ function DynamicEventsWindow:ShowSoundCategories()
 				for _, sounds in pairs(catData.subcategories) do
 					count = count + #sounds
 				end
-				local catBtn = self:CreateButton(category .. " |cFF888888(" .. count .. ")|r", yOffset)
-				catBtn:SetScript("OnClick", function()
-					self:ShowSoundCategoryContents(category)
-				end)
+				local isFav = SoundboardDropdown:IsCategoryFavorited(category)
+				local prefix = isFav and "|cFFFFD100* |r" or ""
+				local catBtn = self:CreateSoundListButton(prefix .. category .. " |cFF888888(" .. count .. ")|r", yOffset)
+				if catBtn then
+					catBtn:SetScript("OnClick", function()
+						self:ShowSoundCategoryContents(category)
+					end)
+				end
 				yOffset = yOffset - buttonHeight
 			end
 		end
 	end
 
-	self.content:SetHeight(math.abs(yOffset) + 10)
+	if self._soundListContainer then
+		self._soundListContainer:SetHeight(math.abs(yOffset) + 5)
+	end
+	self.content:SetHeight(math.abs(self._soundListYStart) + math.abs(yOffset) + 15)
 	self:UpdateScrollbar()
 end
 
@@ -4310,47 +4365,190 @@ function DynamicEventsWindow:ShowSoundCategoryContents(categoryName)
 	backBtn:SetScript("OnClick", function() self:WizardStep5() end)
 	yOffset = yOffset - buttonHeight - 5
 
-	local title = self:CreateButton("Category: " .. categoryName, yOffset, false, true)
-	title:SetScript("OnClick", nil)
-	yOffset = yOffset - 24 - 5
-
-	local sounds = {}
 	if categoryName == "Favorites" then
-		for key, data in pairs(soundboard_data) do
-			if SoundboardDropdown:IsFavorite(key) then
-				table.insert(sounds, { key = key, data = data })
+		local title = self:CreateButton("Favorites", yOffset, false, true)
+		title:SetScript("OnClick", nil)
+		yOffset = yOffset - 24 - 5
+
+		-- Favorited categories
+		local favCats = {}
+		if Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.FavoriteCategories then
+			for catName, _ in pairs(Soundboard.db.profile.FavoriteCategories) do
+				if SoundboardDropdown.categories and SoundboardDropdown.categories[catName] then
+					tinsert(favCats, catName)
+				end
 			end
 		end
+		tsort(favCats)
+
+		if #favCats > 0 then
+			local catHeader = self:CreateButton("Favorite Categories", yOffset, false, true)
+			catHeader:SetScript("OnClick", nil)
+			yOffset = yOffset - 24
+
+			for _, catName in ipairs(favCats) do
+				local catData = SoundboardDropdown.categories[catName]
+				local count = #catData.sounds
+				for _, s in pairs(catData.subcategories) do count = count + #s end
+				local catBtn = self:CreateButton("|cFFFFD100* |r" .. catName .. " |cFF888888(" .. count .. ")|r", yOffset)
+				catBtn:SetScript("OnClick", function()
+					self:ShowSoundCategoryContents(catName)
+				end)
+				yOffset = yOffset - buttonHeight
+			end
+			yOffset = yOffset - 5
+		end
+
+		-- Favorited subcategories
+		local favSubs = {}
+		if Soundboard.db and Soundboard.db.profile and Soundboard.db.profile.FavoriteSubcategories then
+			for catName, subs in pairs(Soundboard.db.profile.FavoriteSubcategories) do
+				if SoundboardDropdown.categories and SoundboardDropdown.categories[catName] then
+					for subName, _ in pairs(subs) do
+						if SoundboardDropdown.categories[catName].subcategories[subName] then
+							tinsert(favSubs, { cat = catName, sub = subName })
+						end
+					end
+				end
+			end
+		end
+		tsort(favSubs, function(a, b) return (a.cat .. a.sub) < (b.cat .. b.sub) end)
+
+		if #favSubs > 0 then
+			local subHeader = self:CreateButton("Favorite Subcategories", yOffset, false, true)
+			subHeader:SetScript("OnClick", nil)
+			yOffset = yOffset - 24
+
+			for _, fs in ipairs(favSubs) do
+				local subSounds = SoundboardDropdown.categories[fs.cat].subcategories[fs.sub]
+				local subBtn = self:CreateButton("|cFFFFD100* |r" .. fs.cat .. " > " .. fs.sub .. " |cFF888888(" .. #subSounds .. ")|r", yOffset)
+				subBtn:SetScript("OnClick", function()
+					self:ShowSoundSubcategoryContents(fs.cat, fs.sub)
+				end)
+				yOffset = yOffset - buttonHeight
+			end
+			yOffset = yOffset - 5
+		end
+
+		-- Individual favorited sounds
+		local favSounds = {}
+		if soundboard_data then
+			for key, data in pairs(soundboard_data) do
+				if SoundboardDropdown:IsFavorite(key) then
+					tinsert(favSounds, { key = key, data = data })
+				end
+			end
+		end
+
+		if #favSounds > 0 then
+			tsort(favSounds, function(a, b)
+				return (a.data.text or a.key or "") < (b.data.text or b.key or "")
+			end)
+
+			local soundHeader = self:CreateButton("Favorite Sounds", yOffset, false, true)
+			soundHeader:SetScript("OnClick", nil)
+			yOffset = yOffset - 24
+
+			for _, snd in ipairs(favSounds) do
+				local displayText = (snd.data.text or snd.key):gsub("%*", "")
+				local soundBtn = self:CreateButton("/" .. snd.key .. " - " .. displayText, yOffset)
+				soundBtn:SetScript("OnClick", function()
+					self:SoundSelected(snd.key)
+				end)
+				yOffset = yOffset - buttonHeight
+			end
+		end
+
+		if #favCats == 0 and #favSubs == 0 and #favSounds == 0 then
+			local noneBtn = self:CreateButton("|cFF888888No favorites yet.|r", yOffset)
+			noneBtn:SetScript("OnClick", nil)
+			yOffset = yOffset - buttonHeight
+		end
 	else
+		local title = self:CreateButton("Category: " .. categoryName, yOffset, false, true)
+		title:SetScript("OnClick", nil)
+		yOffset = yOffset - 24 - 5
+
 		local catData = SoundboardDropdown.categories[categoryName]
 		if catData then
-			for _, soundInfo in ipairs(catData.sounds) do
-				table.insert(sounds, soundInfo)
+			-- Direct sounds first
+			if #catData.sounds > 0 then
+				for _, soundInfo in ipairs(catData.sounds) do
+					local key = soundInfo.key
+					local data = soundInfo.data or soundboard_data[key]
+					if data then
+						local displayText = (data.text or key):gsub("%*", "")
+						local soundBtn = self:CreateButton("/" .. key .. " - " .. displayText, yOffset)
+						soundBtn:SetScript("OnClick", function()
+							self:SoundSelected(key)
+						end)
+						yOffset = yOffset - buttonHeight
+					end
+				end
 			end
-			for subName, subSounds in pairs(catData.subcategories) do
-				for _, soundInfo in ipairs(subSounds) do
-					table.insert(sounds, soundInfo)
+
+			-- Subcategories with headers
+			local subNames = {}
+			for subName, _ in pairs(catData.subcategories) do
+				tinsert(subNames, subName)
+			end
+			tsort(subNames)
+
+			for _, subName in ipairs(subNames) do
+				local headerBtn = self:CreateButton("|cFFFFCC00" .. subName .. "|r", yOffset, false, true)
+				headerBtn:SetScript("OnClick", nil)
+				yOffset = yOffset - 24
+
+				for _, soundInfo in ipairs(catData.subcategories[subName]) do
+					local key = soundInfo.key
+					local data = soundInfo.data or soundboard_data[key]
+					if data then
+						local displayText = (data.text or key):gsub("%*", "")
+						local soundBtn = self:CreateButton("/" .. key .. " - " .. displayText, yOffset)
+						soundBtn:SetScript("OnClick", function()
+							self:SoundSelected(key)
+						end)
+						yOffset = yOffset - buttonHeight
+					end
 				end
 			end
 		end
 	end
 
-	table.sort(sounds, function(a, b)
-		local aText = a.data and a.data.text or a.key or ""
-		local bText = b.data and b.data.text or b.key or ""
-		return aText < bText
-	end)
+	self.content:SetHeight(math.abs(yOffset) + 10)
+	self:UpdateScrollbar()
+end
 
-	for _, soundInfo in ipairs(sounds) do
-		local key = soundInfo.key
-		local data = soundInfo.data or soundboard_data[key]
-		if data then
-			local displayText = (data.text or key):gsub("%*", "")
-			local soundBtn = self:CreateButton(displayText .. " |cFF888888(/" .. key .. ")|r", yOffset)
-			soundBtn:SetScript("OnClick", function()
-				self:SoundSelected(key)
-			end)
-			yOffset = yOffset - buttonHeight
+function DynamicEventsWindow:ShowSoundSubcategoryContents(categoryName, subcategoryName)
+	self:ClearContent()
+	self.currentStep = "wizard_step5_subcategory"
+
+	local yOffset = -5
+	local buttonHeight = 22
+
+	local backBtn = self:CreateButton("< Back to Favorites", yOffset)
+	backBtn:SetScript("OnClick", function()
+		self:ShowSoundCategoryContents("Favorites")
+	end)
+	yOffset = yOffset - buttonHeight - 5
+
+	local title = self:CreateButton(categoryName .. " > " .. subcategoryName, yOffset, false, true)
+	title:SetScript("OnClick", nil)
+	yOffset = yOffset - 24 - 5
+
+	local catData = SoundboardDropdown.categories and SoundboardDropdown.categories[categoryName]
+	if catData and catData.subcategories[subcategoryName] then
+		for _, soundInfo in ipairs(catData.subcategories[subcategoryName]) do
+			local key = soundInfo.key
+			local data = soundInfo.data or soundboard_data[key]
+			if data then
+				local displayText = (data.text or key):gsub("%*", "")
+				local soundBtn = self:CreateButton("/" .. key .. " - " .. displayText, yOffset)
+				soundBtn:SetScript("OnClick", function()
+					self:SoundSelected(key)
+				end)
+				yOffset = yOffset - buttonHeight
+			end
 		end
 	end
 
@@ -4359,18 +4557,9 @@ function DynamicEventsWindow:ShowSoundCategoryContents(categoryName)
 end
 
 function DynamicEventsWindow:ShowSoundSearchResults(query)
-	local children = { self.content:GetChildren() }
-	for _, child in ipairs(children) do
-		if child ~= self._searchBox then
-			local yPos = select(5, child:GetPoint(1))
-			if yPos and yPos < self._soundListYStart then
-				child:Hide()
-				child:SetParent(nil)
-			end
-		end
-	end
+	self:ClearSoundList()
 
-	local yOffset = self._soundListYStart
+	local yOffset = 0
 	local buttonHeight = 22
 	local lowerQuery = strlower(query)
 	local results = {}
@@ -4396,21 +4585,26 @@ function DynamicEventsWindow:ShowSoundSearchResults(query)
 		local key = soundInfo.key
 		local data = soundInfo.data
 		local displayText = (data.text or key):gsub("%*", "")
-		local soundBtn = self:CreateButton(displayText .. " |cFF888888(/" .. key .. ")|r", yOffset)
-		soundBtn:SetScript("OnClick", function()
-			self:SoundSelected(key)
-		end)
+		local soundBtn = self:CreateSoundListButton("/" .. key .. " - " .. displayText, yOffset)
+		if soundBtn then
+			soundBtn:SetScript("OnClick", function()
+				self:SoundSelected(key)
+			end)
+		end
 		yOffset = yOffset - buttonHeight
 		shown = shown + 1
 	end
 
 	if shown == 0 then
-		local noneBtn = self:CreateButton("|cFF888888No results for '" .. query .. "'|r", yOffset)
-		noneBtn:SetScript("OnClick", nil)
+		local noneBtn = self:CreateSoundListButton("|cFF888888No results for '" .. query .. "'|r", yOffset)
+		if noneBtn then noneBtn:SetScript("OnClick", nil) end
 		yOffset = yOffset - buttonHeight
 	end
 
-	self.content:SetHeight(math.abs(yOffset) + 10)
+	if self._soundListContainer then
+		self._soundListContainer:SetHeight(math.abs(yOffset) + 5)
+	end
+	self.content:SetHeight(math.abs(self._soundListYStart) + math.abs(yOffset) + 15)
 	self:UpdateScrollbar()
 end
 
@@ -5341,17 +5535,13 @@ function SoundboardDropdown:UpdateScrollbar()
 			self.scrollbar:Show()
 			self.scrollbar:SetMinMaxValues(0, math.max(0, contentHeight - frameHeight))
 			self.scrollbar:SetValue(0) -- Reset to top
-			-- Keep scrollbar properly within bounds
-			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(10), SoundboardUI.Scale(4))
-			-- Enable mouse wheel scrolling
+			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(15), SoundboardUI.Scale(4))
 			self.frame:EnableMouseWheel(true)
 		else
 			DebugPrint("Content fits in frame, hiding scrollbar and expanding content area")
 			self.scrollbar:Hide()
 			self.scrollFrame:SetVerticalScroll(0)
-			-- Expand scroll frame to full width when no scrollbar needed
-			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(4), SoundboardUI.Scale(4))
-			-- Disable mouse wheel scrolling when not needed
+			self.scrollFrame:SetPoint("BOTTOMRIGHT", -SoundboardUI.Scale(5), SoundboardUI.Scale(4))
 			self.frame:EnableMouseWheel(false)
 		end
 		

@@ -288,7 +288,7 @@ jobs:
         if: steps.release-type.outputs.RELEASE_TYPE != 'skip' && !(steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release')
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          args: -S -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
@@ -392,12 +392,13 @@ jobs:
       - name: Extract release description for release events
         id: release-description
         if: github.event_name == 'release'
+        env:
+          RELEASE_BODY: ${{ github.event.release.body }}
         run: |
-          # For release events, use the release body as changelog content
           echo "📝 Using GitHub Release description as changelog content"
           {
             echo 'CHANGELOG_CONTENT<<EOF'
-            echo "${{ github.event.release.body }}"
+            printf '%s\n' "$RELEASE_BODY"
             echo 'EOF'
           } >> $GITHUB_OUTPUT
           
@@ -438,7 +439,7 @@ jobs:
         if: steps.release-type.outputs.RELEASE_TYPE == 'release' && github.event_name == 'push' && github.ref_name == 'release'
         uses: BigWigsMods/packager@v2
         with:
-          args: -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
+          args: -S -g ${{ env.GAME_VERSIONS }} -p 1335953 -n "Soundboard-v${{ steps.release-type.outputs.VERSION }}"
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
@@ -469,66 +470,42 @@ jobs:
             echo "🔍 Hotfix detected: ${VERSION} → using base version ${BASE_VERSION} for changelog"
           fi
           
-          # Create Discord-friendly changelog summary using base version
-          if [[ "$BASE_VERSION" == "1.3.2" ]]; then
-            CHANGELOG_SUMMARY="**NEW COMEDY GOLD** - Massive collection of The Office, Monty Python, and internet meme classics!\n\n**📺 The Office Pack** - 6 new sounds including Identity Theft, That's What She Said, and Office Theme\n**🏰 Monty Python Pack** - 6 new sounds from Holy Grail and Life of Brian\n**🎭 Meme Collection** - 6 new internet classics and viral hits\n\n**Total: 18 new sounds** across 3 categories!"
-          elif [[ "$BASE_VERSION" == "1.3.3" ]]; then
-            CHANGELOG_SUMMARY="**SOUTH PARK EXPANSION** - Three iconic South Park classics join the soundboard!\n\n**🏮 South Park Pack** - City Wok, Goddamn Mongolians, and Goddamnit Cartman\n**🎭 Comedy Collection Update** - Classic quotes from fan-favorite characters\n\n**Perfect for raids** with automatic emotes and instant recognition!"
-          else
-            # For other versions, extract from changelog using base version
-            echo "🔍 Extracting changelog summary for base version: ${BASE_VERSION}"
-            
-            # Extract multiple lines from changelog for richer content
-            CHANGELOG_SUMMARY=$(awk -v version="$BASE_VERSION" '
-            BEGIN { 
-              found = 0; 
-              content = ""; 
-              in_version = 0;
-              line_count = 0;
-            }
-            /^## Version / { 
-              if (found && in_version) {
-                exit;
-              }
-              if ($0 ~ version) {
-                found = 1; 
-                in_version = 1;
-                next;
-              }
-            }
-            found && in_version && NF > 0 && line_count < 8 { 
-              if (content == "" && $0 ~ /^\s*$/) next;
-              if (content != "") content = content "\n";
-              content = content $0;
-              line_count++;
-            }
-            END { 
-              if (content != "") {
-                print content;
-              } else {
-                print "New version released with improvements and fixes!";
-              }
-            }
-            ' CHANGELOG.txt)
-            
-            # Clean up the extracted content
-            CHANGELOG_SUMMARY=$(echo "$CHANGELOG_SUMMARY" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-            
-            # Fallback if changelog extraction fails
-            if [[ -z "$CHANGELOG_SUMMARY" || "$CHANGELOG_SUMMARY" == "New version released with improvements and fixes!" ]]; then
-              if [[ "${{ github.event_name }}" == "release" ]]; then
-                RELEASE_BODY_SUMMARY=$(echo "${{ github.event.release.body }}" | head -3 | grep -E '^\*\*.*\*\*' | head -1 | sed 's/^[*#]*//' | sed 's/^\s*//')
-                if [[ -n "$RELEASE_BODY_SUMMARY" ]]; then
-                  CHANGELOG_SUMMARY="$RELEASE_BODY_SUMMARY"
-                fi
-              fi
-            fi
+          # Extract changelog summary from CHANGELOG.txt using base version
+          echo "🔍 Extracting changelog summary for base version: ${BASE_VERSION}"
+          
+          CHANGELOG_SUMMARY=$(awk -v version="$BASE_VERSION" '
+          BEGIN { found = 0; content = ""; in_version = 0; line_count = 0; }
+          /^## Version / { 
+            if (found && in_version) exit;
+            if ($0 ~ version) { found = 1; in_version = 1; next; }
+          }
+          found && in_version && NF > 0 && line_count < 8 { 
+            if (content != "") content = content "\n";
+            content = content $0;
+            line_count++;
+          }
+          END { 
+            if (content != "") print content;
+            else print "New version released with improvements and fixes!";
+          }
+          ' CHANGELOG.txt)
+          
+          CHANGELOG_SUMMARY=$(echo "$CHANGELOG_SUMMARY" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+          
+          if [[ -z "$CHANGELOG_SUMMARY" || "$CHANGELOG_SUMMARY" == "New version released with improvements and fixes!" ]]; then
+            CHANGELOG_SUMMARY="New version released with improvements and fixes!"
           fi
           
           # Add hotfix indicator to summary if this is a hotfix
           if [[ "$IS_HOTFIX" == "true" ]]; then
             HOTFIX_SUFFIX=$(echo "${VERSION}" | sed "s/^${BASE_VERSION}//")
             CHANGELOG_SUMMARY="${CHANGELOG_SUMMARY}"$'\n\n'"🔧 **Hotfix ${HOTFIX_SUFFIX}**: Bug fixes and stability improvements"
+          fi
+          
+          # Discord embed field values are limited to 1024 characters
+          if [[ ${#CHANGELOG_SUMMARY} -gt 1020 ]]; then
+            CHANGELOG_SUMMARY="${CHANGELOG_SUMMARY:0:1017}..."
+            echo "⚠️ Changelog truncated to fit Discord's 1024-char field limit"
           fi
           
           # Get current date and create JSON payload

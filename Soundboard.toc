@@ -5,9 +5,10 @@
 ## Interface-Cata: 40402
 ## Interface-MoP: 50503
 ## Interface-Retail: 120001
+## IconTexture: Interface\AddOns\Soundboard\icon
 ## Notes: Play sound emotes for yourself and anyone else who has the addon!
 ## Title: Soundboard
-## Version: 2.0.0
+## Version: 2.0.1
 ## SavedVariables: SoundboardDB
 embeds.xml
 Soundpacks\Default\soundpack.lua

@@ -1,4 +1,13 @@
 # Soundboard Changelog
+## Version 2.0.1
+**BUG FIXES**
+
+### 🔧 Bug Fixes
+- **UI Fixes**: Resolved an issue with Dynamic Events not opening, scrollbars not scrolling, and a ton of other tweaks
+- **Fix LUA Errors**: Fixed various lua errors related to incomplete ui hover code
+- **Out of Date on TBC Anniversary / Classic**: Enabled TOC file splitting (`-S`) so the packager generates flavor-specific TOC files (`Soundboard_TBC.toc`, `Soundboard_Vanilla.toc`, etc.) — previously only the Retail fallback TOC was included, causing all non-Retail clients to flag the addon as out of date
+- **Missing Addon Icon**: Added the Soundboard icon instead of a red question mark in the addon list
+
 ## Version 2.0.0
 **DYNAMIC EVENTS** - Play sounds when bosses cast abilities in dungeons and raids
 
