@@ -1,4 +1,10 @@
 # Soundboard Changelog
+## Version 2.0.4
+**MIDNIGHT CLEU TAINT FIX**
+
+### 🔧 Bug Fixes
+- **Fix "ADDON FORBIDDEN: Frame:RegisterEvent()" popup on Midnight**: `COMBAT_LOG_EVENT_UNFILTERED` is one of Blizzard's protected events — `RegisterEvent` is rejected whenever the call originates from a tainted execution stack. On Midnight 12.0.x the AceAddon `OnInitialize` chain is commonly tainted by other addons that load earlier (ElvUI, Auctionator, DBM, etc. reading `LibStub` or tainted globals), and that taint propagates into Soundboard's init. Deferred CLEU registration from `OnInitialize` to `PLAYER_LOGIN`, which fires from a clean Blizzard-originated dispatch after all addons have finished enabling. Registration is idempotent and pcall-guarded so it self-heals across `/reload` if a single login stack is still unlucky.
+
 ## Version 2.0.3
 **MIDNIGHT TAINT FIX & LIBRARY CLEANUP**
 

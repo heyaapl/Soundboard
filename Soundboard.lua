@@ -5963,8 +5963,15 @@ local soundboard_data_sorted_keys = {};
 	self:RegisterEvent("PLAYER_ENTERING_WORLD"); -- Track loading screens
 	pcall(function() self:RegisterEvent("LOADING_SCREEN_ENABLED") end) -- 10.0.2+; safe no-op on older clients
 	pcall(function() self:RegisterEvent("LOADING_SCREEN_DISABLED") end)
-	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-	DebugPrint("Events registered: PLAYER_LOGIN/LOGOUT, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA, LOADING_SCREEN, CLEU events")
+	-- NOTE: COMBAT_LOG_EVENT_UNFILTERED is intentionally NOT registered here.
+	-- CLEU is one of Blizzard's protected/secure events and RegisterEvent is blocked
+	-- ("ADDON FORBIDDEN: Frame:RegisterEvent()") whenever it's called from a tainted
+	-- execution stack. On Midnight 12.0.x the AceAddon init chain is commonly tainted
+	-- by other addons loaded earlier (ElvUI, Auctionator, DBM, etc. reading LibStub
+	-- or tainted globals), and that taint flows through AceAddon:InitializeAddon
+	-- into our OnInitialize. Instead we defer CLEU registration until PLAYER_LOGIN,
+	-- which fires with a clean Blizzard-originated stack.
+	DebugPrint("Events registered: PLAYER_LOGIN/LOGOUT, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA, LOADING_SCREEN (CLEU deferred to PLAYER_LOGIN)")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
 	-- Register with Interface Options
@@ -8164,7 +8171,24 @@ end
 -- Event Handlers
 function Soundboard:PLAYER_LOGIN(event, ...)
 	DebugPrint("PLAYER_LOGIN event triggered")
-	
+
+	-- Register COMBAT_LOG_EVENT_UNFILTERED here rather than in OnInitialize. CLEU is a
+	-- protected event; RegisterEvent is blocked with "ADDON FORBIDDEN" when called from
+	-- a tainted execution stack, and the AceAddon init chain on Midnight 12.0.x is
+	-- frequently tainted by other addons loading before us. PLAYER_LOGIN fires after
+	-- all addons have initialized, from a clean Blizzard event dispatch, so the
+	-- registration succeeds here. Registration is idempotent and safely pcall-wrapped
+	-- in case the login stack is itself somehow tainted on a particular user's setup.
+	if not self.cleuRegistered then
+		local ok = pcall(function() self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED") end)
+		if ok then
+			self.cleuRegistered = true
+			DebugPrint("[Events] COMBAT_LOG_EVENT_UNFILTERED registered at PLAYER_LOGIN")
+		else
+			DebugPrint("[Events] CLEU registration blocked (tainted stack); will retry on next login")
+		end
+	end
+
 	-- Check if this is a genuine login or just a reload
 	if self.playerStates.hasLoggedInThisSession then
 		DebugPrint("[Events] PLAYER_LOGIN fired but this is a reload, not a genuine login - ignoring")
