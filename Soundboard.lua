@@ -4,7 +4,51 @@
 --[[ TODO:
 	Check if IsInRaid() works in Battleground.
 ]]
-Soundboard = LibStub("AceAddon-3.0"):NewAddon("Soundboard", "AceConsole-3.0", "AceEvent-3.0", "AceComm-3.0")
+Soundboard = LibStub("AceAddon-3.0"):NewAddon("Soundboard", "AceConsole-3.0", "AceComm-3.0")
+
+-- Private event dispatcher.
+-- We intentionally do NOT embed AceEvent-3.0: AceEvent uses a single globally-named frame
+-- ("AceEvent30Frame") shared across every addon that embeds it. In WoW Midnight (12.0.x),
+-- Blizzard's tightened taint model propagates "ADDON FORBIDDEN: AceEvent30Frame:RegisterEvent()"
+-- errors across every addon sharing that frame the moment another addon drags it into a
+-- secure execution path. Owning our own frame keeps Soundboard isolated from that taint.
+do
+	local eventFrame = CreateFrame("Frame", "SoundboardEventFrame")
+	Soundboard.eventFrame = eventFrame
+	local registered = {}
+
+	function Soundboard:RegisterEvent(event, callback)
+		registered[event] = callback or event
+		eventFrame:RegisterEvent(event)
+	end
+
+	function Soundboard:UnregisterEvent(event)
+		registered[event] = nil
+		eventFrame:UnregisterEvent(event)
+	end
+
+	function Soundboard:UnregisterAllEvents()
+		for event in pairs(registered) do
+			eventFrame:UnregisterEvent(event)
+		end
+		wipe(registered)
+	end
+
+	eventFrame:SetScript("OnEvent", function(_, event, ...)
+		local handler = registered[event]
+		if not handler then return end
+		if type(handler) == "function" then
+			local ok, err = pcall(handler, Soundboard, event, ...)
+			if not ok and geterrorhandler then geterrorhandler()(err) end
+		else
+			local method = Soundboard[handler]
+			if method then
+				local ok, err = pcall(method, Soundboard, event, ...)
+				if not ok and geterrorhandler then geterrorhandler()(err) end
+			end
+		end
+	end)
+end
 
 -- Recent event trigger deduplication (per event type)
 Soundboard.recentEventTriggers = Soundboard.recentEventTriggers or {}
@@ -6292,7 +6336,6 @@ local soundboard_data_sorted_keys = {};
 			{"LibStub", "LibStub"},
 			{"AceAddon-3.0", "AceAddon-3.0"},
 			{"AceConsole-3.0", "AceConsole-3.0"},
-			{"AceEvent-3.0", "AceEvent-3.0"},
 			{"AceComm-3.0", "AceComm-3.0"},
 			{"AceDB-3.0", "AceDB-3.0"},
 			{"AceConfig-3.0", "AceConfig-3.0"},

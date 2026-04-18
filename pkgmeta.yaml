@@ -16,12 +16,6 @@ externals:
   Libs/AceDB-3.0:
     url: https://repos.curseforge.com/wow/ace3/trunk/AceDB-3.0
     tag: latest
-  Libs/AceDBOptions-3.0:
-    url: https://repos.curseforge.com/wow/ace3/trunk/AceDBOptions-3.0
-    tag: latest
-  Libs/AceEvent-3.0:
-    url: https://repos.curseforge.com/wow/ace3/trunk/AceEvent-3.0
-    tag: latest
   Libs/AceGUI-3.0:
     url: https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0
     tag: latest

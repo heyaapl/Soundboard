@@ -8,7 +8,7 @@
 ## IconTexture: Interface\AddOns\Soundboard\icon
 ## Notes: Play sound emotes for yourself and anyone else who has the addon!
 ## Title: Soundboard
-## Version: 2.0.2
+## Version: 2.0.3
 ## SavedVariables: SoundboardDB
 embeds.xml
 Soundpacks\Default\soundpack.lua

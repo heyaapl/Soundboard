@@ -1,4 +1,15 @@
 # Soundboard Changelog
+## Version 2.0.3
+**MIDNIGHT TAINT FIX & LIBRARY CLEANUP**
+
+### 🔧 Bug Fixes
+- **Fix "ADDON FORBIDDEN: AceEvent30Frame:RegisterEvent()" spam on Midnight**: Dropped the embedded AceEvent-3.0 mixin in favor of a private `SoundboardEventFrame`. AceEvent-3.0 uses a globally-named frame shared across every addon that embeds it, and Midnight's tightened taint model propagates the forbidden-event error across all consumers of that shared frame. Owning our own frame keeps Soundboard isolated from unrelated addons' taint paths — existing `self:RegisterEvent(...)` and `function Soundboard:EVENT_NAME(...)` handlers continue to work unchanged.
+- **Fixed embeds.xml load order**: `AceGUI-3.0` is now loaded before `AceConfig-3.0` so `AceConfigDialog-3.0` resolves its `LibStub("AceGUI-3.0")` dependency at file-load time.
+
+### 🧹 Library Cleanup
+- **Removed unused AceDBOptions-3.0**: Not referenced anywhere in the addon; no functional change, smaller download.
+- **Removed AceEvent-3.0**: No longer needed after the private event frame migration.
+
 ## Version 2.0.2
 **MIDNIGHT COMPATIBILITY**
 
