@@ -1,4 +1,10 @@
 # Soundboard Changelog
+## Version 2.0.2
+**MIDNIGHT COMPATIBILITY**
+
+### 🔧 Bug Fixes
+- **WoW Midnight 12.0.1 Compatibility**: Declared support for both 12.0.0 and 12.0.1 in the TOC so Midnight users no longer see an "incompatible" warning when Blizzard ships minor build bumps
+
 ## Version 2.0.1
 **BUG FIXES**
 

@@ -217,10 +217,10 @@ local function HandleScrollBar(scrollBar, template)
 		upButton:SetFrameLevel(frameLevel + 3) -- Above scrollbar backdrop
 		upButton:SetSize(18, 18) -- ElvUI standard size
 		
-		-- Use ElvUI arrow texture approach
-		upButton:SetNormalTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
-		upButton:SetPushedTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
-		upButton:SetDisabledTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
+		-- Use Blizzard built-in arrow textures (no external addon dependency)
+		upButton:SetNormalTexture("Interface\\Buttons\\Arrow-Up-Up")
+		upButton:SetPushedTexture("Interface\\Buttons\\Arrow-Up-Down")
+		upButton:SetDisabledTexture("Interface\\Buttons\\Arrow-Up-Disabled")
 		
 		local normal = upButton:GetNormalTexture()
 		local pushed = upButton:GetPushedTexture()
@@ -255,9 +255,9 @@ local function HandleScrollBar(scrollBar, template)
 		downButton:SetFrameLevel(frameLevel + 3)
 		downButton:SetSize(18, 18)
 		
-		downButton:SetNormalTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
-		downButton:SetPushedTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp") 
-		downButton:SetDisabledTexture("Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\ArrowUp")
+		downButton:SetNormalTexture("Interface\\Buttons\\Arrow-Up-Up")
+		downButton:SetPushedTexture("Interface\\Buttons\\Arrow-Up-Down")
+		downButton:SetDisabledTexture("Interface\\Buttons\\Arrow-Up-Disabled")
 		
 		local normal = downButton:GetNormalTexture()
 		local pushed = downButton:GetPushedTexture()
