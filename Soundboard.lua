@@ -8168,26 +8168,52 @@ function Soundboard:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcast
 	end
 end
 
+-- Register a taint-sensitive event by re-entering Lua from Blizzard's timer dispatcher,
+-- which provides a guaranteed clean execution stack. RegisterEvent for protected events
+-- (COMBAT_LOG_EVENT_UNFILTERED, certain UNIT_* events) is rejected with
+-- "ADDON FORBIDDEN: SoundboardEventFrame:RegisterEvent()" whenever *any* tainted Lua
+-- frame is on the stack at the time of the call -- it does NOT matter whose frame is
+-- the target, only who's on the caller stack. On Midnight 12.0.x, AceAddon's init chain
+-- and even subsequent event dispatches are routinely tainted by other addons (ElvUI,
+-- Auctionator, DBM) reading LibStub or tainted globals earlier in the session, so a
+-- direct call from OnInitialize or even PLAYER_LOGIN can still be rejected. C_Timer.After
+-- hops the call into Blizzard C -> fresh Lua stack. Retry with backoff handles the rare
+-- case where the first timer tick also lands on a tainted stack.
+function Soundboard:RegisterProtectedEvent(event)
+	self._protectedEventState = self._protectedEventState or {}
+	if self._protectedEventState[event] then return end
+
+	local attempts = 0
+	local delays = {0, 0.25, 1, 3, 10, 30}
+	local function tryRegister()
+		if self._protectedEventState[event] then return end
+		attempts = attempts + 1
+		local ok = pcall(function() self:RegisterEvent(event) end)
+		if ok then
+			self._protectedEventState[event] = true
+			DebugPrint("[Events] Protected event " .. event .. " registered on attempt " .. attempts)
+			return
+		end
+		local nextDelay = delays[attempts + 1]
+		if nextDelay then
+			DebugPrint("[Events] " .. event .. " blocked (attempt " .. attempts .. "); retrying in " .. nextDelay .. "s")
+			C_Timer.After(nextDelay, tryRegister)
+		else
+			DebugPrint("[Events] " .. event .. " registration gave up after " .. attempts .. " attempts; feature disabled until /reload")
+		end
+	end
+	C_Timer.After(delays[1], tryRegister)
+end
+
 -- Event Handlers
 function Soundboard:PLAYER_LOGIN(event, ...)
 	DebugPrint("PLAYER_LOGIN event triggered")
 
-	-- Register COMBAT_LOG_EVENT_UNFILTERED here rather than in OnInitialize. CLEU is a
-	-- protected event; RegisterEvent is blocked with "ADDON FORBIDDEN" when called from
-	-- a tainted execution stack, and the AceAddon init chain on Midnight 12.0.x is
-	-- frequently tainted by other addons loading before us. PLAYER_LOGIN fires after
-	-- all addons have initialized, from a clean Blizzard event dispatch, so the
-	-- registration succeeds here. Registration is idempotent and safely pcall-wrapped
-	-- in case the login stack is itself somehow tainted on a particular user's setup.
-	if not self.cleuRegistered then
-		local ok = pcall(function() self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED") end)
-		if ok then
-			self.cleuRegistered = true
-			DebugPrint("[Events] COMBAT_LOG_EVENT_UNFILTERED registered at PLAYER_LOGIN")
-		else
-			DebugPrint("[Events] CLEU registration blocked (tainted stack); will retry on next login")
-		end
-	end
+	-- Register COMBAT_LOG_EVENT_UNFILTERED via the deferred timer path. See
+	-- RegisterProtectedEvent above for the full rationale: CLEU is a protected event and
+	-- its RegisterEvent call is rejected from any tainted stack, including PLAYER_LOGIN
+	-- dispatches tainted by earlier addons. The C_Timer hop guarantees a clean stack.
+	self:RegisterProtectedEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
 	-- Check if this is a genuine login or just a reload
 	if self.playerStates.hasLoggedInThisSession then

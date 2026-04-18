@@ -1,4 +1,10 @@
 # Soundboard Changelog
+## Version 2.0.5
+**MIDNIGHT TAINT FIX (CONTINUED)**
+
+### 🔧 Bug Fixes
+- **Eliminate remaining "ADDON FORBIDDEN: SoundboardEventFrame:RegisterEvent()" popup**: `COMBAT_LOG_EVENT_UNFILTERED` is rejected whenever *any* tainted Lua frame is on the caller's stack — the frame being registered on doesn't matter, only the caller does. On Midnight 12.0.x even `PLAYER_LOGIN` can be dispatched on a tainted stack when ElvUI / Auctionator / DBM / etc. poisoned the session earlier. Registration is now hopped through `C_Timer.After(0, ...)`, which re-enters Lua from Blizzard's C-side timer dispatcher on a guaranteed clean stack. Added exponential backoff retry (0s → 0.25s → 1s → 3s → 10s → 30s) so a single unlucky tick can't permanently disable Dynamic Events — the next clean tick self-heals.
+
 ## Version 2.0.4
 **MIDNIGHT CLEU TAINT FIX**
 
