@@ -785,7 +785,7 @@ soundboard_data["gp"] = {
 	["duration"] = 38,
 };
 
-soundboard_data["hb"] = {
+soundboard_data["heartbeat"] = {
 	["text"] = 		"* Heartbeat! *",
 	["msg"] = "listens to their heartbeat.",
 	["emote"] = "dance",

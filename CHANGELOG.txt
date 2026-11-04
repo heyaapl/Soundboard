@@ -1,4 +1,15 @@
 # Soundboard Changelog
+## Version 2.0.6
+**WOW FOREVER SUPPORT & /hb CONFLICT FIX**
+
+### 🔧 Bug Fixes
+- **Renamed `/hb` to `/heartbeat`**: Every sound key is registered as a slash command, and `/hb` collided with HealBot's `/hb` command. The heartbeat sound is now `/heartbeat`. Players on older Soundboard versions who still broadcast `hb` (and the previously renamed `suf`) are transparently mapped to the new key, and saved Favorites / Blocklist entries are migrated on login.
+- **Fixed `/soundboardframes` on modern clients**: `GetMouseFocus()` was removed in 11.0+; the debug command now uses `GetMouseFoci()` when available.
+
+### ✨ New Features
+- **WoW: Forever support**: Declared Interface `16001` (`## Interface-Camelot`) so the addon loads without the out-of-date flag on the Forever client, and added `1.60.1` to the CurseForge packaging versions. Forever is detected via `WOW_PROJECT_CAMELOT`; since it runs Vanilla content on the modern client, Dynamic Events now offers only the Classic dungeon/raid list there.
+- **`/soundboardcheck` reports the client**: Prints the detected flavor (Retail / WoW Forever / Classic), game version, build and TOC number to make bug reports easier.
+
 ## Version 2.0.5
 **MIDNIGHT TAINT FIX (CONTINUED)**
 
