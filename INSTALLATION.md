@@ -6,6 +6,7 @@
 2. **Copy** the entire `Soundboard` folder to your WoW AddOns directory:
    - **Windows**: `World of Warcraft\_classic_\Interface\AddOns\`
    - **Mac**: `World of Warcraft/_classic_/Interface/AddOns/`
+   - Use `_retail_` for Retail or `_forever_` for WoW Forever in place of `_classic_`
 
 3. **Restart** World of Warcraft or type `/reload` in-game
 

@@ -448,6 +448,22 @@ local UIParent = UIParent
 local PlaySoundFile = PlaySoundFile
 local GetUnitName = GetUnitName
 local DoEmote = DoEmote
+
+-- Sound keys that were renamed because their auto-generated slash command
+-- collided with another addon's command. Players running an older Soundboard
+-- still broadcast the old key over the comm channel, and saved Favorites /
+-- Blocklist entries may still reference it, so both paths resolve through here.
+local LEGACY_SOUND_KEYS = {
+	hb  = "heartbeat",  -- /hb collided with HealBot (renamed in 2.0.6)
+	suf = "shutupfool", -- /suf collided with Shadowed Unit Frames (renamed in 2.0.1)
+}
+
+local function ResolveSoundKey(key)
+	if key and LEGACY_SOUND_KEYS[key] and soundboard_data and not soundboard_data[key] then
+		return LEGACY_SOUND_KEYS[key]
+	end
+	return key
+end
 local SendChatMessage = SendChatMessage
 local UnitIsGroupLeader = UnitIsGroupLeader
 local IsInRaid = IsInRaid
@@ -479,6 +495,9 @@ local SoundboardExpansion = {}
 function SoundboardExpansion:GetCurrentExpansionIndex()
 	local _, _, _, tocVersion = GetBuildInfo()
 	tocVersion = tonumber(tocVersion) or 0
+	-- WoW: Forever (WOW_PROJECT_CAMELOT, TOC 16001) is Vanilla content on the
+	-- modern client. Offer only the Classic instance list there.
+	if WOW_PROJECT_CAMELOT and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT then return 0 end
 	if tocVersion >= 120000 then return 11 end -- Midnight
 	if tocVersion >= 110000 then return 10 end -- The War Within
 	if tocVersion >= 100000 then return 9  end -- Dragonflight
@@ -6055,6 +6074,17 @@ local soundboard_data_sorted_keys = {};
 		db.Events = {}
 		DebugPrint("Migrated Events to default: empty table")
 	end
+	-- Rename saved Favorites / Blocklist entries that still use a legacy sound key
+	for oldKey, newKey in pairs(LEGACY_SOUND_KEYS) do
+		for _, listName in ipairs({ "Favorites", "Blocklist" }) do
+			local list = db[listName]
+			if type(list) == "table" and list[oldKey] ~= nil then
+				if list[newKey] == nil then list[newKey] = list[oldKey] end
+				list[oldKey] = nil
+				DebugPrint("Migrated " .. listName .. " entry /" .. oldKey .. " -> /" .. newKey)
+			end
+		end
+	end
 	if db.LastSessionEnd == nil then
 		db.LastSessionEnd = nil  -- Will be set on first logout/disable
 		DebugPrint("Migrated LastSessionEnd to default: nil")
@@ -6281,6 +6311,16 @@ local soundboard_data_sorted_keys = {};
 	-- Add soundboard check command
 	_G.SlashCmdList["SOUNDBOARDCHECK"] = function(msg)
 		Soundboard:Print("=== Soundboard Status Check ===")
+		local gameVersion, buildNumber, _, tocVersion = GetBuildInfo()
+		local flavor
+		if WOW_PROJECT_CAMELOT and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT then
+			flavor = "WoW Forever"
+		elseif WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+			flavor = "Retail"
+		else
+			flavor = "Classic (project " .. tostring(WOW_PROJECT_ID) .. ")"
+		end
+		Soundboard:Print("Client: " .. flavor .. " " .. tostring(gameVersion) .. " build " .. tostring(buildNumber) .. " (TOC " .. tostring(tocVersion) .. ")")
 		Soundboard:Print("soundboard_data exists: " .. tostring(soundboard_data ~= nil))
 		if soundboard_data then
 			Soundboard:Print("soundboard_data type: " .. type(soundboard_data))
@@ -6425,7 +6465,13 @@ local soundboard_data_sorted_keys = {};
 				Soundboard:Print("Button frame strata: " .. tostring(button:GetFrameStrata()))
 				
 				-- Check what frame is on top at that location
-				local topFrame = GetMouseFocus()
+				-- (GetMouseFocus was removed in 11.0+; modern clients use GetMouseFoci)
+				local topFrame
+				if GetMouseFoci then
+					topFrame = GetMouseFoci()[1]
+				elseif GetMouseFocus then
+					topFrame = GetMouseFocus()
+				end
 				Soundboard:Print("Current mouse focus: " .. tostring(topFrame and topFrame:GetName() or "nil"))
 				
 				-- Force the button to top
@@ -7593,7 +7639,8 @@ end
 
 function Soundboard:DoEmote(key, arg2, sender)
 	DebugPrint("DoEmote called for: " .. tostring(key) .. (sender and (" from " .. sender) or ""))
-	
+	key = ResolveSoundKey(key)
+
 	if (db.IsEnabled) then
 		if (db.GroupEnabled) then
 			if (time() - LastEmoteTime > 1) then

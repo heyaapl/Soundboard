@@ -101,6 +101,7 @@ Works with all Classic WoW versions:
 *   Wrath Classic
 *   Cataclysm Classic
 *   Mist of Pandaria Classic
+*   WoW Forever
 *   Retail
 
 ## Custom sounds
