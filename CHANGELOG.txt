@@ -1,4 +1,13 @@
 # Soundboard Changelog
+## Version 2.0.7
+**MIDNIGHT 12.1.5 SUPPORT & LIBRARY REFRESH**
+
+### ✨ New Features
+- **Retail 12.1.x support**: Declared Interface `120100`, `120105` (live 12.1.5) and `120107` (12.1.7 PTR) so the addon no longer shows as out of date on current retail clients, and moved the CurseForge packaging versions to `12.1.0` / `12.1.5`.
+
+### 🔧 Bug Fixes
+- **Fixed options checkboxes on 12.1+**: Patch 12.1.0 removed the global `SetDesaturation()` helper that the bundled AceGUI-3.0 CheckBox widget relied on, which broke toggling options in the settings panel. Refreshed the bundled libraries to their current upstream releases (AceGUI-3.0 CheckBox 27, AceDB-3.0 minor 40, LibDBIcon-1.0 minor 57, plus AceAddon / AceComm / AceConsole / CallbackHandler / LibStub) so the source checkout matches what the packager ships. AceDB-3.0 40 also keys profiles correctly on WoW: Forever realms that use regional unique names.
+
 ## Version 2.0.6
 **WOW FOREVER SUPPORT & /hb CONFLICT FIX**
 
