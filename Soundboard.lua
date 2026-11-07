@@ -490,6 +490,19 @@ do
 	end
 end
 
+-- Combat log availability.
+-- Patch 12.0 (Midnight) removed addon access to COMBAT_LOG_EVENT_UNFILTERED outright:
+-- Frame:RegisterEvent() for that event is forbidden for addon code. The client answers with
+-- ADDON_ACTION_FORBIDDEN, which is what shows the "Soundboard has been blocked from an
+-- action only available to the Blizzard UI" popup. pcall cannot hide it, because the popup
+-- is driven by the event dispatched from C, not by the Lua error. WoW: Forever runs on the
+-- same 12.x engine, so it is restricted too. Classic Era / TBC / Cata / MoP are unaffected.
+function Soundboard:IsCombatLogRestricted()
+	if WOW_PROJECT_CAMELOT and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT then return true end
+	local _, _, _, tocVersion = GetBuildInfo()
+	return (tonumber(tocVersion) or 0) >= 120000
+end
+
 -- Expansion Detection for Dynamic Events
 local SoundboardExpansion = {}
 function SoundboardExpansion:GetCurrentExpansionIndex()
@@ -3854,6 +3867,22 @@ function DynamicEventsWindow:ShowHome()
 	local yOffset = -5
 	local buttonHeight = 22
 
+	if Soundboard:IsCombatLogRestricted() then
+		local noticeFS = self.content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		noticeFS:SetPoint("TOPLEFT", self.content, "TOPLEFT", SoundboardUI.Scale(8), yOffset)
+		noticeFS:SetWidth(360)
+		noticeFS:SetJustifyH("LEFT")
+		noticeFS:SetJustifyV("TOP")
+		noticeFS:SetWordWrap(true)
+		noticeFS:SetSpacing(2)
+		noticeFS:SetText(
+			"|cFFFF6600Not available on this client.|r |cFFCCCCCCBlizzard removed addon access to the combat log in Midnight (12.0) and WoW: Forever, so Dynamic Events cannot detect boss abilities here. Events you configure are kept and still work on Classic-era clients.|r"
+		)
+		local noticeHeight = noticeFS:GetStringHeight()
+		if noticeHeight < 20 then noticeHeight = 60 end
+		yOffset = yOffset - noticeHeight - 10
+	end
+
 	local addBtn = self:CreateButton("|cFF00FF00+ Create New Dynamic Event|r", yOffset)
 	addBtn:SetScript("OnClick", function()
 		self:WizardStep1()
@@ -5982,14 +6011,9 @@ local soundboard_data_sorted_keys = {};
 	self:RegisterEvent("PLAYER_ENTERING_WORLD"); -- Track loading screens
 	pcall(function() self:RegisterEvent("LOADING_SCREEN_ENABLED") end) -- 10.0.2+; safe no-op on older clients
 	pcall(function() self:RegisterEvent("LOADING_SCREEN_DISABLED") end)
-	-- NOTE: COMBAT_LOG_EVENT_UNFILTERED is intentionally NOT registered here.
-	-- CLEU is one of Blizzard's protected/secure events and RegisterEvent is blocked
-	-- ("ADDON FORBIDDEN: Frame:RegisterEvent()") whenever it's called from a tainted
-	-- execution stack. On Midnight 12.0.x the AceAddon init chain is commonly tainted
-	-- by other addons loaded earlier (ElvUI, Auctionator, DBM, etc. reading LibStub
-	-- or tainted globals), and that taint flows through AceAddon:InitializeAddon
-	-- into our OnInitialize. Instead we defer CLEU registration until PLAYER_LOGIN,
-	-- which fires with a clean Blizzard-originated stack.
+	-- NOTE: COMBAT_LOG_EVENT_UNFILTERED is registered from PLAYER_LOGIN via
+	-- RegisterCombatLogEvent, and only on clients that still expose the combat log to
+	-- addons (see Soundboard:IsCombatLogRestricted).
 	DebugPrint("Events registered: PLAYER_LOGIN/LOGOUT, PLAYER_DEAD, PLAYER_ALIVE, UNIT_AURA, LOADING_SCREEN (CLEU deferred to PLAYER_LOGIN)")
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", options, {"soundboard"})
 	
@@ -6321,6 +6345,7 @@ local soundboard_data_sorted_keys = {};
 			flavor = "Classic (project " .. tostring(WOW_PROJECT_ID) .. ")"
 		end
 		Soundboard:Print("Client: " .. flavor .. " " .. tostring(gameVersion) .. " build " .. tostring(buildNumber) .. " (TOC " .. tostring(tocVersion) .. ")")
+		Soundboard:Print("Combat log (Dynamic Events): " .. (Soundboard:IsCombatLogRestricted() and "not available to addons on this client" or "available"))
 		Soundboard:Print("soundboard_data exists: " .. tostring(soundboard_data ~= nil))
 		if soundboard_data then
 			Soundboard:Print("soundboard_data type: " .. type(soundboard_data))
@@ -8215,52 +8240,30 @@ function Soundboard:BroadcastSoundForEvent(soundKey, broadcastToGroup, broadcast
 	end
 end
 
--- Register a taint-sensitive event by re-entering Lua from Blizzard's timer dispatcher,
--- which provides a guaranteed clean execution stack. RegisterEvent for protected events
--- (COMBAT_LOG_EVENT_UNFILTERED, certain UNIT_* events) is rejected with
--- "ADDON FORBIDDEN: SoundboardEventFrame:RegisterEvent()" whenever *any* tainted Lua
--- frame is on the stack at the time of the call -- it does NOT matter whose frame is
--- the target, only who's on the caller stack. On Midnight 12.0.x, AceAddon's init chain
--- and even subsequent event dispatches are routinely tainted by other addons (ElvUI,
--- Auctionator, DBM) reading LibStub or tainted globals earlier in the session, so a
--- direct call from OnInitialize or even PLAYER_LOGIN can still be rejected. C_Timer.After
--- hops the call into Blizzard C -> fresh Lua stack. Retry with backoff handles the rare
--- case where the first timer tick also lands on a tainted stack.
-function Soundboard:RegisterProtectedEvent(event)
-	self._protectedEventState = self._protectedEventState or {}
-	if self._protectedEventState[event] then return end
-
-	local attempts = 0
-	local delays = {0, 0.25, 1, 3, 10, 30}
-	local function tryRegister()
-		if self._protectedEventState[event] then return end
-		attempts = attempts + 1
-		local ok = pcall(function() self:RegisterEvent(event) end)
-		if ok then
-			self._protectedEventState[event] = true
-			DebugPrint("[Events] Protected event " .. event .. " registered on attempt " .. attempts)
-			return
-		end
-		local nextDelay = delays[attempts + 1]
-		if nextDelay then
-			DebugPrint("[Events] " .. event .. " blocked (attempt " .. attempts .. "); retrying in " .. nextDelay .. "s")
-			C_Timer.After(nextDelay, tryRegister)
-		else
-			DebugPrint("[Events] " .. event .. " registration gave up after " .. attempts .. " attempts; feature disabled until /reload")
-		end
+-- Register COMBAT_LOG_EVENT_UNFILTERED for Dynamic Events on clients that still allow it.
+-- On Midnight 12.0+ and WoW: Forever the registration itself is forbidden (see
+-- IsCombatLogRestricted), so it must not even be attempted: the ADDON_ACTION_FORBIDDEN
+-- popup fires regardless of pcall, and the previous "hop to a clean stack and retry"
+-- approach (2.0.4 / 2.0.5) was a misdiagnosis that re-triggered the popup on every
+-- login and /reload.
+function Soundboard:RegisterCombatLogEvent()
+	if self._combatLogRegistered then return end
+	if self:IsCombatLogRestricted() then
+		DebugPrint("[DynamicEvents] Combat log is not available to addons on this client; Dynamic Events will not trigger")
+		return
 	end
-	C_Timer.After(delays[1], tryRegister)
+	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+	self._combatLogRegistered = true
+	DebugPrint("[DynamicEvents] COMBAT_LOG_EVENT_UNFILTERED registered")
 end
 
 -- Event Handlers
 function Soundboard:PLAYER_LOGIN(event, ...)
 	DebugPrint("PLAYER_LOGIN event triggered")
 
-	-- Register COMBAT_LOG_EVENT_UNFILTERED via the deferred timer path. See
-	-- RegisterProtectedEvent above for the full rationale: CLEU is a protected event and
-	-- its RegisterEvent call is rejected from any tainted stack, including PLAYER_LOGIN
-	-- dispatches tainted by earlier addons. The C_Timer hop guarantees a clean stack.
-	self:RegisterProtectedEvent("COMBAT_LOG_EVENT_UNFILTERED")
+	-- Register COMBAT_LOG_EVENT_UNFILTERED for Dynamic Events (skipped on clients where
+	-- Blizzard forbids it; see RegisterCombatLogEvent).
+	self:RegisterCombatLogEvent()
 
 	-- Check if this is a genuine login or just a reload
 	if self.playerStates.hasLoggedInThisSession then

@@ -1,4 +1,11 @@
 # Soundboard Changelog
+## Version 2.0.8
+**"BLOCKED FROM AN ACTION" POPUP FIX (MIDNIGHT & WOW FOREVER)**
+
+### 🔧 Bug Fixes
+- **Fixed the "Soundboard has been blocked from an action only available to the Blizzard UI" popup on login and `/reload`**: Patch 12.0 removed addon access to `COMBAT_LOG_EVENT_UNFILTERED` entirely, so the `RegisterEvent` call for it raises `ADDON_ACTION_FORBIDDEN` on Retail 12.x and on WoW: Forever (which runs on the same engine). The popup is driven by that event, not by the Lua error, so the `pcall` guard and the "re-enter from a clean stack and retry" workaround from 2.0.4 / 2.0.5 were a misdiagnosis: every retry re-triggered the popup. Soundboard now detects these clients (`Soundboard:IsCombatLogRestricted()`) and never attempts the registration there. Classic Era / TBC / Cata / MoP clients still register the combat log normally.
+- **Dynamic Events window explains the limitation**: On Retail 12.x and WoW: Forever the Dynamic Events window now shows a notice that boss-ability detection is unavailable on that client; configured events are kept and continue to work on Classic-era clients. `/soundboardcheck` also reports whether the combat log is available.
+
 ## Version 2.0.7
 **MIDNIGHT 12.1.5 SUPPORT & LIBRARY REFRESH**
 
