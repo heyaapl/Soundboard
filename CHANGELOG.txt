@@ -1,4 +1,10 @@
 # Soundboard Changelog
+## Version 2.0.9
+**NEW SOUND: "LOOK HOW THEY MASSACRED MY BOY"**
+
+### 🎵 New Sounds
+- **The Godfather - "Look how they massacred my boy"**: Added `/massacred` to the Default soundpack under Movies/TV, joining the existing `/offer` clip. Searchable as "godfather" in the sound browser; plays a `/cry` emote and reports that the player "mourns how they massacred his boy."
+
 ## Version 2.0.8
 **"BLOCKED FROM AN ACTION" POPUP FIX (MIDNIGHT & WOW FOREVER)**
 

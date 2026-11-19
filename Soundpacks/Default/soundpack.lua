@@ -1387,6 +1387,16 @@ soundboard_data["offer"] = {
 	["duration"] = 4,
 };
 
+soundboard_data["massacred"] = {
+	["text"] = 		"* Look how they massacred my boy. *",
+	["cmd1"] = "godfather",
+	["msg"] = "mourns how they massacred his boy.",
+	["emote"] = "cry",
+	["category"] = "Movies/TV",
+	["file"] = dir.."massacred.mp3",
+	["duration"] = 5,
+};
+
 soundboard_data["rsry"] = {
 	["text"] = 		"* I'm really really sorry! *",
 	["msg"] = "apologises profusely.",
